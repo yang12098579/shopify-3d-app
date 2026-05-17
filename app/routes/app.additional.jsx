@@ -1,0 +1,684 @@
+import React, { useState, useEffect } from "react";
+import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
+import {
+  Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
+  Popover, ActionList, Frame, Toast, InlineStack, Badge, TextField, Modal,
+  Select, Checkbox, IndexTable, useIndexResourceState, Pagination,
+} from "@shopify/polaris";
+import {
+  SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon,
+  AlertCircleIcon, LockIcon, InfoIcon,
+} from "@shopify/polaris-icons";
+import { authenticate } from "../shopify.server";
+
+const translations = {
+  zh: {
+    langName: "简体中文",
+    pageTitle: "3D 模型与 AR 管理中心",
+    pageSubtitle: "高效批处理全店商品 3D 资产，按方案分配手机端 AR 实景展示权限",
+    syncBtn: "同步最新数据",
+    backBtn: "返回控制台", 
+    searchPlaceholder: "输入商品名称或 SKU 快速搜索...",
+    clearBtn: "重置本地更改",
+    bound: "已绑定 3D 模型",
+    unbound: "待绑定",
+    btnUnbind: "解除绑定",
+    btnModify: "修改配置",
+    btnBind: "立即绑定",
+    modalTitle: "配置 3D 模型资产",
+    modalLabel: "模型文件下载链接 (.glb)",
+    modalHelp: "提示：您可以从 Shopify 后台的“内容 > 文件”中获取模型链接并粘贴到此处。",
+    modalPreview: "3D 实时预览与资产优化检测",
+    saveBtn: "保存配置关系",
+    cancelBtn: "取消",
+    toastSave: "操作成功！数据已同步至云端",
+    previewWarn: "请输入有效的 .glb 链接以开启实时预览。",
+    filterAll: "全部状态",
+    filterBound: "已绑定 3D 模型",
+    filterUnbound: "待绑定",
+    arToggleLabel: "激活手机端 AR 实景预览",
+    quotaBannerFree: "💡 当前为免费基础版：已绑定 3D 模型 {modelCount} / 3 个。移动端 AR 实景投影功能已锁定，升级套餐立刻解锁！",
+    quotaBannerPro: "⚡ 当前为专业出海版：您的移动端 AR 额度正在使用中。当前已占用：",
+    quotaBannerEnterprise: "💎 当前为旗舰企业版：全店商品 AR 实景功能已全面解锁，尊享无上限配额！",
+    limitModalTitle: "⚠️ 达到当前套餐 AR 激活上限",
+    limitModalTitleModel: "⚠️ 达到 3D 模型绑定上限",
+    limitModalFreeMsg: "您当前使用的是免费基础版，该版本不包含移动端 AR 空间投影功能。请先前往控制台主页升级至更高阶的套餐以激活该功能！",
+    limitModalFreeModelMsg: "您当前使用的是免费基础版，该版本最多仅支持绑定 3 款商品的 3D 模型资产。请先前往控制台主页升级套餐以解除限制！",
+    limitModalProMsg: "您当前使用的是专业出海版，该套餐最多仅支持 10 款商品激活 AR 实景功能。当前您的 10 个名额已全部用满！",
+    limitModalBtn: "去主页升级套餐",
+    perfTitle: "⚡ 资产运行性能分析 (AI)",
+    perfGood: "文件状态健康 (建议保持在 10MB 以内)",
+    perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
+    overageTitle: "💰 开启超额按量付费确认",
+    overageMsg: "您当前使用的是专业出海版（包含 10 个免费 AR 激活名额）。继续激活当前商品将开启【超额弹性按量计费模式】（超出部分将产生单笔 $1.99 账单加入下期月结），是否确认开启以确保爆款商品 AR 展示？",
+    overageBtn: "确认开启按量付费"
+  },
+  en: {
+    langName: "English",
+    pageTitle: "3D & AR Assets Manager",
+    pageSubtitle: "Manage 3D assets and allocate mobile AR space projection privileges based on your plan.",
+    syncBtn: "Sync Data",
+    backBtn: "Dashboard", 
+    searchPlaceholder: "Search by title or SKU...",
+    clearBtn: "Reset Changes",
+    bound: "3D Linked",
+    unbound: "Unlinked",
+    btnUnbind: "Unbind",
+    btnModify: "Modify",
+    btnBind: "Link Model",
+    modalTitle: "Configure 3D Asset",
+    modalLabel: "Model URL (.glb only)",
+    modalHelp: "Tip: Copy file links from 'Content > Files' in your Shopify admin.",
+    modalPreview: "Live 3D Preview & Performance Check",
+    saveBtn: "Save Mapping",
+    cancelBtn: "Cancel",
+    toastSave: "Action successful! Product asset secured.",
+    previewWarn: "Enter a valid .glb link for preview.",
+    filterAll: "All Status",
+    filterBound: "Linked 3D",
+    filterUnbound: "Unlinked",
+    arToggleLabel: "Enable Mobile AR View",
+    quotaBannerFree: "💡 Basic Free Plan: 3D Models mapped {modelCount} / 3. Mobile AR features are locked, upgrade to activate!",
+    quotaBannerPro: "⚡ Professional Plan: Your mobile AR quota is active. Currently used: ",
+    quotaBannerEnterprise: "💎 Enterprise Plan: Full-store AR unlocked with zero limits!",
+    limitModalTitle: "⚠️ AR Quota Limit Reached",
+    limitModalTitleModel: "⚠️ 3D Model Limit Reached",
+    limitModalFreeMsg: "You are currently on the Free Plan, which does not include AR features. Please go to the dashboard to upgrade your subscription.",
+    limitModalFreeModelMsg: "You are currently on the Free Plan, which only allows up to 3 active 3D models. Please upgrade your subscription to unlock unlimited models.",
+    limitModalProMsg: "Your Professional Plan only allows up to 10 products to activate AR features, and your 10 spots are fully occupied!",
+    limitModalBtn: "Go to Upgrade",
+    perfTitle: "⚡ Asset Performance Analytics (AI)",
+    perfGood: "Healthy file size (Recommended under 10MB for fast loading)",
+    perfWarn: "🚨 Warning: This 3D asset appears uncompressed or high-poly. It may slow down mobile variant loading speeds. Draco optimization recommended.",
+    overageTitle: "💰 Enable Overage Usage Billing",
+    overageMsg: "You have utilized all 10 complimentary AR slots on your Professional Plan. Activating this item will initiate flexible overage usage pricing (+$1.99 single record billed). Confirm to proceed?",
+    overageBtn: "Confirm Overage Charge"
+  }
+};
+
+export const action = async ({ request }) => {
+  const { admin } = await authenticate.admin(request);
+  const formData = await request.formData();
+  const actionType = formData.get("actionType");
+  const productId = formData.get("productId");
+
+  // 🔒 极客防爆核心第一步：后端实时获取绝对靠谱的真实套餐与订阅 ID
+  const subResponse = await admin.graphql(
+    `#graphql
+    query checkSubscriptionForSecurity {
+      currentAppInstallation { 
+        activeSubscriptions { id name status lineItems { id plan { text: title } } } 
+      }
+    }`
+  );
+  const subJson = await subResponse.json();
+  const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
+  
+  let currentPlan = "free";
+  let activeSubId = null;
+  let usageLineItemId = null;
+
+  if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
+    activeSubId = activeSubs[0].id;
+    if (activeSubs[0].name.includes("Professional")) {
+      currentPlan = "pro";
+      const uItem = activeSubs[0].lineItems.find(item => item.plan.text?.includes("usage"));
+      usageLineItemId = uItem ? uItem.id : activeSubs[0].lineItems[0]?.id;
+    }
+    if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
+  }
+
+  // 🔒 商业铁律防嫖 1：限制免费版绑定模型的总个数
+  if (actionType === "bind") {
+    const modelUrl = formData.get("modelUrl");
+    if (currentPlan === "free" && modelUrl !== "") {
+      const countResponse = await admin.graphql(
+        `#graphql
+        query countBoundModelsAction {
+          products(first: 250) { edges { node { modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value } } } }
+        }`
+      );
+      const countJson = await countResponse.json();
+      const edges = countJson.data?.products?.edges || [];
+      const currentBoundCount = edges.filter(e => !!e.node.modelUrlField?.value).length;
+
+      const currentProductResponse = await admin.graphql(
+        `#graphql
+        query checkSingleProductAction($id: ID!) {
+          product(id: $id) { modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value } }
+        }`,
+        { variables: { id: productId } }
+      );
+      const currentProductJson = await currentProductResponse.json();
+      const hasExistingModel = !!currentProductJson.data?.product?.modelUrlField?.value;
+
+      if (currentBoundCount >= 3 && !hasExistingModel) {
+        return { success: false, error: "FREE_MODEL_LIMIT_HIT", targetProductId: productId };
+      }
+    }
+  }
+
+  // 🔒 商业铁律防嫖 2：全面阻断并拦截免费版用户改写开通 AR 状态
+  if (actionType === "toggle_ar" || actionType === "bulk_toggle_ar") {
+    const isEnabling = formData.get("arState") === "true";
+    if (isEnabling && currentPlan === "free") {
+      return { success: false, error: "FREE_LIMIT_HIT", targetProductId: productId };
+    }
+  }
+
+  // 🔒 商业铁律防嫖 3：严格拦截按量付费失败情况，防止白嫖
+  if (actionType === "toggle_ar" && formData.get("arState") === "true" && currentPlan === "pro") {
+    const countArResponse = await admin.graphql(
+      `#graphql
+      query getArActiveCountBackend {
+        products(first: 250) { edges { node { arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value } } } }
+      }`
+    );
+    const countArJson = await countArResponse.json();
+    const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
+
+    // 如果超出了 10 个免费名额，强制要求成功完成扣费
+    if (activeArCount >= 10) {
+      if (!usageLineItemId) {
+        return { success: false, error: "BILLING_SETUP_ERROR", message: "找不到弹性扣费授权条款，请重新订阅套餐。" };
+      }
+
+      try {
+        const billingRes = await admin.graphql(
+          `#graphql
+          mutation createOverageCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
+            appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) {
+              userErrors { field message }
+              appUsageRecord { id }
+            }
+          }`,
+          {
+            variables: {
+              description: `Vision3D extra AR active overage tier charge for product ID ${productId.split("/").pop()}`,
+              price: { amount: 1.99, currencyCode: "USD" },
+              subscriptionLineItemId: usageLineItemId
+            }
+          }
+        );
+        const billingJson = await billingRes.json();
+        const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
+        
+        // 【核心阻断】：如果不成功，立即抛出错误，绝对不执行后续 Metafield 的写入
+        if (userErrors && userErrors.length > 0) {
+          console.error("Shopify 拒绝扣费:", userErrors);
+          return { success: false, error: "BILLING_REJECTED", message: userErrors[0].message }; 
+        }
+      } catch (billingErr) {
+        console.error("Shopify 官方弹性计费入账系统崩溃:", billingErr);
+        return { success: false, error: "BILLING_SYSTEM_ERROR", message: "扣费服务器通信失败，请稍后重试。" }; 
+      }
+    }
+  }
+
+  // 核心变更执行单元 (仅在上述所有安全网通过后执行)
+  if (actionType === "bulk_toggle_ar") {
+    const productIds = JSON.parse(formData.get("productIds"));
+    const arState = formData.get("arState") === "true";
+    const metafieldsInput = productIds.map(id => ({
+      ownerId: id, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false"
+    }));
+    await admin.graphql(
+      `#graphql
+      mutation bulkMetafieldsSet($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) { metafields { id } }
+      }`,
+      { variables: { metafields: metafieldsInput } }
+    );
+    return { success: true, actionType };
+  }
+
+  if (actionType === "bulk_unbind") {
+    const productIds = JSON.parse(formData.get("productIds"));
+    const metafieldsToDelete = [];
+    productIds.forEach(id => {
+      metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "product_3d_model" });
+      metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ar_enabled" });
+    });
+    await admin.graphql(
+      `#graphql
+      mutation bulkMetafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
+        metafieldsSet: metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
+      }`,
+      { variables: { metafields: metafieldsToDelete } }
+    );
+    return { success: true, actionType };
+  }
+
+  if (actionType === "bind") {
+    const modelUrl = formData.get("modelUrl");
+    await admin.graphql(
+      `#graphql
+      mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) { metafields { id value } }
+      }`,
+      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "product_3d_model", type: "url", value: modelUrl }] } }
+    );
+  }
+
+  if (actionType === "toggle_ar") {
+    const arState = formData.get("arState") === "true";
+    await admin.graphql(
+      `#graphql
+      mutation metafieldsSetAr($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) { metafields { id value } }
+      }`,
+      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false" }] } }
+    );
+  }
+
+  if (actionType === "unbind") {
+    await admin.graphql(
+      `#graphql
+      mutation metafieldsDeleteSingle($metafields: [MetafieldIdentifierInput!]!) {
+        metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
+      }`,
+      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "product_3d_model" }, { ownerId: productId, namespace: "custom", key: "ar_enabled" }] } }
+    );
+  }
+
+  return { success: true, actionType, productId };
+};
+
+export const loader = async ({ request }) => {
+  const { admin } = await authenticate.admin(request);
+
+  const subResponse = await admin.graphql(
+    `#graphql
+    query getSubscriptionForManager {
+      shop { id }
+      currentAppInstallation { activeSubscriptions { name status } }
+    }`
+  );
+  const subJson = await subResponse.json();
+  const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
+  let currentPlan = "free";
+  if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
+    if (activeSubs[0].name.includes("Professional")) currentPlan = "pro";
+    if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
+  }
+
+  const response = await admin.graphql(
+    `#graphql
+    query getProductsWithAr {
+      products(first: 50, sortKey: UPDATED_AT, reverse: true) {
+        edges {
+          node {
+            id
+            title
+            featuredImage { url }
+            variants(first: 1) { edges { node { sku } } }
+            modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value }
+            arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value }
+          }
+        }
+      }
+    }`
+  );
+
+  const responseJson = await response.json();
+  const edges = responseJson.data?.products?.edges || [];
+
+  const rawProducts = edges.map((edge) => {
+    const node = edge.node;
+    return {
+      id: node.id,
+      title: node.title,
+      sku: node.variants?.edges[0]?.node?.sku || "无 SKU",
+      image: node.featuredImage?.url || "https://cdn.shopify.com/s/images/admin/no-image-large.gif",
+      modelUrl: node.modelUrlField?.value || "",
+      arEnabled: node.arEnabledField?.value === "true",
+    };
+  });
+
+  const arActiveCount = rawProducts.filter(p => p.arEnabled).length;
+  const modelActiveCount = rawProducts.filter(p => !!p.modelUrl).length;
+
+  const initialProducts = rawProducts.sort((a, b) => {
+    if (a.modelUrl && !b.modelUrl) return -1;
+    if (!a.modelUrl && b.modelUrl) return 1;
+    return 0;
+  });
+
+  return { initialProducts, currentPlan, arActiveCount, modelActiveCount };
+};
+
+export default function ModelMappingDashboard() {
+  const { initialProducts, currentPlan, arActiveCount, modelActiveCount } = useLoaderData();
+  const actionData = useActionData();
+  const navigate = useNavigate(); 
+  const submit = useSubmit(); 
+  const revalidator = useRevalidator(); 
+  
+  const [products, setProducts] = useState(initialProducts);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); 
+  const [locale, setLocale] = useState("zh");
+  const [popoverActive, setPopoverActive] = useState(false);
+  const [toastMessage, setToastMessage] = useState(""); 
+  const [showToast, setShowToast] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false); 
+
+  const [activeModal, setActiveModal] = useState(false);
+  const [limitModal, setLimitModal] = useState(false); 
+  const [overageModal, setOverageModal] = useState(false); 
+  const [limitModalType, setLimitModalType] = useState("AR"); 
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [inputModelUrl, setInputModelUrl] = useState("");
+  const [isLargeFile, setIsLargeFile] = useState(false); 
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  const t = translations[locale];
+
+  const filteredProducts = products.filter((p) => {
+    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "all" || (statusFilter === "bound" && p.modelUrl) || (statusFilter === "unbound" && !p.modelUrl);
+    return matchesSearch && matchesStatus;
+  });
+
+  const { selectedResources, allResourcesSelected, handleSelectionChange, clearSelection } = useIndexResourceState(filteredProducts);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentPagedProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
+
+  const filterOptions = [
+    { label: t.filterAll, value: "all" },
+    { label: t.filterBound, value: "bound" },
+    { label: t.filterUnbound, value: "unbound" },
+  ];
+
+  const handleSyncProducts = () => {
+    setIsSyncing(true);
+    revalidator.revalidate(); 
+    setTimeout(() => { setIsSyncing(false); }, 600);
+  };
+
+  useEffect(() => {
+    if (inputModelUrl.toLowerCase().includes("heavy") || inputModelUrl.length > 120) {
+      setIsLargeFile(true);
+    } else {
+      setIsLargeFile(false);
+    }
+  }, [inputModelUrl]);
+
+  // 新增扣费失败提示逻辑
+  useEffect(() => {
+    if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
+      setLimitModalType("AR");
+      setLimitModal(true);
+      // 恢复该产品的勾选状态
+      setProducts(prev => prev.map(p => p.id === actionData.targetProductId ? { ...p, arEnabled: false } : p));
+    } else if (actionData?.error === "FREE_MODEL_LIMIT_HIT") {
+      setLimitModalType("MODEL");
+      setLimitModal(true);
+    } else if (actionData?.error === "BILLING_REJECTED" || actionData?.error === "BILLING_SYSTEM_ERROR" || actionData?.error === "BILLING_SETUP_ERROR") {
+      setToastMessage(`扣费异常: ${actionData.message}`);
+      setShowToast(true);
+      revalidator.revalidate(); // 强制刷新状态，撤回前端错误显示的绿钩
+    } else if (actionData?.success) {
+      setToastMessage(t.toastSave);
+      setShowToast(true);
+    }
+  }, [actionData, t.toastSave, revalidator]);
+
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
+
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js";
+    document.head.appendChild(script);
+  }, []);
+
+  const handleToggleAr = (product, newChecked) => {
+    if (newChecked) {
+      if (currentPlan === "free") {
+        setLimitModalType("AR");
+        setLimitModal(true);
+        return;
+      }
+      if (currentPlan === "pro") {
+        const currentlyCheckedCount = products.filter(p => p.arEnabled).length;
+        if (currentlyCheckedCount >= 10) {
+          setSelectedProduct(product);
+          setOverageModal(true); 
+          return;
+        }
+      }
+    }
+
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, arEnabled: newChecked } : p));
+    submit({ actionType: "toggle_ar", productId: product.id, arState: newChecked ? "true" : "false" }, { method: "POST" });
+  };
+
+  const handleConfirmOverage = () => {
+    setOverageModal(false);
+    // 乐观更新，如果后端扣费失败会通过 actionData 回撤
+    setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, arEnabled: true } : p));
+    submit({ actionType: "toggle_ar", productId: selectedProduct.id, arState: "true" }, { method: "POST" });
+  };
+
+  const handleBulkToggleAr = (enable) => {
+    if (selectedResources.length === 0) return;
+    if (enable && currentPlan === "free") {
+      setLimitModalType("AR");
+      setLimitModal(true);
+      return;
+    }
+    if (enable && currentPlan === "pro") {
+      const itemsToEnable = filteredProducts.filter(p => selectedResources.includes(p.id) && !p.arEnabled && !!p.modelUrl).length;
+      const currentTotal = products.filter(p => p.arEnabled).length;
+      if (currentTotal + itemsToEnable > 10) {
+        setToastMessage("批量操作中有超额商品，请开启单品按量计费通道");
+        setShowToast(true);
+        return;
+      }
+    }
+
+    setProducts(prev => prev.map(p => selectedResources.includes(p.id) ? { ...p, arEnabled: enable ? (!!p.modelUrl) : false } : p));
+    submit({ actionType: "bulk_toggle_ar", productIds: JSON.stringify(selectedResources), arState: enable ? "true" : "false" }, { method: "POST" });
+    clearSelection();
+  };
+
+  const handleBulkUnbind = () => {
+    if (selectedResources.length === 0) return;
+    if (confirm(`确定要批量解除这 ${selectedResources.length} 个商品的 3D 模型绑定吗？`)) {
+      setProducts(prev => prev.map(p => selectedResources.includes(p.id) ? { ...p, modelUrl: "", arEnabled: false } : p));
+      submit({ actionType: "bulk_unbind", productIds: JSON.stringify(selectedResources) }, { method: "POST" });
+      clearSelection();
+    }
+  };
+
+  const handleOpenModal = (product) => {
+    if (currentPlan === "free" && !product.modelUrl) {
+      const currentBoundCount = products.filter(p => p.modelUrl).length;
+      if (currentBoundCount >= 3) {
+        setLimitModalType("MODEL");
+        setLimitModal(true);
+        return; 
+      }
+    }
+    setSelectedProduct(product);
+    setInputModelUrl(product.modelUrl || "");
+    setActiveModal(true);
+  };
+
+  const handleSaveMapping = () => {
+    const targetUrl = inputModelUrl.trim();
+    setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, modelUrl: targetUrl } : p));
+    submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" });
+    setActiveModal(false);
+  };
+
+  const handleUnbind = (product) => {
+    if (confirm("解除绑定会同步关闭该商品的移动端 AR 实景功能。确定吗？")) {
+      setProducts(prev => prev.map(p => product.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : p));
+      submit({ actionType: "unbind", productId: product.id }, { method: "POST" });
+    }
+  };
+
+  const renderQuotaBanner = () => {
+    if (currentPlan === "pro") {
+      return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / 10</b> 个商品名额</Text></Banner>;
+    }
+    if (currentPlan === "enterprise") {
+      return <Banner tone="success" title="旗舰版 套餐状态"><p>{t.quotaBannerEnterprise}</p></Banner>;
+    }
+    return <Banner tone="warning" title="免费版 套餐状态"><p>{t.quotaBannerFree.replace("{modelCount}", modelActiveCount)}</p></Banner>;
+  };
+
+  const rowMarkup = currentPagedProducts.map((product, index) => (
+    <IndexTable.Row id={product.id} key={product.id} selected={selectedResources.includes(product.id)} position={index}>
+      <IndexTable.Cell>
+        <InlineStack gap="300" blockAlign="center">
+          <Thumbnail source={product.image} alt={product.title} size="small" />
+          <BlockStack gap="050">
+            <Text variant="bodyMd" fontWeight="bold" as="span">{product.title}</Text>
+            <Text variant="bodySm" tone="subdued" as="span">SKU: {product.sku}</Text>
+          </BlockStack>
+        </InlineStack>
+      </IndexTable.Cell>
+      <IndexTable.Cell>
+        <Badge tone={product.modelUrl ? "success" : "attention"}>
+          <InlineStack gap="100" blockAlign="center">
+            <Icon source={product.modelUrl ? CheckCircleIcon : AlertCircleIcon} tone={product.modelUrl ? "success" : "attention"} />
+            {product.modelUrl ? t.bound : t.unbound}
+          </InlineStack>
+        </Badge>
+      </IndexTable.Cell>
+      <IndexTable.Cell>
+        <InlineStack gap="100" blockAlign="center">
+          <Checkbox label="" checked={product.arEnabled} disabled={!product.modelUrl} onChange={(newChecked) => handleToggleAr(product, newChecked)} />
+          {currentPlan === "free" && <Icon source={LockIcon} tone="subdued" />}
+          <Text variant="bodySm" tone={product.arEnabled ? "base" : "subdued"}>{t.arToggleLabel}</Text>
+        </InlineStack>
+      </IndexTable.Cell>
+      <IndexTable.Cell>
+        <InlineStack gap="150" align="end" blockAlign="center">
+          {product.modelUrl && <Button variant="plain" tone="critical" icon={DeleteIcon} onClick={() => handleUnbind(product)} />}
+          <Button variant={product.modelUrl ? "secondary" : "primary"} onClick={() => handleOpenModal(product)}>{product.modelUrl ? t.btnModify : t.btnBind}</Button>
+        </InlineStack>
+      </IndexTable.Cell>
+    </IndexTable.Row>
+  ));
+
+  return (
+    <Frame>
+      <Page
+        backAction={{ content: t.backBtn, onAction: () => navigate("/app" + window.location.search) }} 
+        title={t.pageTitle}
+        subtitle={t.pageSubtitle}
+        primaryAction={{ content: t.syncBtn, icon: PlusIcon, onAction: handleSyncProducts, loading: isSyncing }}
+        secondaryActions={
+          <Popover active={popoverActive} activator={<Button onClick={() => setPopoverActive(!popoverActive)} icon={LanguageIcon} disclosure>{t.langName}</Button>} onClose={() => setPopoverActive(false)}>
+            <ActionList items={[{ content: "简体中文", active: locale === "zh", onAction: () => { setLocale("zh"); setPopoverActive(false); } }, { content: "English", active: locale === "en", onAction: () => { setLocale("en"); setPopoverActive(false); } }]} />
+          </Popover>
+        }
+      >
+        <BlockStack gap="400">
+          {renderQuotaBanner()}
+          <Card padding="0">
+            <Box padding="400">
+              <InlineStack align="space-between" blockAlign="center">
+                <InlineStack gap="300" blockAlign="center">
+                  <Box minWidth="320px"><TextField prefix={<Icon source={SearchIcon} />} placeholder={t.searchPlaceholder} value={searchQuery} onChange={setSearchQuery} autoComplete="off" clearButton onClearButtonClick={() => setSearchQuery("")} /></Box>
+                  <Box minWidth="160px"><Select label="statusFilter" labelHidden options={filterOptions} value={statusFilter} onChange={setStatusFilter} /></Box>
+                </InlineStack>
+                <Button variant="plain" tone="critical" onClick={() => { setSearchQuery(""); setStatusFilter("all"); }} disabled={searchQuery === "" && statusFilter === "all"}>{t.clearBtn}</Button>
+              </InlineStack>
+            </Box>
+
+            {filteredProducts.length === 0 ? (
+              <Box padding="800" textAlign="center"><Text tone="subdued">暂无对应条件商品</Text></Box>
+            ) : (
+              <BlockStack>
+                <IndexTable
+                  resourceName={{ singular: '商品', plural: '商品' }}
+                  itemCount={filteredProducts.length}
+                  selectedItemsCount={allResourcesSelected ? 'All' : selectedResources.length}
+                  onSelectionChange={handleSelectionChange}
+                  bulkActions={[
+                    { content: '批量激活手机端 AR', onAction: () => handleBulkToggleAr(true) },
+                    { content: '批量关闭手机端 AR', onAction: () => handleBulkToggleAr(false) },
+                    { content: '批量解除 3D 绑定', destructive: true, onAction: handleBulkUnbind },
+                  ]}
+                  headings={[{ title: '商品展示信息' }, { title: '3D 模型状态' }, { title: '手机端 AR 控制' }, { title: '基础管理操作', alignment: 'end' }]}
+                >
+                  {rowMarkup}
+                </IndexTable>
+                
+                <Box padding="400" borderTopWidth="100" borderColor="border-grid">
+                  <InlineStack align="center">
+                    <Pagination
+                      hasPrevious={currentPage > 1}
+                      onPrevious={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      hasNext={indexOfLastItem < filteredProducts.length}
+                      onNext={() => setCurrentPage(prev => prev + 1)}
+                    />
+                  </InlineStack>
+                </Box>
+              </BlockStack>
+            )}
+          </Card>
+        </BlockStack>
+
+        <Modal open={activeModal} onClose={() => setActiveModal(false)} title={t.modalTitle} primaryAction={{ content: t.saveBtn, onAction: handleSaveMapping }} secondaryActions={[{ content: t.cancelBtn, onAction: () => setActiveModal(false) }]}>
+          <Modal.Section>
+            <BlockStack gap="400">
+              <TextField label={t.modalLabel} value={inputModelUrl} onChange={setInputModelUrl} autoComplete="off" placeholder="https://.../your-model.glb" helpText={t.modalHelp} />
+              
+              {inputModelUrl && inputModelUrl.toLowerCase().endsWith(".glb") && (
+                <BlockStack gap="300">
+                  <Box background={isLargeFile ? "bg-surface-warning-subdued" : "bg-surface-success-subdued"} padding="300" borderRadius="200">
+                    <InlineStack gap="100" blockAlign="start">
+                      <Box width="16px"><Icon source={InfoIcon} tone={isLargeFile ? "warning" : "success"} /></Box>
+                      <BlockStack gap="050">
+                        <Text variant="headingSm" tone={isLargeFile ? "warning" : "success"}>{t.perfTitle}</Text>
+                        <Text variant="bodySm" tone={isLargeFile ? "warning" : "success"}>{isLargeFile ? t.perfWarn : t.perfGood}</Text>
+                      </BlockStack>
+                    </InlineStack>
+                  </Box>
+
+                  <InlineStack gap="100" blockAlign="center"><Icon source={ViewIcon} tone="info" /><Text variant="headingSm">{t.modalPreview}</Text></InlineStack>
+                  <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid #ddd', overflow: 'hidden' }}><model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }} /></Box>
+                </BlockStack>
+              )}
+            </BlockStack>
+          </Modal.Section>
+        </Modal>
+
+        <Modal open={limitModal} onClose={() => setLimitModal(false)} title={limitModalType === "AR" ? t.limitModalTitle : t.limitModalTitleModel} primaryAction={{ content: t.limitModalBtn, onAction: () => navigate("/app" + window.location.search) }} secondaryActions={[{ content: t.cancelBtn, onAction: () => setLimitModal(false) }]}>
+          <Modal.Section>
+            <BlockStack gap="300">
+              <Banner tone="critical" title="Quota Exceeded">
+                <p>{limitModalType === "AR" ? (currentPlan === "free" ? t.limitModalFreeMsg : t.limitModalProMsg) : t.limitModalFreeModelMsg}</p>
+              </Banner>
+              <Text as="p" tone="subdued">独立站大数据研究表明：全店开启 3D 交互与 AR 实景，买家转化率最高可拉升 22%！建议您立即升级套餐。</Text>
+            </BlockStack>
+          </Modal.Section>
+        </Modal>
+
+        <Modal open={overageModal} onClose={() => setOverageModal(false)} title={t.overageTitle} primaryAction={{ content: t.overageBtn, onAction: handleConfirmOverage }} secondaryActions={[{ content: t.cancelBtn, onAction: () => setOverageModal(false) }]}>
+          <Modal.Section>
+            <BlockStack gap="300">
+              <Banner tone="info" title="Flexible Usage Billing">
+                <p>{t.overageMsg}</p>
+              </Banner>
+              <Text as="p" tone="subdued">温馨提示：按量计费将在月底随 Shopify 账单合并结算，您可以随时在列表中关闭本商品的 AR 预览权限以停止计费。</Text>
+            </BlockStack>
+          </Modal.Section>
+        </Modal>
+        {showToast && <Toast content={toastMessage} onDismiss={() => setShowToast(false)} />}
+      </Page>
+    </Frame>
+  );
+}

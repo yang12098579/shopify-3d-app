@@ -1,0 +1,233 @@
+{% comment %}
+  商用高级版 3D 商品展示器 App Block
+  核心特性：
+  1. 计划等级感知：根据订阅等级自动显示/隐藏品牌水印（全面防范前后端绕过漏洞）。
+  2. 智能双源读取：优先读取商品 Metafield，配置项作为最后兜底。
+  3. 极速渲染：集成 Google <model-viewer> 4.0 引擎，实现双系统高保真 AR 控权。
+{% endcomment %}
+
+<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js" defer></script>
+
+{% comment %} 
+  步骤 1：获取店铺当前的计划等级以及免费版允许展示的商品白名单（隔离符包裹字符串）
+{% endcomment %}
+{% assign app_plan = shop.metafields.product_3d_app.plan_level %}
+{% assign allowed_products = shop.metafields.product_3d_app.allowed_products %}
+
+{% comment %} 
+  综合审查当前店铺是否具备合法的商业付费包身份
+{% endcomment %}
+{% assign is_premium_plan = false %}
+{% if app_plan contains "Pro" or app_plan contains "Professional" or app_plan contains "Enterprise" or app_plan contains "Flagship" or app_plan contains "专业" or app_plan contains "旗舰" %}
+  {% assign is_premium_plan = true %}
+{% endif %}
+
+{% comment %} 
+  步骤 2：智能数据寻址逻辑 - 完美读取新版 product_3d_model 元字段
+{% endcomment %}
+{% assign target_model_url = product.metafields.custom.product_3d_model %}
+{% assign ar_is_enabled = product.metafields.custom.ar_enabled %}
+
+{% comment %} 
+  🔒【第一道硬核防线：利用隔离符彻底堵死白嫖漏洞】
+{% endcomment %}
+{% capture search_id %}|{{ product.id }}|{% endcapture %}
+
+{% if is_premium_plan == false or is_premium_plan == blank %}
+  {% unless allowed_products contains search_id %}
+    {% assign target_model_url = blank %}
+  {% endunless %}
+  {% comment %} 免费版无条件关闭全店 AR 空间功能 {% endcomment %}
+  {% assign ar_is_enabled = false %}
+{% endif %}
+
+{% comment %} 
+  🔒【第二道硬核防线：彻底堵死前端主题编辑器输入框手动填链接的白嫖漏洞】
+{% endcomment %}
+{% if target_model_url == blank %}
+  {% if is_premium_plan %}
+    {% comment %} 只有付费版商家，才允许在前端主题面板里手动填链接展示 {% endcomment %}
+    {% assign target_model_url = block.settings.model_url %}
+    {% assign ar_is_enabled = true %}
+  {% else %}
+    {% comment %} 免费版商家如果在前端框手动填链接，直接无视并强行清空 {% endcomment %}
+    {% assign target_model_url = blank %}
+  {% endif %}
+{% endif %}
+
+<div class="product-3d-viewer-wrapper" style="width: 100%; max-width: 100%; margin: {{ block.settings.margin_y }}px 0; position: relative; overflow: hidden;">
+  {% if target_model_url != blank %}
+    <model-viewer
+      src="{{ target_model_url }}"
+      {% if block.settings.ios_model_url != blank %}ios-src="{{ block.settings.ios_model_url }}"{% endif %}
+      alt="{{ product.title | escape }} 3D Model"
+      shadow-intensity="{{ block.settings.shadow_intensity }}"
+      camera-controls
+      {% if block.settings.auto_rotate %}auto-rotate{% endif %}
+      {% if ar_is_enabled == "true" or ar_is_enabled == true %}ar ar-modes="webxr scene-viewer quick-look"{% endif %}
+      style="width: 100%; height: {{ block.settings.viewer_height }}px; background-color: {{ block.settings.bg_color }}; border-radius: {{ block.settings.border_radius }}px;"
+    >
+      {% comment %} 🔒 付费墙拦截：只有开关完全合法激活，前端才渲染 AR 按钮 {% endcomment %}
+      {% if ar_is_enabled == "true" or ar_is_enabled == true %}
+        <button slot="ar-button" style="background-color: white; border-radius: 6px; border: 1px solid #ddd; position: absolute; bottom: 16px; right: 16px; padding: 10px 16px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; gap: 8px; z-index: 10;">
+          <span style="font-size: 18px;">✨</span> 开启 AR 实景预览
+        </button>
+      {% endif %}
+
+      {% comment %} 
+        💎 水印付费墙：非高级套餐商户，页面强制烙印官方免费版水印，无法去除
+      {% endcomment %}
+      {% unless is_premium_plan %}
+        <div style="position: absolute; bottom: 10px; left: 12px; font-size: 10px; color: #adb5bd; opacity: 0.6; pointer-events: none; font-family: sans-serif; letter-spacing: 0.5px; z-index: 5;">
+          Powered by Vision3D Free
+        </div>
+      {% endunless %}
+      
+      {% comment %} 加载进度占位符 {% endcomment %}
+      <div slot="poster" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f8f9fa;">
+         <p style="color: #999; font-size: 13px;">正在同步 3D 渲染引擎...</p>
+      </div>
+    </model-viewer>
+
+    {% comment %} 📊 真实数据埋点追踪 {% endcomment %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const viewer = document.querySelector('model-viewer');
+        let interactionStartTime = 0;
+        let hasInteracted = false;
+
+        if (viewer) {
+          // 监听真实交互
+          viewer.addEventListener('camera-change', (event) => {
+            if (event.detail.source === 'user-interaction' && !hasInteracted) {
+              hasInteracted = true;
+              interactionStartTime = Date.now();
+            }
+          });
+
+          // 监听真实 AR 开启
+          viewer.addEventListener('ar-status', (event) => {
+            if (event.detail.status === 'session-started') {
+              fetch('/apps/api/track', { // 请确保此路径与你的 App Proxy 设置一致
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventType: 'ar_click' })
+              }).catch(e => console.error(e));
+            }
+          });
+
+          // 页面隐藏/卸载前发送真实停留时间
+          window.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden' && hasInteracted) {
+              const stayTime = Date.now() - interactionStartTime;
+              if (stayTime > 1000) { 
+                const blob = new Blob([JSON.stringify({ eventType: 'view', timeMs: stayTime })], {type: 'application/json'});
+                navigator.sendBeacon('/apps/api/track', blob);
+                hasInteracted = false; 
+              }
+            }
+          });
+        }
+      });
+    </script>
+
+  {% else %}
+    {% comment %} 当所有数据源均为空或因免费超额被系统强行熔断隐藏时的引导占位符 {% endcomment %}
+    <div style="width: 100%; height: {{ block.settings.viewer_height }}px; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8f9fa; border: 2px dashed #ced4da; border-radius: {{ block.settings.border_radius }}px; padding: 24px; text-align: center;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+      </svg>
+      <p style="color: #495057; font-size: 15px; font-weight: bold; margin: 0 0 4px 0;">3D 展示模块已就位</p>
+      <p style="color: #6c757d; font-size: 12px; max-width: 280px; line-height: 1.5;">
+        系统未检测到 3D 资产链接，或由于当前免费套餐超额限制已暂停网页端渲染。请前往<b>插件后台</b>查看名额分配。
+      </p>
+    </div>
+  {% endif %}
+</div>
+
+{% schema %}
+{
+  "name": "商品 3D 展示器",
+  "target": "section",
+  "templates": ["product"],
+  "settings": [
+    {
+      "type": "header",
+      "content": "🛠️ 数据源配置"
+    },
+    {
+      "type": "paragraph",
+      "content": "提示：本模块 support 全自动映射。如果您已在插件后台为该商品绑定了 3D 模型，下方链接框可保持留空。"
+    },
+    {
+      "type": "text",
+      "id": "model_url",
+      "label": "静态兜底 3D 链接 (.glb)",
+      "info": "仅当后台未配置该商品 model 时生效。"
+    },
+    {
+      "type": "text",
+      "id": "ios_model_url",
+      "label": "iOS 专用 AR 链接 (.usdz)",
+      "info": "可选。用于提升 iPhone 用户的 AR 投影精度。"
+    },
+    {
+      "type": "header",
+      "content": "🎨 视觉控制"
+    },
+    {
+      "type": "range",
+      "id": "viewer_height",
+      "min": 300,
+      "max": 800,
+      "step": 50,
+      "unit": "px",
+      "label": "视窗显示高度",
+      "default": 450
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "背景色 (十六进制)",
+      "default": "#fcfcfc"
+    },
+    {
+      "type": "range",
+      "id": "shadow_intensity",
+      "min": 0,
+      "max": 2,
+      "step": 0.2,
+      "label": "底部阴影浓度",
+      "default": 1
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_rotate",
+      "label": "开启自动匀速旋转",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "容器圆角弧度",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "margin_y",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "模块上下外边距",
+      "default": 20
+    }
+  ]
+}
+{% endschema %}
