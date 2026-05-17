@@ -1,8 +1,8 @@
 # =================================================================
-# 1. 应用核心标识声明
+# 1. 应用核心标识声明 (已同步你截图里的真实客户端 ID)
 # =================================================================
-client_id = "c178646681bdf9f280c3b309d443c9c1"
-application_url = "https://example.com"
+client_id = "27a6b6770a4af998e5601b052e0d0b53"
+application_url = "https://shopify-3d-app-phi.vercel.app"
 embedded = true
 name = "Product-3D-Viewer"
 
@@ -24,7 +24,7 @@ description = "Stores the mapped or AI-generated .glb 3D asset link"
   admin = "merchant_read_write"
 
 # =================================================================
-# 4. Webhook 事件订阅 & GDPR 隐私合规
+# 4. Webhook 事件订阅 & GDPR 隐私合规 (同步至 Vercel 线上)
 # =================================================================
 [webhooks]
 api_version = "2026-07"
@@ -47,14 +47,14 @@ api_version = "2026-07"
 # 5. 路由鉴权与构建行为
 # =================================================================
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://shopify-3d-app-phi.vercel.app/api/auth" ]
 
 [build]
 include_config_on_deploy = true
 automatically_update_urls_on_dev = true
 
 # =================================================================
-# 6. 原生导航菜单 (解决自动登录的关键)
+# 6. 原生导航菜单
 # =================================================================
 [navigation]
 view_history = true
@@ -71,6 +71,6 @@ view_history = true
 # 7. 应用代理配置 (打通 C 端买家真实数据收集隧道)
 # =================================================================
 [app_proxy]
-url = "https://example.com/api"
+url = "https://shopify-3d-app-phi.vercel.app/api"
 subpath = "api"
 prefix = "apps"

@@ -29,17 +29,20 @@ const shopify = shopifyApp({
   billing: {
     [PLAN_PRO]: {
       lineItems: [
+        // 1. 固定月费项目
         {
           amount: 29.99,
           currencyCode: 'USD',
           interval: BillingInterval.Every30Days,
         },
-        // ❗ 核心修复：必须在全局注册 usage 弹性计费项，否则 Shopify 会判定为非法扣款
+        // 2. 弹性按量计费项目（核心修复：已纠正为标准的 cappedAmount 嵌套对象）
         {
-          amount: 1.99,
-          currencyCode: 'USD',
           interval: BillingInterval.Usage,
-          terms: "Vision3D Extra AR product preview active mode overage usage tier",
+          terms: "Vision3D Extra AR product preview ($1.99 per extra active model overage)",
+          cappedAmount: {
+            amount: 100.00, // 每月允许的最大弹性扣款封顶金额
+            currencyCode: 'USD',
+          },
         }
       ],
       trialDays: 3, 
