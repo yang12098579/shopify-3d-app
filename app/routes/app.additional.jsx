@@ -103,11 +103,24 @@ export const action = async ({ request }) => {
   const productId = formData.get("productId");
 
   // 🔒 极客防爆核心第一步：后端实时获取绝对靠谱的真实套餐与订阅 ID
+  // 💡 修复：去掉了不存在的 title 字段，改用 pricingDetails 查询计费类型
   const subResponse = await admin.graphql(
     `#graphql
     query checkSubscriptionForSecurity {
       currentAppInstallation { 
-        activeSubscriptions { id name status lineItems { id plan { text: title } } } 
+        activeSubscriptions { 
+          id 
+          name 
+          status 
+          lineItems { 
+            id 
+            plan { 
+              pricingDetails { 
+                __typename 
+              } 
+            } 
+          } 
+        } 
       }
     }`
   );
@@ -122,7 +135,10 @@ export const action = async ({ request }) => {
     activeSubId = activeSubs[0].id;
     if (activeSubs[0].name.includes("Professional")) {
       currentPlan = "pro";
-      const uItem = activeSubs[0].lineItems.find(item => item.plan.text?.includes("usage"));
+      // 💡 修复：利用 __typename 精准找到按量计费的那个项目 (AppUsagePricing)
+      const uItem = activeSubs[0].lineItems.find(item => 
+        item.plan?.pricingDetails?.__typename === "AppUsagePricing"
+      );
       usageLineItemId = uItem ? uItem.id : activeSubs[0].lineItems[0]?.id;
     }
     if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
@@ -249,7 +265,6 @@ export const action = async ({ request }) => {
     return { success: true, actionType };
   }
 
-  // 💡 核心修复：更正了 type 为 "single_line_text_field" 并增加了 userErrors 捕获
   if (actionType === "bind") {
     const modelUrl = formData.get("modelUrl");
     await admin.graphql(
