@@ -36,6 +36,7 @@ const translations = {
     filterAll: "全部状态",
     filterBound: "已绑定 3D 模型",
     filterUnbound: "待绑定",
+    filterArActive: "已激活 AR 实景", // 💡 新增筛选文案
     arToggleLabel: "激活手机端 AR 实景预览",
     quotaBannerFree: "💡 当前为免费基础版：已绑定 3D 模型 {modelCount} / 3 个。移动端 AR 实景投影功能已锁定，升级套餐立刻解锁！",
     quotaBannerPro: "⚡ 当前为专业出海版：您的移动端 AR 额度正在使用中。当前已占用：",
@@ -44,7 +45,7 @@ const translations = {
     limitModalTitleModel: "⚠️ 达到 3D 模型绑定上限",
     limitModalFreeMsg: "您当前使用的是免费基础版，该版本不包含移动端 AR 空间投影功能。请先前往控制台主页升级至更高阶的套餐以激活该功能！",
     limitModalFreeModelMsg: "您当前使用的是免费基础版，该版本最多仅支持绑定 3 款商品的 3D 模型资产。请先前往控制台主页升级套餐以解除限制！",
-    limitModalProMsg: "您当前使用的是专业出海版，该套餐最多仅支持 10 款商品激活 AR 实景功能。当前您的 10 个名额已全部用满！",
+    limitModalProMsg: "您当前使用的是专业出海版，该套餐最多仅支持 10 款商品激活 AR 实景功能。当前您的所有可用名额已全部用满！",
     limitModalBtn: "去主页升级套餐",
     perfTitle: "⚡ 资产运行性能分析 (AI)",
     perfGood: "文件状态健康 (建议保持在 10MB 以内)",
@@ -77,6 +78,7 @@ const translations = {
     filterAll: "All Status",
     filterBound: "Linked 3D",
     filterUnbound: "Unlinked",
+    filterArActive: "AR Activated", // 💡 新增筛选文案
     arToggleLabel: "Enable Mobile AR View",
     quotaBannerFree: "💡 Basic Free Plan: 3D Models mapped {modelCount} / 3. Mobile AR features are locked, upgrade to activate!",
     quotaBannerPro: "⚡ Professional Plan: Your mobile AR quota is active. Currently used: ",
@@ -85,12 +87,12 @@ const translations = {
     limitModalTitleModel: "⚠️ 3D Model Limit Reached",
     limitModalFreeMsg: "You are currently on the Free Plan, which does not include AR features. Please go to the dashboard to upgrade your subscription.",
     limitModalFreeModelMsg: "You are currently on the Free Plan, which only allows up to 3 active 3D models. Please upgrade your subscription to unlock unlimited models.",
-    limitModalProMsg: "Your Professional Plan only allows up to 10 products to activate AR features, and your 10 spots are fully occupied!",
+    limitModalProMsg: "Your Professional Plan only allows up to 10 products to activate AR features, and all your spots are fully occupied!",
     limitModalBtn: "Go to Upgrade",
     perfTitle: "⚡ Asset Performance Analytics (AI)",
     perfGood: "Healthy file size (Recommended under 10MB for fast loading)",
     perfWarn: "🚨 Warning: This 3D asset appears uncompressed or high-poly. It may slow down mobile variant loading speeds. Draco optimization recommended.",
-    overageTitle: "💎 Unlock Extra AR Product Slot",
+    overageTitle: "Unlock Extra AR Product Slot",
     overageMsg: "You have utilized all 10 complimentary AR slots. Confirm to spend $1.99 to unlock 1 permanent extra product slot. You can freely swap items within this quota.",
     overageBtn: "Unlock Extra Slot"
   }
@@ -102,7 +104,6 @@ export const action = async ({ request }) => {
   const actionType = formData.get("actionType");
   const productId = formData.get("productId");
 
-  // 🔒 极客防爆核心第一步：后端实时获取绝对靠谱的真实套餐、扩展坑位及订阅 ID
   const subResponse = await admin.graphql(
     `#graphql
     query checkSubscriptionForSecurity {
@@ -119,25 +120,22 @@ export const action = async ({ request }) => {
   const extraSlots = parseInt(subJson.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
   
   let currentPlan = "free";
-  let activeSubId = null;
   let usageLineItemId = null;
 
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
-    activeSubId = activeSubs[0].id;
     if (activeSubs[0].name.includes("Professional")) {
       currentPlan = "pro";
       const uItem = activeSubs[0].lineItems.find(item => 
         item.plan?.pricingDetails?.__typename === "AppUsagePricing"
       );
-      usageLineItemId = uItem ? uItem.id : activeSubs[0].lineItems[0]?.id;
+      usageLineItemId = uItem ? uItem.id : null; // 💡 增强防御：找不到不准滥用 recurringId
     }
     if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
   }
 
-  // 🔒 新增商业闭环：独立执行“购买扩展坑位”动作，扣费成功才给 extra_slots + 1
   if (actionType === "buy_slot") {
     if (!usageLineItemId) {
-      return { success: false, error: "BILLING_SETUP_ERROR", message: "找不到弹性扣费授权条款，请重新订阅套餐。" };
+      return { success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新订阅 29.99 套餐后再试。" };
     }
     try {
       const currentSlots = parseInt(formData.get("currentSlots") || "0", 10);
@@ -164,12 +162,14 @@ export const action = async ({ request }) => {
         return { success: false, error: "BILLING_REJECTED", message: userErrors[0].message }; 
       }
       
-      // 核心记账：将新的坑位总数累加，写回 Shopify App 自身的专属元字段中
       const newSlotsValue = (currentSlots + 1).toString();
-      await admin.graphql(
+      const metafieldRes = await admin.graphql(
         `#graphql
         mutation setExtraSlots($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) { metafields { id } }
+          metafieldsSet(metafields: $metafields) { 
+            metafields { id } 
+            userErrors { field message }
+          }
         }`,
         {
           variables: {
@@ -186,11 +186,10 @@ export const action = async ({ request }) => {
       
       return { success: true, actionType: "buy_slot", productId };
     } catch (err) {
-      return { success: false, error: "BILLING_SYSTEM_ERROR", message: "通信失败，请稍后重试。" };
+      return { success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 计费服务器通信失败。" };
     }
   }
 
-  // 🔒 商业铁律防嫖 1：限制免费版绑定模型的总个数
   if (actionType === "bind") {
     const modelUrl = formData.get("modelUrl");
     if (currentPlan === "free" && modelUrl !== "") {
@@ -220,7 +219,6 @@ export const action = async ({ request }) => {
     }
   }
 
-  // 🔒 商业铁律防嫖 2：全面阻断并拦截免费版和超出动态扩展名额的白嫖勾选
   if (actionType === "toggle_ar") {
     const isEnabling = formData.get("arState") === "true";
     if (isEnabling) {
@@ -237,7 +235,6 @@ export const action = async ({ request }) => {
         const countArJson = await countArResponse.json();
         const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
 
-        // 💡 动态防白嫖拦截：只有当激活数超过了 10 + 商家购买的额外坑位时，才进行强制打回
         if (activeArCount >= (10 + extraSlots)) {
           return { success: false, error: "PRO_LIMIT_HIT", targetProductId: productId };
         }
@@ -245,7 +242,6 @@ export const action = async ({ request }) => {
     }
   }
 
-  // 核心变更执行单元 (仅在上述所有安全网通过后执行)
   if (actionType === "bulk_toggle_ar") {
     const productIds = JSON.parse(formData.get("productIds"));
     const arState = formData.get("arState") === "true";
@@ -332,7 +328,6 @@ export const loader = async ({ request }) => {
   );
   const subJson = await subResponse.json();
   const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
-  // 💡 修复：从元字段中读取该商店额外购买的坑位数量
   const extraSlots = parseInt(subJson.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
 
   let currentPlan = "free";
@@ -415,9 +410,16 @@ export default function ModelMappingDashboard() {
 
   const t = translations[locale];
 
+  // 💡 核心筛选升级：加入了 ar_active 的状态判断
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || (statusFilter === "bound" && p.modelUrl) || (statusFilter === "unbound" && !p.modelUrl);
+    
+    let matchesStatus = false;
+    if (statusFilter === "all") matchesStatus = true;
+    else if (statusFilter === "bound") matchesStatus = !!p.modelUrl;
+    else if (statusFilter === "unbound") matchesStatus = !p.modelUrl;
+    else if (statusFilter === "ar_active") matchesStatus = !!p.modelUrl && p.arEnabled;
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -431,6 +433,7 @@ export default function ModelMappingDashboard() {
     { label: t.filterAll, value: "all" },
     { label: t.filterBound, value: "bound" },
     { label: t.filterUnbound, value: "unbound" },
+    { label: t.filterArActive, value: "ar_active" }, // 💡 UI 中追加 AR 筛选项
   ];
 
   const handleSyncProducts = () => {
@@ -447,22 +450,20 @@ export default function ModelMappingDashboard() {
     }
   }, [inputModelUrl]);
 
-  // 处理后端的返回结果
   useEffect(() => {
     if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
       setLimitModalType("AR");
       setLimitModal(true);
-      setProducts(prev => prev.map(p => p.id === actionData.targetProductId ? { ...p, arEnabled: false } : p));
+      revalidator.revalidate(); 
     } else if (actionData?.error === "FREE_MODEL_LIMIT_HIT") {
       setLimitModalType("MODEL");
       setLimitModal(true);
     } else if (actionData?.error === "BILLING_REJECTED" || actionData?.error === "BILLING_SYSTEM_ERROR" || actionData?.error === "BILLING_SETUP_ERROR") {
-      setToastMessage(`开通失败: ${actionData.message}`);
+      setToastMessage(`开通异常: ${actionData.message}`);
       setShowToast(true);
       revalidator.revalidate(); 
     } else if (actionData?.success && actionData?.actionType === "buy_slot") {
-      // 💡 极客体验核心：成功购买坑位后，自动静默帮商家把刚才选中的那个商品勾选上！全流程无感切换
-      setToastMessage("成功开通 1 个额外高级 AR 扩容坑位！");
+      setToastMessage("成功购买并激活 1 个额外高级 AR 扩容坑位！");
       setShowToast(true);
       submit({ actionType: "toggle_ar", productId: actionData.productId, arState: "true" }, { method: "POST" });
     } else if (actionData?.success) {
@@ -491,7 +492,7 @@ export default function ModelMappingDashboard() {
       }
       if (currentPlan === "pro") {
         const currentlyCheckedCount = products.filter(p => p.arEnabled).length;
-        // 💡 动态判断：激活数超过了【10 + 商家已购坑位数】，才会弹窗提示购买坑位
+        // 💡 如果在可用坑位以内，直接通过，再也不会弹窗干扰！
         if (currentlyCheckedCount >= (10 + extraSlots)) {
           setSelectedProduct(product);
           setOverageModal(true); 
@@ -506,7 +507,6 @@ export default function ModelMappingDashboard() {
 
   const handleConfirmOverage = () => {
     setOverageModal(false);
-    // 💡 改变表单提交：现在点击确认是去向后端购买坑位，而不是高频扣费
     submit({ actionType: "buy_slot", currentSlots: extraSlots.toString(), productId: selectedProduct.id }, { method: "POST" });
   };
 
@@ -521,7 +521,7 @@ export default function ModelMappingDashboard() {
       const itemsToEnable = filteredProducts.filter(p => selectedResources.includes(p.id) && !p.arEnabled && !!p.modelUrl).length;
       const currentTotal = products.filter(p => p.arEnabled).length;
       if (currentTotal + itemsToEnable > (10 + extraSlots)) {
-        setToastMessage("批量操作中名额不足，请在列表中单独开通高级扩展坑位");
+        setToastMessage("批量激活数量超出了当前坑位上限，请单独点击开通坑位。");
         setShowToast(true);
         return;
       }
