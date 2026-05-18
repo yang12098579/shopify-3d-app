@@ -57,7 +57,7 @@ const translations = {
     tierProF4: "享受全球 CDN 静态资产极速加载加速",
     tierProF5: "解锁完整的 ROI 互动统计看板",
     tierProPrice: "/ 每 30 天",
-    trialText: "✨ 包含 3 天免费试用，包含弹性超额通道 ($1.99/款/月)",
+    trialText: "✨ 包含 3 天免费试用 (超出 10 款后按 $1.99/款/月 灵活计费)", // 💡 已优化方案A
     tierEntName: "旗舰企业版",
     tierEntF1: "包含专业版所有的全部高级权益",
     tierEntF2: "🚀 全店商品 AR 空间投影完全不限数量",
@@ -118,7 +118,7 @@ const translations = {
     tierProF4: "Global CDN acceleration for fast loading",
     tierProF5: "Unlock full ROI performance dashboard",
     tierProPrice: "/ mo",
-    trialText: "✨ Includes 3-Day Free Trial, with support for Overage ($1.99/mo/item)",
+    trialText: "✨ Includes 3-Day Free Trial (Flexible $1.99/mo per extra active item)", // 💡 已优化方案A
     tierEntName: "Enterprise Plan",
     tierEntF1: "Everything in Professional Plan",
     tierEntF2: "🚀 Unlimited products for mobile AR views",
@@ -180,7 +180,6 @@ export const action = async ({ request }) => {
   ];
 
   if (intent === "upgrade_pro") {
-    // 💡 核心修复区域：去除了非法的 price 字段，并将 cappedAmount 改为标准的嵌套对象
     lineItemsPayload.push({
       plan: {
         appUsagePricingDetails: {
