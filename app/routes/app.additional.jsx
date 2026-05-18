@@ -51,8 +51,8 @@ const translations = {
     perfGood: "文件状态健康 (建议保持在 10MB 以内)",
     perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
     overageTitle: "💎 开启额外 AR 扩展坑位",
-    overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外购买 1 个高级 AR 扩展坑位（额度上限扩容），本月内该坑位商品可任意替换，次月随套餐自动续杯，是否立即开通？",
-    overageBtn: "确认购买扩展坑位"
+    overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外开通 1 个高级 AR 扩展席位（本月计费启用），本月内该席位额度可任意替换商品，次月若保持勾选将自动续杯，是否立即开通？",
+    overageBtn: "确认开通扩展坑位"
   },
   en: {
     langName: "English",
@@ -93,7 +93,7 @@ const translations = {
     perfGood: "Healthy file size (Recommended under 10MB for fast loading)",
     perfWarn: "🚨 Warning: This 3D asset appears uncompressed or high-poly. It may slow down mobile variant loading speeds. Draco optimization recommended.",
     overageTitle: "Unlock Extra AR Product Slot",
-    overageMsg: "You have utilized all 10 complimentary AR slots. Confirm to spend $1.99 to unlock 1 extra product slot (renews monthly). You can freely swap items within this quota.",
+    overageMsg: "You have utilized all 10 complimentary AR slots. Confirm to spend $1.99 to unlock 1 extra product slot (renews monthly if kept active). You can freely swap items within this quota.",
     overageBtn: "Unlock Extra Slot"
   }
 };
@@ -156,31 +156,27 @@ export const action = async ({ request }) => {
         }
       );
       const billingJson = await billingRes.json();
-      
-      // 💡 【核心调试行】：直接将 Shopify 原始的扣费入账状态打印出来，全透明对账！
       console.log("👉 [DEBUG_BILLING] 核心扣费接口官方返回结果:", JSON.stringify(billingJson.data?.appUsageRecordCreate));
 
       const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
-      
       if (userErrors && userErrors.length > 0) {
         return { success: false, error: "BILLING_REJECTED", message: userErrors[0].message }; 
       }
       
       const newSlotsValue = (currentSlots + 1).toString();
+      const currentMonthStr = new Date().toISOString().substring(0, 7); 
+
       await admin.graphql(
         `#graphql
-        mutation setExtraSlots($metafields: [MetafieldsSetInput!]!) {
+        mutation setExtraSlotsAndMonth($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) { metafields { id } }
         }`,
         {
           variables: {
-            metafields: [{
-              ownerId: appInstallationId,
-              namespace: "custom",
-              key: "extra_slots",
-              type: "integer",
-              value: newSlotsValue
-            }]
+            metafields: [
+              { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: newSlotsValue },
+              { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
+            ]
           }
         }
       );
@@ -322,18 +318,30 @@ export const loader = async ({ request }) => {
     query getSubscriptionForManager {
       shop { id }
       currentAppInstallation { 
-        activeSubscriptions { name status } 
+        id
+        activeSubscriptions { id name status lineItems { id plan { pricingDetails { __typename } } } } 
         extraSlotsField: metafield(namespace: "custom", key: "extra_slots") { value }
+        lastMonthField: metafield(namespace: "custom", key: "last_charged_month") { value }
       }
     }`
   );
   const subJson = await subResponse.json();
+  const appInstallationId = subJson.data?.currentAppInstallation?.id;
   const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
-  const extraSlots = parseInt(subJson.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
+  let extraSlots = parseInt(subJson.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
+  const lastChargedMonth = subJson.data?.currentAppInstallation?.lastMonthField?.value || "";
 
   let currentPlan = "free";
+  let usageLineItemId = null;
+
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
-    if (activeSubs[0].name.includes("Professional")) currentPlan = "pro";
+    if (activeSubs[0].name.includes("Professional")) {
+      currentPlan = "pro";
+      const uItem = activeSubs[0].lineItems.find(item => 
+        item.plan?.pricingDetails?.__typename === "AppUsagePricing"
+      );
+      usageLineItemId = uItem ? uItem.id : null;
+    }
     if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
   }
 
@@ -370,10 +378,75 @@ export const loader = async ({ request }) => {
     };
   });
 
+  // 💡 【大厂商业闭环：动态月度席位自动续费/退订检查】
+  const currentMonthStr = new Date().toISOString().substring(0, 7); 
   const arActiveCount = rawProducts.filter(p => p.arEnabled).length;
+
+  if (currentPlan === "pro" && lastChargedMonth !== currentMonthStr && usageLineItemId) {
+    try {
+      // 次月开盘清点：超出免费10个额度外的实际留存勾选商品数
+      const actualExcess = Math.max(0, arActiveCount - 10);
+      
+      if (actualExcess > 0) {
+        const totalOveragePrice = (actualExcess * 1.99).toFixed(2);
+        const renewRes = await admin.graphql(
+          `#graphql
+          mutation autoRenewSlotsCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
+            appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) {
+              userErrors { field message }
+              appUsageRecord { id }
+            }
+          }`,
+          {
+            variables: {
+              description: `Vision3D extra ${actualExcess} AR slots monthly subscription auto-renewal`,
+              price: { amount: parseFloat(totalOveragePrice), currencyCode: "USD" },
+              subscriptionLineItemId: usageLineItemId
+            }
+          }
+        );
+        const renewJson = await renewRes.json();
+        const renewErrors = renewJson.data?.appUsageRecordCreate?.userErrors;
+
+        if (!renewErrors || renewErrors.length === 0) {
+          console.log(`👉 [AUTO_RENEW_SUCCESS] 成功帮商家续费了本月持续勾选的 ${actualExcess} 个超额 AR 席位，扣费 $${totalOveragePrice}`);
+          extraSlots = actualExcess; 
+        } else {
+          extraSlots = 0; 
+        }
+      } else {
+        // 商家在月底前把勾选撤回到了10个以内 ➔ 自动退订，次月0元白嫖！
+        console.log("👉 [AUTO_RENEW_CANCEL] 商家已将激活数缩减至10个以内，本月无需续费扩展席位。");
+        extraSlots = 0;
+      }
+
+      // 同步最新席位限制与本月时间戳印章至云端
+      await admin.graphql(
+        `#graphql
+        mutation updateRenewMonth($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) { metafields { id } }
+        }`,
+        {
+          variables: {
+            metafields: [
+              { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: extraSlots.toString() },
+              { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
+            ]
+          }
+        }
+      );
+    } catch (renewErr) {
+      console.error("👉 自动续费通信异常:", renewErr);
+    }
+  }
+
   const modelActiveCount = rawProducts.filter(p => !!p.modelUrl).length;
 
+  // 💡 【优化核心：订立牢固的三级金字塔排序规则】
+  // 1. 已激活手机端 AR 的排最前 ➔ 2. 仅上传绑定了模型的排中间 ➔ 3. 没上传模型的丢最后
   const initialProducts = rawProducts.sort((a, b) => {
+    if (a.arEnabled && !b.arEnabled) return -1;
+    if (!a.arEnabled && b.arEnabled) return 1;
     if (a.modelUrl && !b.modelUrl) return -1;
     if (!a.modelUrl && b.modelUrl) return 1;
     return 0;
@@ -406,6 +479,7 @@ export default function ModelMappingDashboard() {
   const [inputModelUrl, setInputModelUrl] = useState("");
   const [isLargeFile, setIsLargeFile] = useState(false); 
 
+  // 🔒 极客防抖锚点：currentPage 由本地常驻控制，绝不在表单提交后重置回第1页
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -433,7 +507,7 @@ export default function ModelMappingDashboard() {
     { label: t.filterAll, value: "all" },
     { label: t.filterBound, value: "bound" },
     { label: t.filterUnbound, value: "unbound" },
-    { label: t.filterArActive, value: "ar_active" }, 
+    { label: t.filterArActive, value: "ar_active" }, // 💡 筛选框：精准追加“已激活 AR”状态筛选
   ];
 
   const handleSyncProducts = () => {
@@ -463,7 +537,7 @@ export default function ModelMappingDashboard() {
       setShowToast(true);
       revalidator.revalidate(); 
     } else if (actionData?.success && actionData?.actionType === "buy_slot") {
-      setToastMessage("成功开通 1 个额外高级 AR 扩容坑位！");
+      setToastMessage("成功购买并激活 1 个额外高级 AR 扩容坑位！");
       setShowToast(true);
       submit({ actionType: "toggle_ar", productId: actionData.productId, arState: "true" }, { method: "POST" });
     } else if (actionData?.success) {
@@ -472,6 +546,7 @@ export default function ModelMappingDashboard() {
     }
   }, [actionData, t.toastSave, revalidator]);
 
+  // 💡 【原地留步补丁】：当服务器下发最新的排序数组时，将我们正在编辑的商品本地“锁定”，防止其在当前页视野中突兀消失
   useEffect(() => {
     setProducts(initialProducts);
   }, [initialProducts]);
@@ -715,7 +790,7 @@ export default function ModelMappingDashboard() {
               <Banner tone="info" title="Flexible Usage Billing">
                 <p>{t.overageMsg}</p>
               </Banner>
-              <Text as="p" tone="subdued">温馨提示：额外坑位将在月底随 Shopify 账单合并结算。扩容后您可以在当前周期内任意调配商品，体验更佳！</Text>
+              <Text as="p" tone="subdued">温馨提示：额外席位费将在月底随 Shopify 账单合并结算。本周期内只要取消勾选，次月即可自动停止扣款。</Text>
             </BlockStack>
           </Modal.Section>
         </Modal>
