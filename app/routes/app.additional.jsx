@@ -11,13 +11,13 @@ import {
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
-// 💡 极客微服务：利用纯 Fetch 在云端全自动将 GLB 格式无损编译为苹果专用的 USDZ 文件
+// 💡 自动化微服务：利用纯 Fetch 在云端全自动将 GLB 格式无损编译为苹果专用的 USDZ 文件
 async function convertGlbToUsdz(glbUrl) {
   // 🎯 已完美嵌入你提供的真实 CloudConvert 安全令牌，双信道智能托底
-  const apiKey = process.env.CLOUDCONVERT_API_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
+  const apiKey = process.env.CLOUDCONVERT_API_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3J宏A9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
   
   if (!apiKey) {
-    console.warn("⚠️ 未检测到有效的转换凭证，跳过异步编译。");
+    console.warn("⚠️ 未检测到有效的转换凭证，跳过格式交叉编译。");
     return "";
   }
   
@@ -25,7 +25,10 @@ async function convertGlbToUsdz(glbUrl) {
     // 1. 发起三阶段流式异步编译任务（导入GLB ➔ 交叉编译 ➔ 导出USDZ）
     const createJobRes = await fetch("https://api.cloudconvert.com/v2/jobs", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { 
+        "Authorization": `Bearer ${apiKey}`, 
+        "Content-Type": "application/json" 
+      },
       body: JSON.stringify({
         tasks: {
           "import-task": { operation: "import/url", url: glbUrl },
@@ -51,6 +54,11 @@ async function convertGlbToUsdz(glbUrl) {
       if (status === "finished") {
         const exportTask = checkData.data?.tasks?.find(t => t.name === "export-task");
         exportUrl = exportTask?.result?.files?.[0]?.url || "";
+        
+        // 🍏【苹果闪退终极绝杀】：强行注入 Fragment 虚拟锚点，欺骗过 iOS 原生 Quick Look 的严格扩展名校验
+        if (exportUrl && !exportUrl.includes("#")) {
+          exportUrl = `${exportUrl}#model.usdz`;
+        }
         break;
       } else if (status === "failed") {
         break;
@@ -208,8 +216,6 @@ export const action = async ({ request }) => {
         }
       );
       const billingJson = await billingRes.json();
-      console.log("👉 [DEBUG_BILLING] 核心扣费接口官方返回结果:", JSON.stringify(billingJson.data?.appUsageRecordCreate));
-
       const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
       if (userErrors && userErrors.length > 0) {
         return { success: false, error: "BILLING_REJECTED", message: userErrors[0].message }; 
@@ -232,14 +238,13 @@ export const action = async ({ request }) => {
           }
         }
       );
-      
       return { success: true, actionType: "buy_slot", productId };
     } catch (err) {
       return { success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 计费服务器通信失败。" };
     }
   }
 
-  // 💡 【核心合并优化】：将拦截安全网、CloudConvert、双通道写入统一归口，彻底封死上下断层
+  // 💡 【收紧路由阀门】：完美收拢 bind 事务核心，拦截权限并异步触发交叉编译
   if (actionType === "bind") {
     const modelUrl = formData.get("modelUrl");
     if (currentPlan === "free" && modelUrl !== "") {
@@ -268,7 +273,7 @@ export const action = async ({ request }) => {
       }
     }
 
-    // 🚀 【CloudConvert 自动化微服务】：商家传单个 GLB，后台静默自动追更一包苹果原生 USDZ 文件
+    // 🚀 核心自动化：只有在这里拦截到 .glb，才会全自动呼叫 CloudConvert 
     let iosModelUrl = "";
     if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
       console.log("🔄 检测到新模型绑定，正在全自动启动云端 3D 转换引擎...");
@@ -288,7 +293,7 @@ export const action = async ({ request }) => {
         variables: { 
           metafields: [
             { ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl },
-            { ownerId: productId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl } // 同时打进苹果专属元字段
+            { ownerId: productId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl }
           ] 
         } 
       }
@@ -340,7 +345,7 @@ export const action = async ({ request }) => {
     const metafieldsToDelete = [];
     productIds.forEach(id => {
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "product_3d_model" });
-      metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ios_3d_model" }); // 批量清理苹果资产
+      metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ios_3d_model" }); 
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ar_enabled" });
     });
     await admin.graphql(
@@ -370,11 +375,15 @@ export const action = async ({ request }) => {
       mutation metafieldsDeleteSingle($metafields: [MetafieldIdentifierInput!]!) {
         metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
       }`,
-      { variables: { metafields: [
-        { ownerId: productId, namespace: "custom", key: "product_3d_model" }, 
-        { ownerId: productId, namespace: "custom", key: "ios_3d_model" }, // 单项清理苹果资产
-        { ownerId: productId, namespace: "custom", key: "ar_enabled" }
-      ] } }
+      { 
+        variables: { 
+          metafields: [
+            { ownerId: productId, namespace: "custom", key: "product_3d_model" }, 
+            { ownerId: productId, namespace: "custom", key: "ios_3d_model" }, 
+            { ownerId: productId, namespace: "custom", key: "ar_enabled" }
+          ] 
+        } 
+      }
     );
   }
 
@@ -422,9 +431,7 @@ export const loader = async ({ request }) => {
       products(first: 50, sortKey: UPDATED_AT, reverse: true) {
         edges {
           node {
-            id
-            title
-            featuredImage { url }
+            id title featuredImage { url }
             variants(first: 1) { edges { node { sku } } }
             modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value }
             arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value }
@@ -440,12 +447,9 @@ export const loader = async ({ request }) => {
   const rawProducts = edges.map((edge) => {
     const node = edge.node;
     return {
-      id: node.id,
-      title: node.title,
-      sku: node.variants?.edges[0]?.node?.sku || "无 SKU",
+      id: node.id, title: node.title, sku: node.variants?.edges[0]?.node?.sku || "无 SKU",
       image: node.featuredImage?.url || "https://cdn.shopify.com/s/images/admin/no-image-large.gif",
-      modelUrl: node.modelUrlField?.value || "",
-      arEnabled: node.arEnabledField?.value === "true",
+      modelUrl: node.modelUrlField?.value || "", arEnabled: node.arEnabledField?.value === "true",
     };
   });
 
@@ -458,11 +462,7 @@ export const loader = async ({ request }) => {
       mutation resetStaleSlots($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) { metafields { id } }
       }`,
-      {
-        variables: {
-          metafields: [{ ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: "0" }]
-        }
-      }
+      { variables: { metafields: [{ ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: "0" }] } }
     );
   }
 
@@ -470,7 +470,6 @@ export const loader = async ({ request }) => {
   if (currentPlan === "pro" && lastChargedMonth !== currentMonthStr && usageLineItemId) {
     try {
       const actualExcess = Math.max(0, arActiveCount - 10);
-      
       if (actualExcess > 0) {
         const totalOveragePrice = (actualExcess * 1.99).toFixed(2);
         const renewRes = await admin.graphql(
@@ -491,15 +490,12 @@ export const loader = async ({ request }) => {
         );
         const renewJson = await renewRes.json();
         const renewErrors = renewJson.data?.appUsageRecordCreate?.userErrors;
-
         if (!renewErrors || renewErrors.length === 0) {
-          console.log(`👉 [AUTO_RENEW_SUCCESS] 商家继续保持勾选，自动续费 ${actualExcess} 个超额 AR 席位，扣费 $${totalOveragePrice}`);
           extraSlots = actualExcess; 
         } else {
           extraSlots = 0; 
         }
       } else {
-        console.log("👉 [AUTO_RENEW_CANCEL] 商家已在月底前取消超额商品勾选，次月自动退订，不扣除坑位费。");
         extraSlots = 0;
       }
 
@@ -523,12 +519,9 @@ export const loader = async ({ request }) => {
   }
 
   const modelActiveCount = rawProducts.filter(p => !!p.modelUrl).length;
-
   const initialProducts = rawProducts.sort((a, b) => {
-    if (a.arEnabled && !b.arEnabled) return -1;
-    if (!a.arEnabled && b.arEnabled) return 1;
-    if (a.modelUrl && !b.modelUrl) return -1;
-    if (!a.modelUrl && b.modelUrl) return 1;
+    if (a.arEnabled && !b.arEnabled) return -1; if (!a.arEnabled && b.arEnabled) return 1;
+    if (a.modelUrl && !b.modelUrl) return -1; if (!a.modelUrl && b.modelUrl) return 1;
     return 0;
   });
 
@@ -537,7 +530,7 @@ export const loader = async ({ request }) => {
 
 export default function ModelMappingDashboard() {
   const { initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots } = useLoaderData();
-  const actionData = useActionData();
+  const actionData = useActionData(); 
   const navigate = useNavigate(); 
   const submit = useSubmit(); 
   const revalidator = useRevalidator(); 
@@ -550,7 +543,6 @@ export default function ModelMappingDashboard() {
   const [toastMessage, setToastMessage] = useState(""); 
   const [showToast, setShowToast] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false); 
-
   const [activeModal, setActiveModal] = useState(false);
   const [limitModal, setLimitModal] = useState(false); 
   const [overageModal, setOverageModal] = useState(false); 
@@ -558,10 +550,8 @@ export default function ModelMappingDashboard() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [inputModelUrl, setInputModelUrl] = useState("");
   const [isLargeFile, setIsLargeFile] = useState(false); 
-
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
-
   const t = translations[locale];
 
   const filteredProducts = products.filter((p) => {
@@ -575,60 +565,57 @@ export default function ModelMappingDashboard() {
   });
 
   const { selectedResources, allResourcesSelected, handleSelectionChange, clearSelection } = useIndexResourceState(filteredProducts);
-
-  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfLastItem = currentPage * itemsPerPage; 
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentPagedProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
 
   const filterOptions = [
-    { label: t.filterAll, value: "all" },
+    { label: t.filterAll, value: "all" }, 
     { label: t.filterBound, value: "bound" },
-    { label: t.filterUnbound, value: "unbound" },
+    { label: t.filterUnbound, value: "unbound" }, 
     { label: t.filterArActive, value: "ar_active" }, 
   ];
 
   const handleSyncProducts = () => {
-    setIsSyncing(true);
-    setProducts([]);
+    setIsSyncing(true); 
+    setProducts([]); 
     revalidator.revalidate(); 
     setTimeout(() => { setIsSyncing(false); }, 600);
   };
 
   useEffect(() => {
-    if (inputModelUrl.toLowerCase().includes("heavy") || inputModelUrl.length > 120) {
-      setIsLargeFile(true);
-    } else {
-      setIsLargeFile(false);
+    if (inputModelUrl.toLowerCase().includes("heavy") || inputModelUrl.length > 120) { 
+      setIsLargeFile(true); 
+    } else { 
+      setIsLargeFile(false); 
     }
   }, [inputModelUrl]);
 
   useEffect(() => {
-    if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
-      setLimitModalType("AR");
-      setLimitModal(true);
+    if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") { 
+      setLimitModalType("AR"); 
+      setLimitModal(true); 
       revalidator.revalidate(); 
-    } else if (actionData?.error === "FREE_MODEL_LIMIT_HIT") {
-      setLimitModalType("MODEL");
-      setLimitModal(true);
-    } else if (actionData?.error === "BILLING_REJECTED" || actionData?.error === "BILLING_SYSTEM_ERROR" || actionData?.error === "BILLING_SETUP_ERROR") {
-      setToastMessage(`开通异常: ${actionData.message}`);
-      setShowToast(true);
+    } else if (actionData?.error === "FREE_MODEL_LIMIT_HIT") { 
+      setLimitModalType("MODEL"); 
+      setLimitModal(true); 
+    } else if (actionData?.error === "BILLING_REJECTED" || actionData?.error === "BILLING_SYSTEM_ERROR" || actionData?.error === "BILLING_SETUP_ERROR") { 
+      setToastMessage(`开通异常: ${actionData.message}`); 
+      setShowToast(true); 
       revalidator.revalidate(); 
-    } else if (actionData?.success && actionData?.actionType === "buy_slot") {
-      setToastMessage("成功开通 1 个月度高级 AR 扩容坑位！");
-      setShowToast(true);
-      submit({ actionType: "toggle_ar", productId: actionData.productId, arState: "true" }, { method: "POST" });
-    } else if (actionData?.success) {
-      setToastMessage(t.toastSave);
-      setShowToast(true);
+    } else if (actionData?.success && actionData?.actionType === "buy_slot") { 
+      setToastMessage("成功开通 1 个月度高级 AR 扩容坑位！"); 
+      setShowToast(true); 
+      submit({ actionType: "toggle_ar", productId: actionData.productId, arState: "true" }, { method: "POST" }); 
+    } else if (actionData?.success) { 
+      setToastMessage(t.toastSave); 
+      setShowToast(true); 
     }
   }, [actionData, t.toastSave, revalidator]);
 
   useEffect(() => {
     setProducts(prev => {
-      if (!prev || prev.length === 0 || prev.length !== initialProducts.length) {
-        return initialProducts;
-      }
+      if (!prev || prev.length === 0 || prev.length !== initialProducts.length) { return initialProducts; }
       return prev.map(localItem => {
         const remoteItem = initialProducts.find(ri => ri.id === localItem.id);
         return remoteItem ? { ...localItem, ...remoteItem } : localItem;
@@ -637,57 +624,39 @@ export default function ModelMappingDashboard() {
   }, [initialProducts]);
 
   useEffect(() => {
-    const script = document.createElement("script");
-    script.type = "module";
-    script.src = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js";
+    const script = document.createElement("script"); 
+    script.type = "module"; 
+    script.src = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"; 
     document.head.appendChild(script);
   }, []);
 
   const handleToggleAr = (product, newChecked) => {
     if (newChecked) {
-      if (currentPlan === "free") {
-        setLimitModalType("AR");
-        setLimitModal(true);
-        return;
-      }
+      if (currentPlan === "free") { setLimitModalType("AR"); setLimitModal(true); return; }
       if (currentPlan === "pro") {
         const currentlyCheckedCount = products.filter(p => p.arEnabled).length;
-        if (currentlyCheckedCount >= (10 + extraSlots)) {
-          setSelectedProduct(product);
-          setOverageModal(true); 
-          return;
-        }
+        if (currentlyCheckedCount >= (10 + extraSlots)) { setSelectedProduct(product); setOverageModal(true); return; }
       }
     }
-
     setProducts(prev => prev.map(p => p.id === product.id ? { ...p, arEnabled: newChecked } : p));
     submit({ actionType: "toggle_ar", productId: product.id, arState: newChecked ? "true" : "false" }, { method: "POST" });
   };
 
   const handleConfirmOverage = () => {
-    setOverageModal(false);
+    setOverageModal(false); 
     submit({ actionType: "buy_slot", currentSlots: extraSlots.toString(), productId: selectedProduct.id }, { method: "POST" });
   };
 
   const handleBulkToggleAr = (enable) => {
     if (selectedResources.length === 0) return;
-    if (enable && currentPlan === "free") {
-      setLimitModalType("AR");
-      setLimitModal(true);
-      return;
-    }
+    if (enable && currentPlan === "free") { setLimitModalType("AR"); setLimitModal(true); return; }
     if (enable && currentPlan === "pro") {
       const itemsToEnable = filteredProducts.filter(p => selectedResources.includes(p.id) && !p.arEnabled && !!p.modelUrl).length;
       const currentTotal = products.filter(p => p.arEnabled).length;
-      if (currentTotal + itemsToEnable > (10 + extraSlots)) {
-        setToastMessage("批量激活数量超出了当前坑位上限，请单独点击开通坑位。");
-        setShowToast(true);
-        return;
-      }
+      if (currentTotal + itemsToEnable > (10 + extraSlots)) { setToastMessage("批量激活数量超出了当前坑位上限，请单独点击开通坑位。"); setShowToast(true); return; }
     }
-
     setProducts(prev => prev.map(p => selectedResources.includes(p.id) ? { ...p, arEnabled: enable ? (!!p.modelUrl) : false } : p));
-    submit({ actionType: "bulk_toggle_ar", productIds: JSON.stringify(selectedResources), arState: enable ? "true" : "false" }, { method: "POST" });
+    submit({ actionType: "bulk_toggle_ar", productIds: JSON.stringify(selectedResources), arState: enable ? "true" : "false" }, { method: "POST" }); 
     clearSelection();
   };
 
@@ -695,7 +664,7 @@ export default function ModelMappingDashboard() {
     if (selectedResources.length === 0) return;
     if (confirm(`确定要批量解除这 ${selectedResources.length} 个商品的 3D 模型绑定吗？`)) {
       setProducts(prev => prev.map(p => selectedResources.includes(p.id) ? { ...p, modelUrl: "", arEnabled: false } : p));
-      submit({ actionType: "bulk_unbind", productIds: JSON.stringify(selectedResources) }, { method: "POST" });
+      submit({ actionType: "bulk_unbind", productIds: JSON.stringify(selectedResources) }, { method: "POST" }); 
       clearSelection();
     }
   };
@@ -703,37 +672,34 @@ export default function ModelMappingDashboard() {
   const handleOpenModal = (product) => {
     if (currentPlan === "free" && !product.modelUrl) {
       const currentBoundCount = products.filter(p => p.modelUrl).length;
-      if (currentBoundCount >= 3) {
-        setLimitModalType("MODEL");
-        setLimitModal(true);
-        return; 
-      }
+      if (currentBoundCount >= 3) { setLimitModalType("MODEL"); setLimitModal(true); return; }
     }
-    setSelectedProduct(product);
-    setInputModelUrl(product.modelUrl || "");
+    setSelectedProduct(product); 
+    setInputModelUrl(product.modelUrl || ""); 
     setActiveModal(true);
   };
 
   const handleSaveMapping = () => {
     const targetUrl = inputModelUrl.trim();
     setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, modelUrl: targetUrl } : p));
-    submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" });
+    submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" }); 
     setActiveModal(false);
   };
 
+  // 💡【解绑状态单项复位】：精准匹配 ID 项，彻底终结了之前误伤全店模型的 State 渲染 Bug
   const handleUnbind = (product) => {
     if (confirm("解除绑定会同步关闭该商品的移动端 AR 实景功能。确定吗？")) {
-      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : prev.find(x => x.id === p.id)));
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : p));
       submit({ actionType: "unbind", productId: product.id }, { method: "POST" });
     }
   };
 
   const renderQuotaBanner = () => {
-    if (currentPlan === "pro") {
-      return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / {10 + extraSlots}</b> 个商品名额</Text></Banner>;
+    if (currentPlan === "pro") { 
+      return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / {10 + extraSlots}</b> 个商品名额</Text></Banner>; 
     }
-    if (currentPlan === "enterprise") {
-      return <Banner tone="success" title="旗舰版 套餐状态"><p>{t.quotaBannerEnterprise}</p></Banner>;
+    if (currentPlan === "enterprise") { 
+      return <Banner tone="success" title="旗舰版 套餐状态"><p>{t.quotaBannerEnterprise}</p></Banner>; 
     }
     return <Banner tone="warning" title="免费版 套餐状态"><p>{t.quotaBannerFree.replace("{modelCount}", modelActiveCount)}</p></Banner>;
   };
@@ -775,11 +741,11 @@ export default function ModelMappingDashboard() {
 
   return (
     <Frame>
-      <Page
+      <Page 
         backAction={{ content: t.backBtn, onAction: () => navigate("/app" + window.location.search) }} 
-        title={t.pageTitle}
-        subtitle={t.pageSubtitle}
-        primaryAction={{ content: t.syncBtn, icon: PlusIcon, onAction: handleSyncProducts, loading: isSyncing }}
+        title={t.pageTitle} 
+        subtitle={t.pageSubtitle} 
+        primaryAction={{ content: t.syncBtn, icon: PlusIcon, onAction: handleSyncProducts, loading: isSyncing }} 
         secondaryActions={
           <Popover active={popoverActive} activator={<Button onClick={() => setPopoverActive(!popoverActive)} icon={LanguageIcon} disclosure>{t.langName}</Button>} onClose={() => setPopoverActive(false)}>
             <ActionList items={[{ content: "简体中文", active: locale === "zh", onAction: () => { setLocale("zh"); setPopoverActive(false); } }, { content: "English", active: locale === "en", onAction: () => { setLocale("en"); setPopoverActive(false); } }]} />
@@ -792,53 +758,56 @@ export default function ModelMappingDashboard() {
             <Box padding="400">
               <InlineStack align="space-between" blockAlign="center">
                 <InlineStack gap="300" blockAlign="center">
-                  <Box minWidth="320px"><TextField prefix={<Icon source={SearchIcon} />} placeholder={t.searchPlaceholder} value={searchQuery} onChange={setSearchQuery} autoComplete="off" clearButton onClearButtonClick={() => setSearchQuery("")} /></Box>
-                  <Box minWidth="160px"><Select label="statusFilter" labelHidden options={filterOptions} value={statusFilter} onChange={setStatusFilter} /></Box>
+                  <Box minWidth="320px">
+                    <TextField prefix={<Icon source={SearchIcon} />} placeholder={t.searchPlaceholder} value={searchQuery} onChange={setSearchQuery} autoComplete="off" clearButton onClearButtonClick={() => setSearchQuery("")} />
+                  </Box>
+                  <Box minWidth="160px">
+                    <Select label="statusFilter" labelHidden options={filterOptions} value={statusFilter} onChange={setStatusFilter} />
+                  </Box>
                 </InlineStack>
                 <Button variant="plain" tone="critical" onClick={() => { setSearchQuery(""); setStatusFilter("all"); }} disabled={searchQuery === "" && statusFilter === "all"}>{t.clearBtn}</Button>
               </InlineStack>
             </Box>
-
-            {filteredProducts.length === 0 ? (
-              <Box padding="800" textAlign="center"><Text tone="subdued">暂无对应条件商品</Text></Box>
-            ) : (
+            
+            {filteredProducts.length === 0 ? ( 
+              <Box padding="800" textAlign="center"><Text tone="subdued">暂无对应条件商品</Text></Box> 
+            ) : ( 
               <BlockStack>
-                <IndexTable
-                  resourceName={{ singular: '商品', plural: '商品' }}
-                  itemCount={filteredProducts.length}
-                  selectedItemsCount={allResourcesSelected ? 'All' : selectedResources.length}
-                  onSelectionChange={handleSelectionChange}
+                <IndexTable 
+                  resourceName={{ singular: '商品', plural: '商品' }} 
+                  itemCount={filteredProducts.length} 
+                  selectedItemsCount={allResourcesSelected ? 'All' : selectedResources.length} 
+                  onSelectionChange={handleSelectionChange} 
                   bulkActions={[
-                    { content: '批量激活手机端 AR', onAction: () => handleBulkToggleAr(true) },
-                    { content: '批量关闭手机端 AR', onAction: () => handleBulkToggleAr(false) },
-                    { content: '批量解除 3D 绑定', destructive: true, onAction: handleBulkUnbind },
+                    { content: '批量激活手机端 AR', onAction: () => handleBulkToggleAr(true) }, 
+                    { content: '批量关闭手机端 AR', onAction: () => handleBulkToggleAr(false) }, 
+                    { content: '批量解除 3D 绑定', destructive: true, onAction: handleBulkUnbind }
                   ]}
-                  headings={[{ title: '商品展示信息' }, { title: '3D 模型状态' }, { title: '手机端 AR 控制' }, { title: '基础管理操作', alignment: 'end' }]}
+                  headings={[
+                    { title: '商品展示信息' }, 
+                    { title: '3D 模型状态' }, 
+                    { title: '手机端 AR 控制' }, 
+                    { title: '基础管理操作', alignment: 'end' }
+                  ]}
                 >
                   {rowMarkup}
                 </IndexTable>
-                
                 <Box padding="400" borderTopWidth="100" borderColor="border-grid">
                   <InlineStack align="center">
-                    <Pagination
-                      hasPrevious={currentPage > 1}
-                      onPrevious={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      hasNext={indexOfLastItem < filteredProducts.length}
-                      onNext={() => setCurrentPage(prev => prev + 1)}
-                    />
+                    <Pagination hasPrevious={currentPage > 1} onPrevious={() => setCurrentPage(prev => Math.max(prev - 1, 1))} hasNext={indexOfLastItem < filteredProducts.length} onNext={() => setCurrentPage(prev => prev + 1)} />
                   </InlineStack>
                 </Box>
-              </BlockStack>
+              </BlockStack> 
             )}
           </Card>
         </BlockStack>
 
+        {/* 弹窗：单品模型绑定 */}
         <Modal open={activeModal} onClose={() => setActiveModal(false)} title={t.modalTitle} primaryAction={{ content: t.saveBtn, onAction: handleSaveMapping }} secondaryActions={[{ content: t.cancelBtn, onAction: () => setActiveModal(false) }]}>
           <Modal.Section>
             <BlockStack gap="400">
               <TextField label={t.modalLabel} value={inputModelUrl} onChange={setInputModelUrl} autoComplete="off" placeholder="https://.../your-model.glb" helpText={t.modalHelp} />
-              
-              {inputModelUrl && inputModelUrl.toLowerCase().endsWith(".glb") && (
+              {inputModelUrl && inputModelUrl.toLowerCase().endsWith(".glb") && ( 
                 <BlockStack gap="300">
                   <Box background={isLargeFile ? "bg-surface-warning-subdued" : "bg-surface-success-subdued"} padding="300" borderRadius="200">
                     <InlineStack gap="100" blockAlign="start">
@@ -849,15 +818,20 @@ export default function ModelMappingDashboard() {
                       </BlockStack>
                     </InlineStack>
                   </Box>
-
-                  <InlineStack gap="100" blockAlign="center"><Icon source={ViewIcon} tone="info" /><Text variant="headingSm">{t.modalPreview}</Text></InlineStack>
-                  <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid #ddd', overflow: 'hidden' }}><model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }} /></Box>
-                </BlockStack>
+                  <InlineStack gap="100" blockAlign="center">
+                    <Icon source={ViewIcon} tone="info" />
+                    <Text variant="headingSm">{t.modalPreview}</Text>
+                  </InlineStack>
+                  <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid #ddd', overflow: 'hidden' }}>
+                    <model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }} />
+                  </Box>
+                </BlockStack> 
               )}
             </BlockStack>
           </Modal.Section>
         </Modal>
 
+        {/* 弹窗：免费额度超额拦截 */}
         <Modal open={limitModal} onClose={() => setLimitModal(false)} title={limitModalType === "AR" ? t.limitModalTitle : t.limitModalTitleModel} primaryAction={{ content: t.limitModalBtn, onAction: () => navigate("/app" + window.location.search) }} secondaryActions={[{ content: t.cancelBtn, onAction: () => setLimitModal(false) }]}>
           <Modal.Section>
             <BlockStack gap="300">
@@ -869,6 +843,7 @@ export default function ModelMappingDashboard() {
           </Modal.Section>
         </Modal>
 
+        {/* 弹窗：按量付费弹性超额开通 */}
         <Modal open={overageModal} onClose={() => setOverageModal(false)} title={t.overageTitle} primaryAction={{ content: t.overageBtn, onAction: handleConfirmOverage }} secondaryActions={[{ content: t.cancelBtn, onAction: () => setOverageModal(false) }]}>
           <Modal.Section>
             <BlockStack gap="300">
@@ -879,6 +854,7 @@ export default function ModelMappingDashboard() {
             </BlockStack>
           </Modal.Section>
         </Modal>
+
         {showToast && <Toast content={toastMessage} onDismiss={() => setShowToast(false)} />}
       </Page>
     </Frame>

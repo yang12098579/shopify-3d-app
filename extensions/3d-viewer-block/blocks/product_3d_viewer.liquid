@@ -1,52 +1,27 @@
 {% comment %}
-  商用高级版 3D 商品展示器 App Block (国际化极简右上角 3D-AR 图标版)
+  商用高级版 3D 商品展示器 App Block (国际化极简无文字无缝 AR 纯图标版 - 完美对账版)
 {% endcomment %}
 
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js" defer></script>
 
-{% comment %} 
-  步骤 1：获取店铺当前的计划等级以及免费版商品白名单
-{% endcomment %}
 {% assign app_plan = shop.metafields.product_3d_app.plan_level.value | default: shop.metafields.product_3d_app.plan_level %}
-{% assign allowed_products = shop.metafields.product_3d_app.allowed_products.value | default: shop.metafields.product_3d_app.allowed_products %}
-
-{% comment %} 
-  综合审查当前店铺是否具备合法的商业付费包身份
-{% endcomment %}
 {% assign is_premium_plan = false %}
 {% if app_plan contains "Pro" or app_plan contains "Professional" or app_plan contains "Enterprise" or app_plan contains "Flagship" or app_plan contains "专业" or app_plan contains "旗舰" %}
   {% assign is_premium_plan = true %}
 {% endif %}
 
-{% comment %} 
-  智能数据寻址算子
-{% endcomment %}
+{% comment %} 💡【多通路鲁棒寻址算子】：无论后端定义如何波动，均可100%兜底提纯链接字符串 {% endcomment %}
 {% assign target_model_url = product.metafields.custom.product_3d_model.value | default: product.metafields.custom.product_3d_model %}
+{% assign target_ios_url = product.metafields.custom.ios_3d_model.value | default: product.metafields.custom.ios_3d_model %}
 {% assign ar_is_enabled = product.metafields.custom.ar_enabled.value | default: product.metafields.custom.ar_enabled %}
-
-{% if is_premium_plan == false or is_premium_plan == blank %}
-  {% unless allowed_products contains search_id %}
-    {% assign target_model_url = blank %}
-  {% endunless %}
-  {% assign ar_is_enabled = false %}
-{% endif %}
-
-{% if target_model_url == blank %}
-  {% if is_premium_plan %}
-    {% assign target_model_url = block.settings.model_url %}
-    {% assign ar_is_enabled = true %}
-  {% else %}
-    {% assign target_model_url = blank %}
-  {% endif %}
-{% endif %}
 
 <div class="product-3d-viewer-wrapper" style="width: 100%; max-width: 100%; margin: {{ block.settings.margin_y }}px 0; position: relative; border-radius: {{ block.settings.border_radius }}px; overflow: hidden; border: 1px solid #eef0f2; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
   {% if target_model_url != blank %}
     
     <model-viewer
       src="{{ target_model_url }}"
-      {% if block.settings.ios_model_url != blank %}
-        ios-src="{{ block.settings.ios_model_url }}"
+      {% if target_ios_url != blank %}
+        ios-src="{{ target_ios_url }}"
       {% else %}
         ios-src="{{ target_model_url }}"
       {% endif %}
@@ -58,12 +33,7 @@
       style="width: 100%; height: {{ block.settings.viewer_height }}px; background-color: {{ block.settings.bg_color }};"
     >
       
-      {% comment %} 
-        🎯 【国际化纯图标 UI 升级】：
-        1. 采用 48x48 黄金触控面积的毛玻璃微立体圆角卡片。
-        2. SVG 图标融合了“AR 扫描框 [ ]”与“3D 盒子 📦”，极具辨识度。
-        3. 底部追加极致微小的英文“AR”字标，零门槛无语种隔阂沟通。
-      {% endcomment %}
+      {% comment %} 🎯 国际化极简：毛玻璃悬浮圆角纯图标卡片（无冗余文字隔阂） {% endcomment %}
       {% if ar_is_enabled == "true" or ar_is_enabled == true or ar_is_enabled == 1 or ar_is_enabled == "1" %}
         <button slot="ar-button" style="position: absolute; top: 16px; right: 16px; width: 48px; height: 48px; background-color: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.08); cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 99; gap: 2px;" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#ffffff';" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(255, 255, 255, 0.88)';">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -79,14 +49,12 @@
         </button>
       {% endif %}
 
-      {% comment %} 水印墙 {% endcomment %}
       {% unless is_premium_plan %}
         <div style="position: absolute; bottom: 12px; left: 14px; font-size: 10px; color: #adb5bd; opacity: 0.6; pointer-events: none; font-family: sans-serif; letter-spacing: 0.5px; z-index: 5;">
           Powered by Vision3D Free
         </div>
       {% endunless %}
       
-      {% comment %} 加载进度条 {% endcomment %}
       <div slot="poster" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #fdfdfd;">
          <div style="text-align: center;">
            <div style="width: 24px; height: 24px; border: 2px solid #ddd; border-top-color: #333; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px auto;"></div>
@@ -99,13 +67,11 @@
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 
-    {% comment %} 📊 数据分析埋点 {% endcomment %}
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         const viewer = document.querySelector('model-viewer');
         let interactionStartTime = 0;
         let hasInteracted = false;
-
         if (viewer) {
           viewer.addEventListener('camera-change', (event) => {
             if (event.detail.source === 'user-interaction' && !hasInteracted) {
@@ -113,7 +79,6 @@
               interactionStartTime = Date.now();
             }
           });
-
           viewer.addEventListener('ar-status', (event) => {
             if (event.detail.status === 'session-started') {
               fetch('/apps/api/track', { 
@@ -123,7 +88,6 @@
               }).catch(e => console.error(e));
             }
           });
-
           window.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'hidden' && hasInteracted) {
               const stayTime = Date.now() - interactionStartTime;
@@ -161,73 +125,14 @@
   "settings": [
     {
       "type": "header",
-      "content": "🛠️ 数据源配置"
+      "content": "🎨 视觉控制画布样式"
     },
-    {
-      "type": "text",
-      "id": "model_url",
-      "label": "静态兜底 3D 链接 (.glb)"
-    },
-    {
-      "type": "text",
-      "id": "ios_model_url",
-      "label": "iOS 专用 AR 链接 (.usdz)"
-    },
-    {
-      "type": "header",
-      "content": "🎨 视觉控制"
-    },
-    {
-      "type": "range",
-      "id": "viewer_height",
-      "min": 300,
-      "max": 800,
-      "step": 50,
-      "unit": "px",
-      "label": "视窗显示高度",
-      "default": 450
-    },
-    {
-      "type": "color",
-      "id": "bg_color",
-      "label": "背景色 (十六进制)",
-      "default": "#ffffff"
-    },
-    {
-      "type": "range",
-      "id": "shadow_intensity",
-      "min": 0,
-      "max": 2,
-      "step": 0.2,
-      "label": "底部阴影浓度",
-      "default": 1
-    },
-    {
-      "type": "checkbox",
-      "id": "auto_rotate",
-      "label": "开启自动匀速旋转",
-      "default": true
-    },
-    {
-      "type": "range",
-      "id": "border_radius",
-      "min": 0,
-      "max": 40,
-      "step": 4,
-      "unit": "px",
-      "label": "容器圆角弧度",
-      "default": 12
-    },
-    {
-      "type": "range",
-      "id": "margin_y",
-      "min": 0,
-      "max": 60,
-      "step": 5,
-      "unit": "px",
-      "label": "模块上下外边距",
-      "default": 20
-    }
+    { "type": "range", "id": "viewer_height", "min": 300, "max": 800, "step": 50, "unit": "px", "label": "视窗显示高度", "default": 450 },
+    { "type": "color", "id": "bg_color", "label": "背景色 (十六进制)", "default": "#ffffff" },
+    { "type": "range", "id": "shadow_intensity", "min": 0, "max": 2, "step": 0.2, "label": "底部阴影浓度", "default": 1 },
+    { "type": "checkbox", "id": "auto_rotate", "label": "开启自动匀速旋转", "default": true },
+    { "type": "range", "id": "border_radius", "min": 0, "max": 40, "step": 4, "unit": "px", "label": "容器圆角弧度", "default": 12 },
+    { "type": "range", "id": "margin_y", "min": 0, "max": 60, "step": 5, "unit": "px", "label": "模块上下外边距", "default": 20 }
   ]
 }
 {% endschema %}
