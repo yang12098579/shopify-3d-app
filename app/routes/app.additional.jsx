@@ -36,7 +36,7 @@ const translations = {
     filterAll: "全部状态",
     filterBound: "已绑定 3D 模型",
     filterUnbound: "待绑定",
-    filterArActive: "已激活 AR 实景", // 💡 新增筛选文案
+    filterArActive: "已激活 AR 实景", 
     arToggleLabel: "激活手机端 AR 实景预览",
     quotaBannerFree: "💡 当前为免费基础版：已绑定 3D 模型 {modelCount} / 3 个。移动端 AR 实景投影功能已锁定，升级套餐立刻解锁！",
     quotaBannerPro: "⚡ 当前为专业出海版：您的移动端 AR 额度正在使用中。当前已占用：",
@@ -51,7 +51,7 @@ const translations = {
     perfGood: "文件状态健康 (建议保持在 10MB 以内)",
     perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
     overageTitle: "💎 开启额外 AR 扩展坑位",
-    overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外购买 1 个永久扩展坑位（额度上限扩容），本月内该坑位商品可任意替换，次月随套餐自动续杯，是否立即开通？",
+    overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外购买 1 个高级 AR 扩展坑位（额度上限扩容），本月内该坑位商品可任意替换，次月随套餐自动续杯，是否立即开通？",
     overageBtn: "确认购买扩展坑位"
   },
   en: {
@@ -78,7 +78,7 @@ const translations = {
     filterAll: "All Status",
     filterBound: "Linked 3D",
     filterUnbound: "Unlinked",
-    filterArActive: "AR Activated", // 💡 新增筛选文案
+    filterArActive: "AR Activated", 
     arToggleLabel: "Enable Mobile AR View",
     quotaBannerFree: "💡 Basic Free Plan: 3D Models mapped {modelCount} / 3. Mobile AR features are locked, upgrade to activate!",
     quotaBannerPro: "⚡ Professional Plan: Your mobile AR quota is active. Currently used: ",
@@ -93,7 +93,7 @@ const translations = {
     perfGood: "Healthy file size (Recommended under 10MB for fast loading)",
     perfWarn: "🚨 Warning: This 3D asset appears uncompressed or high-poly. It may slow down mobile variant loading speeds. Draco optimization recommended.",
     overageTitle: "Unlock Extra AR Product Slot",
-    overageMsg: "You have utilized all 10 complimentary AR slots. Confirm to spend $1.99 to unlock 1 permanent extra product slot. You can freely swap items within this quota.",
+    overageMsg: "You have utilized all 10 complimentary AR slots. Confirm to spend $1.99 to unlock 1 extra product slot (renews monthly). You can freely swap items within this quota.",
     overageBtn: "Unlock Extra Slot"
   }
 };
@@ -128,14 +128,14 @@ export const action = async ({ request }) => {
       const uItem = activeSubs[0].lineItems.find(item => 
         item.plan?.pricingDetails?.__typename === "AppUsagePricing"
       );
-      usageLineItemId = uItem ? uItem.id : null; // 💡 增强防御：找不到不准滥用 recurringId
+      usageLineItemId = uItem ? uItem.id : null; 
     }
     if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
   }
 
   if (actionType === "buy_slot") {
     if (!usageLineItemId) {
-      return { success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新订阅 29.99 套餐后再试。" };
+      return { success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅 29.99 套餐激活按量通道后再试。" };
     }
     try {
       const currentSlots = parseInt(formData.get("currentSlots") || "0", 10);
@@ -149,13 +149,17 @@ export const action = async ({ request }) => {
         }`,
         {
           variables: {
-            description: `Vision3D permanent extra AR slot expansion purchase`,
+            description: `Vision3D extra AR active overage slot expansion tier charge (monthly billing)`,
             price: { amount: 1.99, currencyCode: "USD" },
             subscriptionLineItemId: usageLineItemId
           }
         }
       );
       const billingJson = await billingRes.json();
+      
+      // 💡 【核心调试行】：直接将 Shopify 原始的扣费入账状态打印出来，全透明对账！
+      console.log("👉 [DEBUG_BILLING] 核心扣费接口官方返回结果:", JSON.stringify(billingJson.data?.appUsageRecordCreate));
+
       const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
       
       if (userErrors && userErrors.length > 0) {
@@ -163,13 +167,10 @@ export const action = async ({ request }) => {
       }
       
       const newSlotsValue = (currentSlots + 1).toString();
-      const metafieldRes = await admin.graphql(
+      await admin.graphql(
         `#graphql
         mutation setExtraSlots($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) { 
-            metafields { id } 
-            userErrors { field message }
-          }
+          metafieldsSet(metafields: $metafields) { metafields { id } }
         }`,
         {
           variables: {
@@ -410,7 +411,6 @@ export default function ModelMappingDashboard() {
 
   const t = translations[locale];
 
-  // 💡 核心筛选升级：加入了 ar_active 的状态判断
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
     
@@ -433,7 +433,7 @@ export default function ModelMappingDashboard() {
     { label: t.filterAll, value: "all" },
     { label: t.filterBound, value: "bound" },
     { label: t.filterUnbound, value: "unbound" },
-    { label: t.filterArActive, value: "ar_active" }, // 💡 UI 中追加 AR 筛选项
+    { label: t.filterArActive, value: "ar_active" }, 
   ];
 
   const handleSyncProducts = () => {
@@ -463,7 +463,7 @@ export default function ModelMappingDashboard() {
       setShowToast(true);
       revalidator.revalidate(); 
     } else if (actionData?.success && actionData?.actionType === "buy_slot") {
-      setToastMessage("成功购买并激活 1 个额外高级 AR 扩容坑位！");
+      setToastMessage("成功开通 1 个额外高级 AR 扩容坑位！");
       setShowToast(true);
       submit({ actionType: "toggle_ar", productId: actionData.productId, arState: "true" }, { method: "POST" });
     } else if (actionData?.success) {
@@ -492,7 +492,6 @@ export default function ModelMappingDashboard() {
       }
       if (currentPlan === "pro") {
         const currentlyCheckedCount = products.filter(p => p.arEnabled).length;
-        // 💡 如果在可用坑位以内，直接通过，再也不会弹窗干扰！
         if (currentlyCheckedCount >= (10 + extraSlots)) {
           setSelectedProduct(product);
           setOverageModal(true); 
