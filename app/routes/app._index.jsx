@@ -180,12 +180,12 @@ export const action = async ({ request }) => {
   ];
 
   if (intent === "upgrade_pro") {
+    // 💡 核心修复区域：去除了非法的 price 字段，并将 cappedAmount 改为标准的嵌套对象
     lineItemsPayload.push({
       plan: {
         appUsagePricingDetails: {
-          terms: "Vision3D Extra AR product preview active mode overage usage tier",
-          cappedAmount: 150.00,
-          price: { amount: 1.99, currencyCode: "USD" }
+          terms: "Vision3D Extra AR product preview active mode overage usage tier ($1.99 per active model)",
+          cappedAmount: { amount: 100.00, currencyCode: "USD" }
         }
       }
     });
