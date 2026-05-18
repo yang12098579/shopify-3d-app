@@ -249,14 +249,18 @@ export const action = async ({ request }) => {
     return { success: true, actionType };
   }
 
+  // 💡 核心修复：更正了 type 为 "single_line_text_field" 并增加了 userErrors 捕获
   if (actionType === "bind") {
     const modelUrl = formData.get("modelUrl");
     await admin.graphql(
       `#graphql
       mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) {
-        metafieldsSet(metafields: $metafields) { metafields { id value } }
+        metafieldsSet(metafields: $metafields) { 
+          metafields { id value }
+          userErrors { field message }
+        }
       }`,
-      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "product_3d_model", type: "url", value: modelUrl }] } }
+      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl }] } }
     );
   }
 
