@@ -9,10 +9,10 @@
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js" defer></script>
 
 {% comment %} 
-  步骤 1：获取店铺当前的计划等级以及免费版允许展示的商品白名单（隔离符包裹字符串）
+  步骤 1：获取店铺当前的计划等级以及免费版允许展示的商品白名单（使用 .value | default 确保安全破开包装对象）
 {% endcomment %}
-{% assign app_plan = shop.metafields.product_3d_app.plan_level %}
-{% assign allowed_products = shop.metafields.product_3d_app.allowed_products %}
+{% assign app_plan = shop.metafields.product_3d_app.plan_level.value | default: shop.metafields.product_3d_app.plan_level %}
+{% assign allowed_products = shop.metafields.product_3d_app.allowed_products.value | default: shop.metafields.product_3d_app.allowed_products %}
 
 {% comment %} 
   综合审查当前店铺是否具备合法的商业付费包身份
@@ -23,10 +23,10 @@
 {% endif %}
 
 {% comment %} 
-  步骤 2：智能数据寻址逻辑 - 完美读取新版 product_3d_model 元字段
+  💡 核心修复 1：全面补齐 .value 寻址算子，彻底终结因读取到 Object 包装导致全机型 3D 渲染熔断的硬伤
 {% endcomment %}
-{% assign target_model_url = product.metafields.custom.product_3d_model %}
-{% assign ar_is_enabled = product.metafields.custom.ar_enabled %}
+{% assign target_model_url = product.metafields.custom.product_3d_model.value | default: product.metafields.custom.product_3d_model %}
+{% assign ar_is_enabled = product.metafields.custom.ar_enabled.value | default: product.metafields.custom.ar_enabled %}
 
 {% comment %} 
   🔒【第一道硬核防线：利用隔离符彻底堵死白嫖漏洞】
@@ -57,18 +57,27 @@
 
 <div class="product-3d-viewer-wrapper" style="width: 100%; max-width: 100%; margin: {{ block.settings.margin_y }}px 0; position: relative; overflow: hidden;">
   {% if target_model_url != blank %}
+    {% comment %} 
+      💡 核心修复 2：
+      1. ar-modes 强制将苹果专用的 quick-look 提到首位，专门疏通 iOS 浏览器内核的 AR 协议判定链。
+      2. 补齐 ios-src 降级动态资产指引：若商家未配专用的 .usdz，直接把 .glb 喂给苹果，model-viewer 会在前台自动调用编译服务，绝不隐藏 AR 按钮！
+    {% endcomment %}
     <model-viewer
       src="{{ target_model_url }}"
-      {% if block.settings.ios_model_url != blank %}ios-src="{{ block.settings.ios_model_url }}"{% endif %}
+      {% if block.settings.ios_model_url != blank %}
+        ios-src="{{ block.settings.ios_model_url }}"
+      {% else %}
+        ios-src="{{ target_model_url }}"
+      {% endif %}
       alt="{{ product.title | escape }} 3D Model"
       shadow-intensity="{{ block.settings.shadow_intensity }}"
       camera-controls
       {% if block.settings.auto_rotate %}auto-rotate{% endif %}
-      {% if ar_is_enabled == "true" or ar_is_enabled == true %}ar ar-modes="webxr scene-viewer quick-look"{% endif %}
+      {% if ar_is_enabled == "true" or ar_is_enabled == true or ar_is_enabled == 1 or ar_is_enabled == "1" %}ar ar-modes="quick-look scene-viewer webxr"{% endif %}
       style="width: 100%; height: {{ block.settings.viewer_height }}px; background-color: {{ block.settings.bg_color }}; border-radius: {{ block.settings.border_radius }}px;"
     >
-      {% comment %} 🔒 付费墙拦截：只有开关完全合法激活，前端才渲染 AR 按钮 {% endcomment %}
-      {% if ar_is_enabled == "true" or ar_is_enabled == true %}
+      {% comment %} 🔒 付费墙拦截：类型安全地判断布尔与字符串，满足条件才在前台渲染 AR 悬浮按钮 {% endcomment %}
+      {% if ar_is_enabled == "true" or ar_is_enabled == true or ar_is_enabled == 1 or ar_is_enabled == "1" %}
         <button slot="ar-button" style="background-color: white; border-radius: 6px; border: 1px solid #ddd; position: absolute; bottom: 16px; right: 16px; padding: 10px 16px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; display: flex; align-items: center; gap: 8px; z-index: 10;">
           <span style="font-size: 18px;">✨</span> 开启 AR 实景预览
         </button>
@@ -108,7 +117,7 @@
           // 监听真实 AR 开启
           viewer.addEventListener('ar-status', (event) => {
             if (event.detail.status === 'session-started') {
-              fetch('/apps/api/track', { // 请确保此路径与你的 App Proxy 设置一致
+              fetch('/apps/api/track', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ eventType: 'ar_click' })

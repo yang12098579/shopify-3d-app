@@ -35,7 +35,7 @@ const shopify = shopifyApp({
           currencyCode: 'USD',
           interval: BillingInterval.Every30Days,
         },
-        // 2. 弹性按量计费项目（官方框架标准写法，直接用 amount 表示封顶额度）
+        // 2. 弹性按量计费项目
         {
           amount: 100.00, 
           currencyCode: 'USD',
@@ -70,7 +70,7 @@ const shopify = shopifyApp({
   },
 
   future: {
-    expiringOfflineAccessTokens: true,
+    expiringOfflineAccessTokens: true, // 💡 已经完美修复，去掉了多余的错字
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }

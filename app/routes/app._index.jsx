@@ -10,7 +10,6 @@ import {
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server"; 
 
-// 国际化文案保持不变
 const translations = {
   zh: {
     langName: "简体中文",
@@ -40,9 +39,9 @@ const translations = {
     statViews: "3D 互动次数",        
     statAR: "AR 唤醒总量",           
     statTime: "平均模型互动时间",        
-    statLimit: "当前 AR 额度占用", 
+    statSub: "当前 AR 额度占用", 
     limitLocked: "0 / 0 (免费版锁定 AR 功能)",
-    planSelectTitle: "💎 请为您的店铺选择更具商业效益的 Vision3D 套餐",
+    planSelectTitle: "💎 请为您的店铺选择更具商业效益的 Vision3D 套cam",
     tierFreeName: "免费基础版",
     tierFreeF1: "限制只能激活 3 款商品的 3D 模型",
     tierFreeF2: "标准服务器网速，加载速度一般",
@@ -57,7 +56,7 @@ const translations = {
     tierProF4: "享受全球 CDN 静态资产极速加载加速",
     tierProF5: "解锁完整的 ROI 互动统计看板",
     tierProPrice: "/ 每 30 天",
-    trialText: "✨ 包含 3 天免费试用 (超出 10 款后按 $1.99/款/月 灵活计费)", // 💡 已优化方案A
+    trialText: "✨ 包含 3 天免费试用 (超出 10 款后按 $1.99/款/月 灵活计费)", 
     tierEntName: "旗舰企业版",
     tierEntF1: "包含专业版所有的全部高级权益",
     tierEntF2: "🚀 全店商品 AR 空间投影完全不限数量",
@@ -118,7 +117,7 @@ const translations = {
     tierProF4: "Global CDN acceleration for fast loading",
     tierProF5: "Unlock full ROI performance dashboard",
     tierProPrice: "/ mo",
-    trialText: "✨ Includes 3-Day Free Trial (Flexible $1.99/mo per extra active item)", // 💡 已优化方案A
+    trialText: "✨ Includes 3-Day Free Trial (Flexible $1.99/mo per extra active item)", 
     tierEntName: "Enterprise Plan",
     tierEntF1: "Everything in Professional Plan",
     tierEntF2: "🚀 Unlimited products for mobile AR views",
@@ -183,7 +182,7 @@ export const action = async ({ request }) => {
     lineItemsPayload.push({
       plan: {
         appUsagePricingDetails: {
-          terms: "Vision3D Extra AR product preview active mode overage usage tier ($1.99 per active model)",
+          terms: "Vision3D Extra AR product preview ($1.99 per extra active model overage)",
           cappedAmount: { amount: 100.00, currencyCode: "USD" }
         }
       }
@@ -200,7 +199,7 @@ export const action = async ({ request }) => {
         name: planName,
         returnUrl: `${appUrl}/app`,
         trialDays: trialDaysConfig > 0 ? trialDaysConfig : null, 
-        test: true, // 生产环境请改为 false
+        test: true, 
         lineItems: lineItemsPayload
       }
     }
@@ -212,10 +211,14 @@ export const action = async ({ request }) => {
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
 
+  // 💡 升级对账查询：顺便捞出前台对应的店铺级别元字段进行碰撞匹配
   const response = await admin.graphql(
     `#graphql
-    query getAppSubscription {
-      shop { id }
+    query getAppSubscriptionWithMetafields {
+      shop { 
+        id 
+        planLevelField: metafield(namespace: "product_3d_app", key: "plan_level") { value }
+      }
       currentAppInstallation {
         activeSubscriptions { id name status currentPeriodEnd }
         allSubscriptions(first: 10) { edges { node { name status currentPeriodEnd } } }
@@ -227,6 +230,7 @@ export const loader = async ({ request }) => {
   const shopId = responseJson.data?.shop?.id;
   const activeSubs = responseJson.data?.currentAppInstallation?.activeSubscriptions || [];
   const allSubsEdges = responseJson.data?.currentAppInstallation?.allSubscriptions?.edges || [];
+  const currentMetaPlanValue = responseJson.data?.shop?.planLevelField?.value || "";
 
   let currentPlan = "free"; 
   let subscriptionId = null; 
@@ -246,6 +250,40 @@ export const loader = async ({ request }) => {
         if (cancelledSub.node.name.includes("Professional")) currentPlan = "pro_cancelled";
         if (cancelledSub.node.name.includes("Enterprise")) currentPlan = "enterprise_cancelled";
       }
+    }
+  }
+
+  // 💡 【全自动无感对账中心】：精准计算前台 Liquid 渴望得到的文案标识
+  let expectedMetaValue = "Free";
+  if (currentPlan.includes("pro")) expectedMetaValue = "Professional";
+  if (currentPlan.includes("enterprise")) expectedMetaValue = "Enterprise";
+
+  // 如果发现云端元字段和当下最新账单对不上，立刻执行 GraphQL 注入强制纠偏
+  if (currentMetaPlanValue !== expectedMetaValue) {
+    try {
+      await admin.graphql(
+        `#graphql
+        mutation syncShopPlanMetafield($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields { id value }
+            userErrors { field message }
+          }
+        }`,
+        {
+          variables: {
+            metafields: [{
+              ownerId: shopId,
+              namespace: "product_3d_app",
+              key: "plan_level",
+              type: "single_line_text_field",
+              value: expectedMetaValue
+            }]
+          }
+        }
+      );
+      console.log(`👉 [BILLING_SYNC] 成功为店铺 ${session.shop} 执行身份纠偏同步！前台现在合规识别为: ${expectedMetaValue}`);
+    } catch (metaErr) {
+      console.error("👉 [BILLING_SYNC_ERROR] 店铺元字段同步失败:", metaErr);
     }
   }
 
@@ -290,7 +328,6 @@ export const loader = async ({ request }) => {
     dateStr = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
   }
 
-  // 计算真实的动态看板数据
   let statsData = { views: 0, arUses: 0, stayTime: "0.0s", conversion: "0%" };
   try {
     const dbStats = await prisma.appAnalytics.findUnique({ where: { shop: session.shop } });
@@ -451,7 +488,7 @@ export default function Index() {
                         <BlockStack gap="100">
                           <InlineStack gap="050" blockAlign="center">
                             <Box width="14px"><Icon source={AlertBubbleIcon} tone={currentPlan === "free" ? "critical" : "info"} /></Box>
-                            <Text variant="bodyXs" tone={currentPlan === "free" ? "critical" : "info"}>{t.statLimit}</Text>
+                            <Text variant="bodyXs" tone={currentPlan === "free" ? "critical" : "info"}>{t.statSub}</Text>
                           </InlineStack>
                           <Text variant="headingLg" fontWeight="bold">{getLimitDisplay()}</Text>
                         </BlockStack>
