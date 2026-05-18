@@ -49,9 +49,9 @@ const translations = {
     perfTitle: "⚡ 资产运行性能分析 (AI)",
     perfGood: "文件状态健康 (建议保持在 10MB 以内)",
     perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
-    overageTitle: "💰 开启超额按量付费确认",
-    overageMsg: "您当前使用的是专业出海版（包含 10 个免费 AR 激活名额）。继续激活当前商品将开启【超额弹性按量计费模式】（超出部分将产生单笔 $1.99 账单加入下期月结），是否确认开启以确保爆款商品 AR 展示？",
-    overageBtn: "确认开启按量付费"
+    overageTitle: "💎 开启额外 AR 扩展坑位",
+    overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外购买 1 个永久扩展坑位（额度上限扩容），本月内该坑位商品可任意替换，次月随套餐自动续杯，是否立即开通？",
+    overageBtn: "确认购买扩展坑位"
   },
   en: {
     langName: "English",
@@ -90,9 +90,9 @@ const translations = {
     perfTitle: "⚡ Asset Performance Analytics (AI)",
     perfGood: "Healthy file size (Recommended under 10MB for fast loading)",
     perfWarn: "🚨 Warning: This 3D asset appears uncompressed or high-poly. It may slow down mobile variant loading speeds. Draco optimization recommended.",
-    overageTitle: "💰 Enable Overage Usage Billing",
-    overageMsg: "You have utilized all 10 complimentary AR slots on your Professional Plan. Activating this item will initiate flexible overage usage pricing (+$1.99 single record billed). Confirm to proceed?",
-    overageBtn: "Confirm Overage Charge"
+    overageTitle: "💎 Unlock Extra AR Product Slot",
+    overageMsg: "You have utilized all 10 complimentary AR slots. Confirm to spend $1.99 to unlock 1 permanent extra product slot. You can freely swap items within this quota.",
+    overageBtn: "Unlock Extra Slot"
   }
 };
 
@@ -102,30 +102,21 @@ export const action = async ({ request }) => {
   const actionType = formData.get("actionType");
   const productId = formData.get("productId");
 
-  // 🔒 极客防爆核心第一步：后端实时获取绝对靠谱的真实套餐与订阅 ID
-  // 💡 修复：去掉了不存在的 title 字段，改用 pricingDetails 查询计费类型
+  // 🔒 极客防爆核心第一步：后端实时获取绝对靠谱的真实套餐、扩展坑位及订阅 ID
   const subResponse = await admin.graphql(
     `#graphql
     query checkSubscriptionForSecurity {
       currentAppInstallation { 
-        activeSubscriptions { 
-          id 
-          name 
-          status 
-          lineItems { 
-            id 
-            plan { 
-              pricingDetails { 
-                __typename 
-              } 
-            } 
-          } 
-        } 
+        id
+        activeSubscriptions { id name status lineItems { id plan { pricingDetails { __typename } } } } 
+        extraSlotsField: metafield(namespace: "custom", key: "extra_slots") { value }
       }
     }`
   );
   const subJson = await subResponse.json();
+  const appInstallationId = subJson.data?.currentAppInstallation?.id;
   const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
+  const extraSlots = parseInt(subJson.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
   
   let currentPlan = "free";
   let activeSubId = null;
@@ -135,13 +126,68 @@ export const action = async ({ request }) => {
     activeSubId = activeSubs[0].id;
     if (activeSubs[0].name.includes("Professional")) {
       currentPlan = "pro";
-      // 💡 修复：利用 __typename 精准找到按量计费的那个项目 (AppUsagePricing)
       const uItem = activeSubs[0].lineItems.find(item => 
         item.plan?.pricingDetails?.__typename === "AppUsagePricing"
       );
       usageLineItemId = uItem ? uItem.id : activeSubs[0].lineItems[0]?.id;
     }
     if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
+  }
+
+  // 🔒 新增商业闭环：独立执行“购买扩展坑位”动作，扣费成功才给 extra_slots + 1
+  if (actionType === "buy_slot") {
+    if (!usageLineItemId) {
+      return { success: false, error: "BILLING_SETUP_ERROR", message: "找不到弹性扣费授权条款，请重新订阅套餐。" };
+    }
+    try {
+      const currentSlots = parseInt(formData.get("currentSlots") || "0", 10);
+      const billingRes = await admin.graphql(
+        `#graphql
+        mutation createOverageCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
+          appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) {
+            userErrors { field message }
+            appUsageRecord { id }
+          }
+        }`,
+        {
+          variables: {
+            description: `Vision3D permanent extra AR slot expansion purchase`,
+            price: { amount: 1.99, currencyCode: "USD" },
+            subscriptionLineItemId: usageLineItemId
+          }
+        }
+      );
+      const billingJson = await billingRes.json();
+      const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
+      
+      if (userErrors && userErrors.length > 0) {
+        return { success: false, error: "BILLING_REJECTED", message: userErrors[0].message }; 
+      }
+      
+      // 核心记账：将新的坑位总数累加，写回 Shopify App 自身的专属元字段中
+      const newSlotsValue = (currentSlots + 1).toString();
+      await admin.graphql(
+        `#graphql
+        mutation setExtraSlots($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) { metafields { id } }
+        }`,
+        {
+          variables: {
+            metafields: [{
+              ownerId: appInstallationId,
+              namespace: "custom",
+              key: "extra_slots",
+              type: "integer",
+              value: newSlotsValue
+            }]
+          }
+        }
+      );
+      
+      return { success: true, actionType: "buy_slot", productId };
+    } catch (err) {
+      return { success: false, error: "BILLING_SYSTEM_ERROR", message: "通信失败，请稍后重试。" };
+    }
   }
 
   // 🔒 商业铁律防嫖 1：限制免费版绑定模型的总个数
@@ -174,59 +220,27 @@ export const action = async ({ request }) => {
     }
   }
 
-  // 🔒 商业铁律防嫖 2：全面阻断并拦截免费版用户改写开通 AR 状态
-  if (actionType === "toggle_ar" || actionType === "bulk_toggle_ar") {
+  // 🔒 商业铁律防嫖 2：全面阻断并拦截免费版和超出动态扩展名额的白嫖勾选
+  if (actionType === "toggle_ar") {
     const isEnabling = formData.get("arState") === "true";
-    if (isEnabling && currentPlan === "free") {
-      return { success: false, error: "FREE_LIMIT_HIT", targetProductId: productId };
-    }
-  }
-
-  // 🔒 商业铁律防嫖 3：严格拦截按量付费失败情况，防止白嫖
-  if (actionType === "toggle_ar" && formData.get("arState") === "true" && currentPlan === "pro") {
-    const countArResponse = await admin.graphql(
-      `#graphql
-      query getArActiveCountBackend {
-        products(first: 250) { edges { node { arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value } } } }
-      }`
-    );
-    const countArJson = await countArResponse.json();
-    const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
-
-    // 如果超出了 10 个免费名额，强制要求成功完成扣费
-    if (activeArCount >= 10) {
-      if (!usageLineItemId) {
-        return { success: false, error: "BILLING_SETUP_ERROR", message: "找不到弹性扣费授权条款，请重新订阅套餐。" };
+    if (isEnabling) {
+      if (currentPlan === "free") {
+        return { success: false, error: "FREE_LIMIT_HIT", targetProductId: productId };
       }
-
-      try {
-        const billingRes = await admin.graphql(
+      if (currentPlan === "pro") {
+        const countArResponse = await admin.graphql(
           `#graphql
-          mutation createOverageCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
-            appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) {
-              userErrors { field message }
-              appUsageRecord { id }
-            }
-          }`,
-          {
-            variables: {
-              description: `Vision3D extra AR active overage tier charge for product ID ${productId.split("/").pop()}`,
-              price: { amount: 1.99, currencyCode: "USD" },
-              subscriptionLineItemId: usageLineItemId
-            }
-          }
+          query getArActiveCountBackend {
+            products(first: 250) { edges { node { arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value } } } }
+          }`
         );
-        const billingJson = await billingRes.json();
-        const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
-        
-        // 【核心阻断】：如果不成功，立即抛出错误，绝对不执行后续 Metafield 的写入
-        if (userErrors && userErrors.length > 0) {
-          console.error("Shopify 拒绝扣费:", userErrors);
-          return { success: false, error: "BILLING_REJECTED", message: userErrors[0].message }; 
+        const countArJson = await countArResponse.json();
+        const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
+
+        // 💡 动态防白嫖拦截：只有当激活数超过了 10 + 商家购买的额外坑位时，才进行强制打回
+        if (activeArCount >= (10 + extraSlots)) {
+          return { success: false, error: "PRO_LIMIT_HIT", targetProductId: productId };
         }
-      } catch (billingErr) {
-        console.error("Shopify 官方弹性计费入账系统崩溃:", billingErr);
-        return { success: false, error: "BILLING_SYSTEM_ERROR", message: "扣费服务器通信失败，请稍后重试。" }; 
       }
     }
   }
@@ -310,11 +324,17 @@ export const loader = async ({ request }) => {
     `#graphql
     query getSubscriptionForManager {
       shop { id }
-      currentAppInstallation { activeSubscriptions { name status } }
+      currentAppInstallation { 
+        activeSubscriptions { name status } 
+        extraSlotsField: metafield(namespace: "custom", key: "extra_slots") { value }
+      }
     }`
   );
   const subJson = await subResponse.json();
   const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
+  // 💡 修复：从元字段中读取该商店额外购买的坑位数量
+  const extraSlots = parseInt(subJson.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
+
   let currentPlan = "free";
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
     if (activeSubs[0].name.includes("Professional")) currentPlan = "pro";
@@ -363,11 +383,11 @@ export const loader = async ({ request }) => {
     return 0;
   });
 
-  return { initialProducts, currentPlan, arActiveCount, modelActiveCount };
+  return { initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots };
 };
 
 export default function ModelMappingDashboard() {
-  const { initialProducts, currentPlan, arActiveCount, modelActiveCount } = useLoaderData();
+  const { initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots } = useLoaderData();
   const actionData = useActionData();
   const navigate = useNavigate(); 
   const submit = useSubmit(); 
@@ -427,20 +447,24 @@ export default function ModelMappingDashboard() {
     }
   }, [inputModelUrl]);
 
-  // 新增扣费失败提示逻辑
+  // 处理后端的返回结果
   useEffect(() => {
     if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
       setLimitModalType("AR");
       setLimitModal(true);
-      // 恢复该产品的勾选状态
       setProducts(prev => prev.map(p => p.id === actionData.targetProductId ? { ...p, arEnabled: false } : p));
     } else if (actionData?.error === "FREE_MODEL_LIMIT_HIT") {
       setLimitModalType("MODEL");
       setLimitModal(true);
     } else if (actionData?.error === "BILLING_REJECTED" || actionData?.error === "BILLING_SYSTEM_ERROR" || actionData?.error === "BILLING_SETUP_ERROR") {
-      setToastMessage(`扣费异常: ${actionData.message}`);
+      setToastMessage(`开通失败: ${actionData.message}`);
       setShowToast(true);
-      revalidator.revalidate(); // 强制刷新状态，撤回前端错误显示的绿钩
+      revalidator.revalidate(); 
+    } else if (actionData?.success && actionData?.actionType === "buy_slot") {
+      // 💡 极客体验核心：成功购买坑位后，自动静默帮商家把刚才选中的那个商品勾选上！全流程无感切换
+      setToastMessage("成功开通 1 个额外高级 AR 扩容坑位！");
+      setShowToast(true);
+      submit({ actionType: "toggle_ar", productId: actionData.productId, arState: "true" }, { method: "POST" });
     } else if (actionData?.success) {
       setToastMessage(t.toastSave);
       setShowToast(true);
@@ -467,7 +491,8 @@ export default function ModelMappingDashboard() {
       }
       if (currentPlan === "pro") {
         const currentlyCheckedCount = products.filter(p => p.arEnabled).length;
-        if (currentlyCheckedCount >= 10) {
+        // 💡 动态判断：激活数超过了【10 + 商家已购坑位数】，才会弹窗提示购买坑位
+        if (currentlyCheckedCount >= (10 + extraSlots)) {
           setSelectedProduct(product);
           setOverageModal(true); 
           return;
@@ -481,9 +506,8 @@ export default function ModelMappingDashboard() {
 
   const handleConfirmOverage = () => {
     setOverageModal(false);
-    // 乐观更新，如果后端扣费失败会通过 actionData 回撤
-    setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, arEnabled: true } : p));
-    submit({ actionType: "toggle_ar", productId: selectedProduct.id, arState: "true" }, { method: "POST" });
+    // 💡 改变表单提交：现在点击确认是去向后端购买坑位，而不是高频扣费
+    submit({ actionType: "buy_slot", currentSlots: extraSlots.toString(), productId: selectedProduct.id }, { method: "POST" });
   };
 
   const handleBulkToggleAr = (enable) => {
@@ -496,8 +520,8 @@ export default function ModelMappingDashboard() {
     if (enable && currentPlan === "pro") {
       const itemsToEnable = filteredProducts.filter(p => selectedResources.includes(p.id) && !p.arEnabled && !!p.modelUrl).length;
       const currentTotal = products.filter(p => p.arEnabled).length;
-      if (currentTotal + itemsToEnable > 10) {
-        setToastMessage("批量操作中有超额商品，请开启单品按量计费通道");
+      if (currentTotal + itemsToEnable > (10 + extraSlots)) {
+        setToastMessage("批量操作中名额不足，请在列表中单独开通高级扩展坑位");
         setShowToast(true);
         return;
       }
@@ -547,7 +571,7 @@ export default function ModelMappingDashboard() {
 
   const renderQuotaBanner = () => {
     if (currentPlan === "pro") {
-      return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / 10</b> 个商品名额</Text></Banner>;
+      return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / {10 + extraSlots}</b> 个商品名额</Text></Banner>;
     }
     if (currentPlan === "enterprise") {
       return <Banner tone="success" title="旗舰版 套餐状态"><p>{t.quotaBannerEnterprise}</p></Banner>;
@@ -692,7 +716,7 @@ export default function ModelMappingDashboard() {
               <Banner tone="info" title="Flexible Usage Billing">
                 <p>{t.overageMsg}</p>
               </Banner>
-              <Text as="p" tone="subdued">温馨提示：按量计费将在月底随 Shopify 账单合并结算，您可以随时在列表中关闭本商品的 AR 预览权限以停止计费。</Text>
+              <Text as="p" tone="subdued">温馨提示：额外坑位将在月底随 Shopify 账单合并结算。扩容后您可以在当前周期内任意调配商品，体验更佳！</Text>
             </BlockStack>
           </Modal.Section>
         </Modal>
