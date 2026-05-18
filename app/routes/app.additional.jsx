@@ -378,13 +378,30 @@ export const loader = async ({ request }) => {
     };
   });
 
-  // 💡 【大厂商业闭环：动态月度席位自动续费/退订检查】
-  const currentMonthStr = new Date().toISOString().substring(0, 7); 
   const arActiveCount = rawProducts.filter(p => p.arEnabled).length;
 
+  // 🔒 【漏洞终结核心拦截】：如果实际激活的 AR 数量在免费 10 个以内，
+  // 必须强制将云端历史残留的 extra_slots 彻底归零！直接封死“重新订阅白嫖扩展位”的漏洞
+  if (currentPlan === "pro" && arActiveCount <= 10 && extraSlots > 0) {
+    extraSlots = 0;
+    await admin.graphql(
+      `#graphql
+      mutation resetStaleSlots($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) { metafields { id } }
+      }`,
+      {
+        variables: {
+          metafields: [{ ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: "0" }]
+        }
+      }
+    );
+  }
+
+  // 💡 【月度动态席位：自动续费与退订闭环】
+  const currentMonthStr = new Date().toISOString().substring(0, 7); 
   if (currentPlan === "pro" && lastChargedMonth !== currentMonthStr && usageLineItemId) {
     try {
-      // 次月开盘清点：超出免费10个额度外的实际留存勾选商品数
+      // 次月开盘：只清点此时商家“依旧保持勾选状态”的超额商品数量
       const actualExcess = Math.max(0, arActiveCount - 10);
       
       if (actualExcess > 0) {
@@ -409,18 +426,17 @@ export const loader = async ({ request }) => {
         const renewErrors = renewJson.data?.appUsageRecordCreate?.userErrors;
 
         if (!renewErrors || renewErrors.length === 0) {
-          console.log(`👉 [AUTO_RENEW_SUCCESS] 成功帮商家续费了本月持续勾选的 ${actualExcess} 个超额 AR 席位，扣费 $${totalOveragePrice}`);
+          console.log(`👉 [AUTO_RENEW_SUCCESS] 商家继续保持勾选，自动续费 ${actualExcess} 个超额 AR 席位，扣费 $${totalOveragePrice}`);
           extraSlots = actualExcess; 
         } else {
           extraSlots = 0; 
         }
       } else {
-        // 商家在月底前把勾选撤回到了10个以内 ➔ 自动退订，次月0元白嫖！
-        console.log("👉 [AUTO_RENEW_CANCEL] 商家已将激活数缩减至10个以内，本月无需续费扩展席位。");
+        // 商家在月底前把勾选取消、回缩到了10个以内 ➔ 次月自动零元不扣款，完美退订！
+        console.log("👉 [AUTO_RENEW_CANCEL] 商家已在月底前取消超额商品勾选，次月自动退订，不扣除坑位费。");
         extraSlots = 0;
       }
 
-      // 同步最新席位限制与本月时间戳印章至云端
       await admin.graphql(
         `#graphql
         mutation updateRenewMonth($metafields: [MetafieldsSetInput!]!) {
@@ -442,8 +458,7 @@ export const loader = async ({ request }) => {
 
   const modelActiveCount = rawProducts.filter(p => !!p.modelUrl).length;
 
-  // 💡 【优化核心：订立牢固的三级金字塔排序规则】
-  // 1. 已激活手机端 AR 的排最前 ➔ 2. 仅上传绑定了模型的排中间 ➔ 3. 没上传模型的丢最后
+  // 💡 【金字塔三级大排位】：已激活 AR ➔ 仅上传模型 ➔ 没模型的商品
   const initialProducts = rawProducts.sort((a, b) => {
     if (a.arEnabled && !b.arEnabled) return -1;
     if (!a.arEnabled && b.arEnabled) return 1;
@@ -479,7 +494,7 @@ export default function ModelMappingDashboard() {
   const [inputModelUrl, setInputModelUrl] = useState("");
   const [isLargeFile, setIsLargeFile] = useState(false); 
 
-  // 🔒 极客防抖锚点：currentPage 由本地常驻控制，绝不在表单提交后重置回第1页
+  // 🔒 极客常驻锚点：控制 client-side 的当前分页数，防止被表单提交强制刷回第 1 页
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -507,11 +522,13 @@ export default function ModelMappingDashboard() {
     { label: t.filterAll, value: "all" },
     { label: t.filterBound, value: "bound" },
     { label: t.filterUnbound, value: "unbound" },
-    { label: t.filterArActive, value: "ar_active" }, // 💡 筛选框：精准追加“已激活 AR”状态筛选
+    { label: t.filterArActive, value: "ar_active" }, 
   ];
 
   const handleSyncProducts = () => {
     setIsSyncing(true);
+    // 💡 清空数组会引发真正的全量重新按金字塔规则排位
+    setProducts([]);
     revalidator.revalidate(); 
     setTimeout(() => { setIsSyncing(false); }, 600);
   };
@@ -537,7 +554,7 @@ export default function ModelMappingDashboard() {
       setShowToast(true);
       revalidator.revalidate(); 
     } else if (actionData?.success && actionData?.actionType === "buy_slot") {
-      setToastMessage("成功购买并激活 1 个额外高级 AR 扩容坑位！");
+      setToastMessage("成功开通 1 个月度高级 AR 扩容坑位！");
       setShowToast(true);
       submit({ actionType: "toggle_ar", productId: actionData.productId, arState: "true" }, { method: "POST" });
     } else if (actionData?.success) {
@@ -546,9 +563,18 @@ export default function ModelMappingDashboard() {
     }
   }, [actionData, t.toastSave, revalidator]);
 
-  // 💡 【原地留步补丁】：当服务器下发最新的排序数组时，将我们正在编辑的商品本地“锁定”，防止其在当前页视野中突兀消失
+  // 💡 【原地留步补丁】：将后端返回的数据，悄悄映射进我们本地已经排好序的现有队列中
+  // 这样只要不点“同步最新数据”，商品就会死死留在它当前所在的行和页面上，绝不会乱跳！
   useEffect(() => {
-    setProducts(initialProducts);
+    setProducts(prev => {
+      if (!prev || prev.length === 0 || prev.length !== initialProducts.length) {
+        return initialProducts;
+      }
+      return prev.map(localItem => {
+        const remoteItem = initialProducts.find(ri => ri.id === localItem.id);
+        return remoteItem ? { ...localItem, ...remoteItem } : localItem;
+      });
+    });
   }, [initialProducts]);
 
   useEffect(() => {
@@ -790,7 +816,7 @@ export default function ModelMappingDashboard() {
               <Banner tone="info" title="Flexible Usage Billing">
                 <p>{t.overageMsg}</p>
               </Banner>
-              <Text as="p" tone="subdued">温馨提示：额外席位费将在月底随 Shopify 账单合并结算。本周期内只要取消勾选，次月即可自动停止扣款。</Text>
+              <Text as="p" tone="subdued">温馨提示：额外席位费将在月底随 Shopify 账单合并结算。本周期内只要取消勾选，次月即可自动停止扣款并缩减额度。</Text>
             </BlockStack>
           </Modal.Section>
         </Modal>
