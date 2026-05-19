@@ -1,5 +1,4 @@
-// 🚨 核心修复：在新版 Vite 架构下，所有的 json 返回必须从 react-router 导入，彻底抛弃 @remix-run/node
-import { json } from "react-router";
+// 🚨 删除了所有 json 的 import！直接使用原生的 Response.json()，彻底避开包依赖冲突
 
 // 🌐 配置强力跨域头 (CORS)，确保独立站前台发起 fetch 时不会被浏览器安全拦截
 export const corsHeaders = {
@@ -13,7 +12,8 @@ export async function loader({ request }) {
   if (request.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-  return json({ message: "Vision3D Tracking API is active and ready." }, { headers: corsHeaders });
+  // ✅ 使用原生 Response.json()
+  return Response.json({ message: "Vision3D Tracking API is active and ready." }, { headers: corsHeaders });
 }
 
 // 🎯 核心追踪拦截器：接收前台 Liquid 传来的 3d_view_load 和 3d_view_cart_add 事件
@@ -31,8 +31,8 @@ export async function action({ request }) {
     // --- 可以在此处对接 Prisma 写入数据库统计报表 ---
     console.log(`📊 [埋点追踪成功] 店铺: ${shop} | 事件: ${event} | 商品ID: ${productId} | 时间戳: ${timestamp}`);
 
-    // 返回成功状态（必须携带跨域头）
-    return json({ 
+    // ✅ 使用原生 Response.json()
+    return Response.json({ 
       success: true, 
       received: { event, productId }
     }, { 
@@ -41,7 +41,8 @@ export async function action({ request }) {
 
   } catch (error) {
     console.error("❌ [埋点 API 异常]:", error);
-    return json({ 
+    // ✅ 使用原生 Response.json()
+    return Response.json({ 
       success: false, 
       error: "Invalid payload or tracking failure" 
     }, { 
