@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-// 🛡️ 终极隔离锁：100% 确保所有路由骨架钩子均来自 @remix-run/react，彻底绝育 react-router 编译幽灵
-import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "@remix-run/react"; 
+// ✅ 拨乱反正：新版 Vite 架构下，所有路由骨架钩子严格从 "react-router" 导入，绝不调用已经废弃的 @remix-run/react
+import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
   Popover, ActionList, Frame, Toast, InlineStack, Badge, TextField, Modal,
@@ -10,8 +10,6 @@ import {
   SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon,
   AlertCircleIcon, LockIcon, InfoIcon,
 } from "@shopify/polaris-icons";
-
-// ❌ 彻底移除 shopify.server 敏感安全锁导入，100% 解决 [commonjs-resolver] 报错
 
 const translations = {
   zh: {
@@ -129,7 +127,6 @@ export default function ModelMappingDashboard() {
 
   const t = translations[locale];
 
-  // 1. 数据本地无感过滤体系
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
     let matchesStatus = false;
@@ -159,7 +156,6 @@ export default function ModelMappingDashboard() {
     setTimeout(() => { setIsSyncing(false); }, 600);
   };
 
-  // 2. AI 3D 资产健康度分析器 (本地拦截层)
   useEffect(() => {
     if (inputModelUrl.toLowerCase().includes("heavy") || inputModelUrl.length > 120) {
       setIsLargeFile(true);
@@ -168,19 +164,18 @@ export default function ModelMappingDashboard() {
     }
   }, [inputModelUrl]);
 
-  // 3. 拦截 Action 返回状态并执行前端状态自愈
   useEffect(() => {
     if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
       setLimitModalType("AR");
       setLimitModal(true);
-      revalidator.revalidate(); 
+      if (revalidator && revalidator.revalidate) revalidator.revalidate(); 
     } else if (actionData?.error === "FREE_MODEL_LIMIT_HIT") {
       setLimitModalType("MODEL");
       setLimitModal(true);
     } else if (actionData?.error === "BILLING_REJECTED" || actionData?.error === "BILLING_SYSTEM_ERROR" || actionData?.error === "BILLING_SETUP_ERROR") {
       setToastMessage(`开通异常: ${actionData.message}`);
       setShowToast(true);
-      revalidator.revalidate(); 
+      if (revalidator && revalidator.revalidate) revalidator.revalidate(); 
     } else if (actionData?.success && actionData?.actionType === "buy_slot") {
       setToastMessage("成功开通 1 个月度高级 AR 扩容坑位！");
       setShowToast(true);
@@ -188,17 +183,14 @@ export default function ModelMappingDashboard() {
     } else if (actionData?.success) {
       setToastMessage(t.toastSave);
       setShowToast(true);
-      // 🚨 强行核心对账锁：当云端成功反馈 success 后，强制重刷 Shopify 路由元字段快照
-      revalidator.revalidate();
+      if (revalidator && revalidator.revalidate) revalidator.revalidate();
     }
-  }, [actionData, t.toastSave, revalidator]);
+  }, [actionData, t.toastSave]);
 
-  // 4. 防止数据闪烁：精准对齐云端拉取回来的初始商品队列
   useEffect(() => {
     setProducts(initialProducts);
   }, [initialProducts]);
 
-  // 5. 动态在宿主浏览器沙盒中追加谷歌官方 `<model-viewer>` 驱动脚本
   useEffect(() => {
     if (!window.customElements.get('model-viewer')) {
       const script = document.createElement("script");
@@ -279,22 +271,16 @@ export default function ModelMappingDashboard() {
     setActiveModal(true);
   };
 
-  // 🎯 彻底解决重载回弹的核心保存函数：
   const handleSaveMapping = () => {
     const targetUrl = inputModelUrl.trim();
     if (!targetUrl) return;
 
-    // 1. 强行拉起本地视图闪存变更
     setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, modelUrl: targetUrl } : p));
-    
-    // 2. 正式向后端 Action 管道发射写入命令
     submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" });
     
-    // 3. 强制对账锁：延迟 250 毫秒在弹窗关闭瞬间强行清洗 Remix 前端路由依赖快照
-    setTimeout(() => {
-      revalidator.revalidate();
-    }, 250);
-
+    if (revalidator && revalidator.revalidate) {
+      setTimeout(() => { revalidator.revalidate(); }, 250);
+    }
     setActiveModal(false);
   };
 
@@ -302,7 +288,9 @@ export default function ModelMappingDashboard() {
     if (confirm("解除绑定会同步关闭该商品的移动端 AR 实景功能。确定吗？")) {
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : p));
       submit({ actionType: "unbind", productId: product.id }, { method: "POST" });
-      setTimeout(() => { revalidator.revalidate(); }, 250); 
+      if (revalidator && revalidator.revalidate) {
+        setTimeout(() => { revalidator.revalidate(); }, 250); 
+      }
     }
   };
 
