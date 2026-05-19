@@ -12,8 +12,6 @@ import {
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
-// [convertGlbToUsdz 函数已在上一步移出至后台异步队列，此处保持纯净的前端交互]
-
 const translations = {
   zh: {
     langName: "简体中文",
@@ -32,9 +30,9 @@ const translations = {
     modalLabel: "模型文件下载链接 (.glb)",
     modalHelp: "提示：您可以从 Shopify 后台的“内容 > 文件”中获取模型链接并粘贴到此处。",
     modalPreview: "3D 实时预览与资产优化检测",
-    saveBtn: "同步并开启云端转换", // 🎯 话术调优
+    saveBtn: "同步并开启云端转换", 
     cancelBtn: "取消",
-    toastSave: "操作成功！基础资产已锁定，云端正同步编译 iOS 原生 AR 引擎...", // 🎯 异步话术
+    toastSave: "操作成功！基础资产已锁定，云端正同步编译 iOS 原生 AR 引擎...", 
     previewWarn: "请输入有效的 .glb 链接以开启实时预览。",
     filterAll: "全部状态",
     filterBound: "已绑定 3D 模型",
@@ -189,7 +187,7 @@ export default function ModelMappingDashboard() {
     } else if (actionData?.success) {
       setToastMessage(t.toastSave);
       setShowToast(true);
-      // 🚨 核心改动：Action 写入成功后，立即让本地路由对账重新拉取最新元字段，确保同步
+      // 🚨 强行核心对账锁：当云端成功反馈 success 后，强制重刷 Shopify 路由元字段快照
       revalidator.revalidate();
     }
   }, [actionData, t.toastSave, revalidator]);
@@ -280,10 +278,22 @@ export default function ModelMappingDashboard() {
     setActiveModal(true);
   };
 
+  // 🎯 终极自愈的核心战场：重构 handleSaveMapping 激活双轨对账
   const handleSaveMapping = () => {
     const targetUrl = inputModelUrl.trim();
+    if (!targetUrl) return;
+
+    // 1. 立即变更本地渲染栈，避免页面响应死板
     setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, modelUrl: targetUrl } : p));
+    
+    // 2. 将数据正式推送至后端的 Action 中转隧道入库
     submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" });
+    
+    // 3. 核心解法：在这里加入一个微小的延迟防抖锁，在弹窗关闭的一瞬间强制 Remix 清洗重载最新快照
+    setTimeout(() => {
+      revalidator.revalidate();
+    }, 250);
+
     setActiveModal(false);
   };
 
@@ -291,6 +301,7 @@ export default function ModelMappingDashboard() {
     if (confirm("解除绑定会同步关闭该商品的移动端 AR 实景功能。确定吗？")) {
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : p));
       submit({ actionType: "unbind", productId: product.id }, { method: "POST" });
+      setTimeout(() => { revalidator.revalidate(); }, 250); // 解绑时同步增加自愈对账
     }
   };
 
