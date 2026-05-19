@@ -1,30 +1,68 @@
 {% comment %}
-  商用高级版 3D 商品展示器 App Block (国际化极简无文字无缝 AR 纯图标版 - 完美对账版)
+  商用高级版 3D 商品展示器 App Block (国际化极简右上角 3D-AR 图标版 - Variant 多属性联动增强版)
 {% endcomment %}
 
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js" defer></script>
 
+{% comment %} 
+  步骤 1：获取店铺当前的计划等级以及免费版商品白名单
+{% endcomment %}
 {% assign app_plan = shop.metafields.product_3d_app.plan_level.value | default: shop.metafields.product_3d_app.plan_level %}
+{% assign allowed_products = shop.metafields.product_3d_app.allowed_products.value | default: shop.metafields.product_3d_app.allowed_products %}
+
+{% comment %} 
+  🛡️ 【核心漏洞修复】：为 search_id 显式赋值，将其转为干净的商品 ID 字符串，确保免费版熔断机制精准生效
+{% endcomment %}
+{% assign search_id = product.id | append: "" %}
+
+{% comment %} 
+  综合审查当前店铺是否具备合法的商业付费包身份
+{% endcomment %}
 {% assign is_premium_plan = false %}
 {% if app_plan contains "Pro" or app_plan contains "Professional" or app_plan contains "Enterprise" or app_plan contains "Flagship" or app_plan contains "专业" or app_plan contains "旗舰" %}
   {% assign is_premium_plan = true %}
 {% endif %}
 
-{% comment %} 💡【多通路鲁棒寻址算子】：无论后端定义如何波动，均可100%兜底提纯链接字符串 {% endcomment %}
-{% assign target_model_url = product.metafields.custom.product_3d_model.value | default: product.metafields.custom.product_3d_model %}
-{% assign target_ios_url = product.metafields.custom.ios_3d_model.value | default: product.metafields.custom.ios_3d_model %}
+{% comment %} 
+  🚀 【旗舰版核心升级】：智能寻址算子，优先探测当前选中的 Variant 级别的 3D 模型元字段，完美实现多属性联动
+{% endcomment %}
+{% assign current_variant = product.selected_or_first_available_variant %}
+{% assign variant_model_url = current_variant.metafields.custom.variant_3d_model.value | default: current_variant.metafields.custom.variant_3d_model %}
+{% assign product_model_url = product.metafields.custom.product_3d_model.value | default: product.metafields.custom.product_3d_model %}
+
+{% comment %} 如果有更细颗粒度的 Variant 模型，则优先采用，否则使用 Product 级别兜底 {% endcomment %}
+{% if variant_model_url != blank and is_premium_plan %}
+  {% assign target_model_url = variant_model_url %}
+{% else %}
+  {% assign target_model_url = product_model_url %}
+{% endif %}
+
 {% assign ar_is_enabled = product.metafields.custom.ar_enabled.value | default: product.metafields.custom.ar_enabled %}
 
-<div class="product-3d-viewer-wrapper" style="width: 100%; max-width: 100%; margin: {{ block.settings.margin_y }}px 0; position: relative; border-radius: {{ block.settings.border_radius }}px; overflow: hidden; border: 1px solid #eef0f2; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+{% comment } 权限拦截隔离锁 {% endcomment %}
+{% if is_premium_plan == false or is_premium_plan == blank %}
+  {% unless allowed_products contains search_id %}
+    {% assign target_model_url = blank %}
+  {% endunless %}
+  {% assign ar_is_enabled = false %}
+{% endif %}
+
+{% if target_model_url == blank %}
+  {% if is_premium_plan %}
+    {% assign target_model_url = block.settings.model_url %}
+    {% assign ar_is_enabled = true %}
+  {% else %}
+    {% assign target_model_url = blank %}
+  {% endif %}
+{% endif %}
+
+<div class="product-3d-viewer-wrapper" data-product-id="{{ product.id }}" style="width: 100%; max-width: 100%; margin: {{ block.settings.margin_y }}px 0; position: relative; border-radius: {{ block.settings.border_radius }}px; overflow: hidden; border: 1px solid #eef0f2; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
   {% if target_model_url != blank %}
     
     <model-viewer
+      id="shopify-vision3d-viewer"
       src="{{ target_model_url }}"
-      {% if target_ios_url != blank %}
-        ios-src="{{ target_ios_url }}"
-      {% else %}
-        ios-src="{{ target_model_url }}"
-      {% endif %}
+      ios-src="{{ product.metafields.custom.ios_3d_model.value | default: product.metafields.custom.ios_3d_model | default: target_model_url }}"
       alt="{{ product.title | escape }} 3D Model"
       shadow-intensity="{{ block.settings.shadow_intensity }}"
       camera-controls
@@ -33,7 +71,6 @@
       style="width: 100%; height: {{ block.settings.viewer_height }}px; background-color: {{ block.settings.bg_color }};"
     >
       
-      {% comment %} 🎯 国际化极简：毛玻璃悬浮圆角纯图标卡片（无冗余文字隔阂） {% endcomment %}
       {% if ar_is_enabled == "true" or ar_is_enabled == true or ar_is_enabled == 1 or ar_is_enabled == "1" %}
         <button slot="ar-button" style="position: absolute; top: 16px; right: 16px; width: 48px; height: 48px; background-color: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.08); cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 99; gap: 2px;" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#ffffff';" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(255, 255, 255, 0.88)';">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -67,18 +104,22 @@
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 
+    {% comment %} 数据分析埋点 + 变体动态交叉同步脚本 {% endcomment %}
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        const viewer = document.querySelector('model-viewer');
+        const viewer = document.getElementById('shopify-vision3d-viewer');
         let interactionStartTime = 0;
         let hasInteracted = false;
+
         if (viewer) {
+          // 1. 核心埋点逻辑
           viewer.addEventListener('camera-change', (event) => {
             if (event.detail.source === 'user-interaction' && !hasInteracted) {
               hasInteracted = true;
               interactionStartTime = Date.now();
             }
           });
+
           viewer.addEventListener('ar-status', (event) => {
             if (event.detail.status === 'session-started') {
               fetch('/apps/api/track', { 
@@ -88,6 +129,7 @@
               }).catch(e => console.error(e));
             }
           });
+
           window.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'hidden' && hasInteracted) {
               const stayTime = Date.now() - interactionStartTime;
@@ -98,6 +140,43 @@
               }
             }
           });
+
+          // 2. 👑【旗舰版核心逻辑】：实时监听 Shopify 独立站多属性切换事件
+          // 建立全量多属性 3D 模型映射字典（由 Liquid 编译时安全注入）
+          const variantModelMap = {
+            {% for variant in product.variants %}
+              "{{ variant.id }}": {
+                "glb": "{{ variant.metafields.custom.variant_3d_model.value | default: variant.metafields.custom.variant_3d_model | default: product_model_url }}",
+                "usdz": "{{ variant.metafields.custom.variant_ios_model.value | default: variant.metafields.custom.variant_ios_model | default: product.metafields.custom.ios_3d_model.value | default: product.metafields.custom.ios_3d_model }}"
+              }{% unless forloop.last %},{% endunless %}
+            {% endfor %}
+          };
+
+          // 监听独立站标准的 URL 变动（Shopify 切换 Variant 会动态更改地址栏的 ?variant=xxx）
+          let lastUrl = location.href;
+          const checkVariantChange = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentVariantId = urlParams.get('variant');
+            
+            if (currentVariantId && variantModelMap[currentVariantId]) {
+              const targetAssets = variantModelMap[currentVariantId];
+              // 如果探测到对应 Variant 的 3D 模型不一致，执行平滑无感动态刷新
+              if (viewer.getAttribute('src') !== targetAssets.glb && targetAssets.glb !== "") {
+                viewer.setAttribute('src', targetAssets.glb);
+                if (targetAssets.usdz) {
+                  viewer.setAttribute('ios-src', targetAssets.usdz);
+                }
+              }
+            }
+          };
+
+          // 利用高频观察者或定时器劫持各种非标准主题切换
+          setInterval(() => {
+            if (location.href !== lastUrl) {
+              lastUrl = location.href;
+              checkVariantChange();
+            }
+          }, 400);
         }
       });
     </script>
@@ -125,14 +204,73 @@
   "settings": [
     {
       "type": "header",
-      "content": "🎨 视觉控制画布样式"
+      "content": "🛠️ 数据源配置"
     },
-    { "type": "range", "id": "viewer_height", "min": 300, "max": 800, "step": 50, "unit": "px", "label": "视窗显示高度", "default": 450 },
-    { "type": "color", "id": "bg_color", "label": "背景色 (十六进制)", "default": "#ffffff" },
-    { "type": "range", "id": "shadow_intensity", "min": 0, "max": 2, "step": 0.2, "label": "底部阴影浓度", "default": 1 },
-    { "type": "checkbox", "id": "auto_rotate", "label": "开启自动匀速旋转", "default": true },
-    { "type": "range", "id": "border_radius", "min": 0, "max": 40, "step": 4, "unit": "px", "label": "容器圆角弧度", "default": 12 },
-    { "type": "range", "id": "margin_y", "min": 0, "max": 60, "step": 5, "unit": "px", "label": "模块上下外边距", "default": 20 }
+    {
+      "type": "text",
+      "id": "model_url",
+      "label": "静态兜底 3D 链接 (.glb)"
+    },
+    {
+      "type": "text",
+      "id": "ios_model_url",
+      "label": "iOS 专用 AR 链接 (.usdz)"
+    },
+    {
+      "type": "header",
+      "content": "🎨 视觉控制"
+    },
+    {
+      "type": "range",
+      "id": "viewer_height",
+      "min": 300,
+      "max": 800,
+      "step": 50,
+      "unit": "px",
+      "label": "视窗显示高度",
+      "default": 450
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "背景色 (十六进制)",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "shadow_intensity",
+      "min": 0,
+      "max": 2,
+      "step": 0.2,
+      "label": "底部阴影浓度",
+      "default": 1
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_rotate",
+      "label": "开启自动匀速旋转",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "label": "容器圆角弧度",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "margin_y",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "unit": "px",
+      "label": "模块上下外边距",
+      "default": 20
+    }
   ]
 }
 {% endschema %}

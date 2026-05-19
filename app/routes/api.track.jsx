@@ -2,7 +2,7 @@ import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 
 export const action = async ({ request }) => {
-  // 严格验证：确保请求完全来自安装了该插件的合法 Shopify 店铺前端
+  // 1. 严格防线：确保请求来自安装了该插件的合法 Shopify 店铺前端
   const { session } = await authenticate.public.appProxy(request);
   
   if (!session) {
@@ -17,34 +17,46 @@ export const action = async ({ request }) => {
     const { eventType, timeMs } = data;
     const shop = session.shop;
 
-    // 确保数据库中有该店铺的统计记录
-    await prisma.appAnalytics.upsert({
-      where: { shop },
-      update: {},
-      create: { shop }
-    });
+    // 2. 防刷转换：解析并限制时间跨度，防止黑客发送超大溢出数字
+    const parsedTimeMs = Math.max(0, parseInt(timeMs || 0, 10));
+    const safeTimeMs = parsedTimeMs > 86400000 ? 0 : parsedTimeMs; // 超过24小时的数据直接作废
 
+    let updatePayload = {};
+    let createPayload = { shop, views: 0, arUses: 0, totalStayTimeMs: 0 };
+
+    // 3. 将业务逻辑降维为单次原生的原子自增载荷
     if (eventType === "view") {
-      await prisma.appAnalytics.update({
-        where: { shop },
-        data: { 
-          views: { increment: 1 },
-          totalStayTimeMs: { increment: Math.max(0, parseInt(timeMs || 0)) }
-        }
-      });
+      updatePayload = {
+        views: { increment: 1 },
+        totalStayTimeMs: { increment: safeTimeMs }
+      };
+      createPayload.views = 1;
+      createPayload.totalStayTimeMs = safeTimeMs;
     } else if (eventType === "ar_click") {
-      await prisma.appAnalytics.update({
-        where: { shop },
-        data: { arUses: { increment: 1 } }
+      updatePayload = {
+        arUses: { increment: 1 }
+      };
+      createPayload.arUses = 1;
+    } else {
+      return new Response(JSON.stringify({ success: false, message: "Invalid event type" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
       });
     }
+
+    // 4. 核心解耦：仅使用单次高并发原子级 upsert。彻底告别行锁排队死锁
+    await prisma.appAnalytics.upsert({
+      where: { shop },
+      update: updatePayload,
+      create: createPayload,
+    });
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Tracking error:", error);
+    console.error("❌ [TRACKING_SERVER_ERROR] 核心数据采集网关崩溃:", error);
     return new Response(JSON.stringify({ success: false }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
