@@ -1,6 +1,32 @@
 import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 
+// ========================================================
+// 🌐 【彻底复活】：重新全量补回核心国际化翻译字典，根除 500 崩溃错误
+// ========================================================
+const translations = {
+  zh: {
+    title: "Vision3D 数据统计看板",
+    totalViews: "3D 互动次数",
+    totalArViews: "AR 唤醒次数",
+    avgTime: "平均模型互动时间",
+    conversionRate: "AR 加购转化率",
+    statusLockedFree: "AR功能已锁定 (免费版)",
+    planStatus: "套餐等级",
+    arSlotUsage: "弹性按量 AR 额度占用",
+  },
+  en: {
+    title: "Vision3D Performance Analytics",
+    totalViews: "3D Interactions",
+    totalArViews: "AR Viewings",
+    avgTime: "Avg. Engage Time",
+    conversionRate: "Add to Cart Rate",
+    statusLockedFree: "AR Features Locked (Free)",
+    planStatus: "Plan Level",
+    arSlotUsage: "Usage AR Quota Usage",
+  }
+};
+
 export const action = async ({ request }) => {
   // 1. 严格防线：确保请求来自安装了该插件的合法 Shopify 店铺前端
   const { session } = await authenticate.public.appProxy(request);
