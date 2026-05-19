@@ -12,7 +12,7 @@ import {
 import { authenticate } from "../shopify.server";
 
 // ========================================================
-// 🌐 1. 全量国际化字典（补回此对象，彻底根除 translations 报错）
+// 🌐 1. 全量商用级国际化多语言字典
 // ========================================================
 const translations = {
   zh: {
@@ -50,9 +50,6 @@ const translations = {
     limitModalFreeModelMsg: "您当前使用的是免费基础版，该版本最多仅支持绑定 3 款商品的 3D 模型资产。请先前往控制台主页升级套餐以解除限制！",
     limitModalProMsg: "您当前使用的是专业出海版，该套餐最多仅支持 10 款商品激活 AR 实景功能。当前您的所有可用名额已全部用满！",
     limitModalBtn: "去主页升级套餐",
-    perfTitle: "⚡ 资产运行性能分析 (AI)",
-    perfGood: "文件状态健康 (建议保持在 10MB 以内)",
-    perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
     overageTitle: "💎 开启额外 AR 扩展坑位",
     overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外开通 1 个高级 AR 扩展席位（本月计费启用），本月内该席位额度可任意替换商品，次月若保持勾选将自动续杯，是否立即开通？",
     overageBtn: "确认开通扩展坑位"
@@ -92,9 +89,6 @@ const translations = {
     limitModalFreeModelMsg: "You are currently on the Free Plan, which only allows up to 3 active 3D models. Please upgrade your subscription to unlock unlimited models.",
     limitModalProMsg: "Your Professional Plan only allows up to 10 products to activate AR features, and all your spots are fully occupied!",
     limitModalBtn: "Go to Upgrade",
-    perfTitle: "⚡ Asset Performance Analytics (AI)",
-    perfGood: "Healthy file size (Recommended under 10MB for fast loading)",
-    perfWarn: "🚨 Warning: This 3D asset appears uncompressed or high-poly. It may slow down mobile variant loading speeds. Draco optimization recommended.",
     overageTitle: "Unlock Extra AR Product Slot",
     overageMsg: "You have utilized all 10 complimentary AR slots. Confirm to spend $1.99 to unlock 1 extra product slot (renews monthly if kept active). You can freely swap items within this quota.",
     overageBtn: "Unlock Extra Slot"
@@ -102,13 +96,12 @@ const translations = {
 };
 
 // ========================================================
-// 🛡️ 2. 后端沙盒环境（CloudConvert 交叉编译保护）
+// 🛡️ 2. 后端真实的 CloudConvert 交叉转换引擎
 // ========================================================
 async function convertGlbToUsdzInBackend(glbUrl) {
-  const apiKey = process.env.CLOUDCONVERT_API_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
-  
+  const apiKey = process.env.CLOUDCONVERT_API_KEY;
   if (!apiKey || apiKey.startsWith("YOUR_")) {
-    console.warn("⚠️ 未配置有效的 CLOUDCONVERT_API_KEY 环境变量，跳过自动化编译通道。");
+    console.warn("⚠️ [CloudConvert] 未在环境变量中检测到合法的密钥，关闭转换通道。");
     return "";
   }
   
@@ -153,22 +146,24 @@ async function convertGlbToUsdzInBackend(glbUrl) {
   }
 }
 
+// ========================================================
+// 📊 后端真实的 Action 核心计费与资产上云写通道
+// ========================================================
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = formData.get("actionType");
   const productId = formData.get("productId");
 
-  const subResponse = await admin.graphql(
-    `#graphql
+  const subResponse = await admin.graphql(`
     query checkSubscriptionForSecurity {
       currentAppInstallation { 
         id
         activeSubscriptions { id name status lineItems { id plan { pricingDetails { __typename } } } } 
         extraSlotsField: metafield(namespace: "custom", key: "extra_slots") { value }
       }
-    }`
-  );
+    }
+  `);
   const subJson = await subResponse.json();
   const appInstallationId = subJson.data?.currentAppInstallation?.id;
   const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
@@ -180,36 +175,35 @@ export const action = async ({ request }) => {
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
     if (activeSubs[0].name.includes("Professional")) {
       currentPlan = "pro";
-      const uItem = activeSubs[0].lineItems.find(item => 
-        item.plan?.pricingDetails?.__typename === "AppUsagePricing"
-      );
+      const uItem = activeSubs[0].lineItems?.find(item => 
+        item?.plan?.pricingDetails?.__typename === "AppUsagePricing"
+      ) || null;
       usageLineItemId = uItem ? uItem.id : null; 
     }
     if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
   }
 
+  // 真实扣费事件
   if (actionType === "buy_slot") {
     if (!usageLineItemId) {
-      return { success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有弹性按量授权，Shopify拒绝了扣费。" };
+      return { success: false, error: "BILLING_SETUP_ERROR", message: "未检测到弹性的按量收费通道，请重新前往首页开通。" };
     }
     try {
       const currentSlots = parseInt(formData.get("currentSlots") || "0", 10);
-      const billingRes = await admin.graphql(
-        `#graphql
+      const billingRes = await admin.graphql(`
         mutation createOverageCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
           appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) {
             userErrors { field message }
             appUsageRecord { id }
           }
-        }`,
-        {
-          variables: {
-            description: `Vision3D extra AR active overage slot expansion tier charge (monthly billing)`,
-            price: { amount: 1.99, currencyCode: "USD" },
-            subscriptionLineItemId: usageLineItemId
-          }
         }
-      );
+      `, {
+        variables: {
+          description: `Vision3D extra AR active overage slot expansion tier charge (monthly billing)`,
+          price: { amount: 1.99, currencyCode: "USD" },
+          subscriptionLineItemId: usageLineItemId
+        }
+      });
       const billingJson = await billingRes.json();
       const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
       if (userErrors && userErrors.length > 0) {
@@ -219,46 +213,42 @@ export const action = async ({ request }) => {
       const newSlotsValue = (currentSlots + 1).toString();
       const currentMonthStr = new Date().toISOString().substring(0, 7); 
 
-      await admin.graphql(
-        `#graphql
+      await admin.graphql(`
         mutation setExtraSlotsAndMonth($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) { metafields { id } }
-        }`,
-        {
-          variables: {
-            metafields: [
-              { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: newSlotsValue },
-              { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
-            ]
-          }
         }
-      );
+      `, {
+        variables: {
+          metafields: [
+            { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: newSlotsValue },
+            { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
+          ]
+        }
+      });
       return { success: true, actionType: "buy_slot", productId };
     } catch (err) {
-      return { success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 计费服务器通信失败。" };
+      return { success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 结算服务器通信失败。" };
     }
   }
 
+  // 真实绑定上云
   if (actionType === "bind") {
     const modelUrl = formData.get("modelUrl");
     if (currentPlan === "free" && modelUrl !== "") {
-      const countResponse = await admin.graphql(
-        `#graphql
+      const countResponse = await admin.graphql(`
         query countBoundModelsAction {
           products(first: 250) { edges { node { modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value } } } }
-        }`
-      );
+        }
+      `);
       const countJson = await countResponse.json();
       const edges = countJson.data?.products?.edges || [];
       const currentBoundCount = edges.filter(e => !!e.node.modelUrlField?.value).length;
 
-      const currentProductResponse = await admin.graphql(
-        `#graphql
+      const currentProductResponse = await admin.graphql(`
         query checkSingleProductAction($id: ID!) {
           product(id: $id) { modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value } }
-        }`,
-        { variables: { id: productId } }
-      );
+        }
+      `, { variables: { id: productId } });
       const currentProductJson = await currentProductResponse.json();
       const hasExistingModel = !!currentProductJson.data?.product?.modelUrlField?.value;
 
@@ -269,30 +259,28 @@ export const action = async ({ request }) => {
 
     let iosModelUrl = "";
     if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
-      console.log("🔄 检测到新模型绑定，正在全自动启动云端 3D 转换引擎...");
       iosModelUrl = await convertGlbToUsdzInBackend(modelUrl);
     }
 
-    await admin.graphql(
-      `#graphql
+    await admin.graphql(`
       mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) { 
           metafields { id value }
           userErrors { field message }
         }
-      }`,
-      { 
-        variables: { 
-          metafields: [
-            { ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl },
-            { ownerId: productId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl }
-          ] 
-        } 
       }
-    );
+    `, { 
+      variables: { 
+        metafields: [
+          { ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl },
+          { ownerId: productId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl }
+        ] 
+      } 
+    });
     return { success: true, actionType, productId };
   }
 
+  // 真实开启关闭 AR 开关
   if (actionType === "toggle_ar") {
     const isEnabling = formData.get("arState") === "true";
     if (isEnabling) {
@@ -300,12 +288,11 @@ export const action = async ({ request }) => {
         return { success: false, error: "FREE_LIMIT_HIT", targetProductId: productId };
       }
       if (currentPlan === "pro") {
-        const countArResponse = await admin.graphql(
-          `#graphql
+        const countArResponse = await admin.graphql(`
           query getArActiveCountBackend {
             products(first: 250) { edges { node { arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value } } } }
-          }`
-        );
+          }
+        `);
         const countArJson = await countArResponse.json();
         const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
 
@@ -315,29 +302,26 @@ export const action = async ({ request }) => {
       }
     }
     
-    await admin.graphql(
-      `#graphql
+    await admin.graphql(`
       mutation metafieldsSetAr($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) { metafields { id value } }
-      }`,
-      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ar_enabled", type: "boolean", value: isEnabling ? "true" : "false" }] } }
-    );
+      }
+    `, { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ar_enabled", type: "boolean", value: isEnabling ? "true" : "false" }] } });
     return { success: true, actionType, productId };
   }
 
+  // 批量修改
   if (actionType === "bulk_toggle_ar") {
     const productIds = JSON.parse(formData.get("productIds"));
     const arState = formData.get("arState") === "true";
     const metafieldsInput = productIds.map(id => ({
       ownerId: id, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false"
     }));
-    await admin.graphql(
-      `#graphql
+    await admin.graphql(`
       mutation bulkMetafieldsSet($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) { metafields { id } }
-      }`,
-      { variables: { metafields: metafieldsInput } }
-    );
+      }
+    `, { variables: { metafields: metafieldsInput } });
     return { success: true, actionType };
   }
 
@@ -349,39 +333,37 @@ export const action = async ({ request }) => {
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ios_3d_model" });
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ar_enabled" });
     });
-    await admin.graphql(
-      `#graphql
+    await admin.graphql(`
       mutation bulkMetafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
         metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
-      }`,
-      { variables: { metafields: metafieldsToDelete } }
-    );
+      }
+    `, { variables: { metafields: metafieldsToDelete } });
     return { success: true, actionType };
   }
 
   if (actionType === "unbind") {
-    await admin.graphql(
-      `#graphql
+    await admin.graphql(`
       mutation metafieldsDeleteSingle($metafields: [MetafieldIdentifierInput!]!) {
         metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
-      }`,
-      { variables: { metafields: [
+      }
+    `, { variables: { metafields: [
         { ownerId: productId, namespace: "custom", key: "product_3d_model" }, 
         { ownerId: productId, namespace: "custom", key: "ios_3d_model" }, 
         { ownerId: productId, namespace: "custom", key: "ar_enabled" }
-      ] } }
-    );
+      ] } });
     return { success: true, actionType, productId };
   }
 
-  return { success: true, actionType, productId };
+  return { success: false, error: "UNKNOWN_ACTION" };
 };
 
+// ========================================================
+// 📥 3. Loader 真实的店铺、订阅、产品底层捞取通道
+// ========================================================
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
 
-  const subResponse = await admin.graphql(
-    `#graphql
+  const subResponse = await admin.graphql(`
     query getSubscriptionForManager {
       shop { id }
       currentAppInstallation { 
@@ -390,8 +372,8 @@ export const loader = async ({ request }) => {
         extraSlotsField: metafield(namespace: "custom", key: "extra_slots") { value }
         lastMonthField: metafield(namespace: "custom", key: "last_charged_month") { value }
       }
-    }`
-  );
+    }
+  `);
   const subJson = await subResponse.json();
   const appInstallationId = subJson.data?.currentAppInstallation?.id;
   const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
@@ -404,16 +386,16 @@ export const loader = async ({ request }) => {
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
     if (activeSubs[0].name.includes("Professional")) {
       currentPlan = "pro";
-      const uItem = activeSubs[0].lineItems.find(item => 
-        item.plan?.pricingDetails?.__typename === "AppUsagePricing"
-      );
+      const uItem = activeSubs[0].lineItems?.find(item => 
+        item?.plan?.pricingDetails?.__typename === "AppUsagePricing"
+      ) || null;
       usageLineItemId = uItem ? uItem.id : null;
     }
     if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
   }
 
-  const response = await admin.graphql(
-    `#graphql
+  // 100% 真实拉取产品元字段
+  const response = await admin.graphql(`
     query getProductsWithAr {
       products(first: 50, sortKey: UPDATED_AT, reverse: true) {
         edges {
@@ -427,8 +409,8 @@ export const loader = async ({ request }) => {
           }
         }
       }
-    }`
-  );
+    }
+  `);
 
   const responseJson = await response.json();
   const edges = responseJson.data?.products?.edges || [];
@@ -449,17 +431,11 @@ export const loader = async ({ request }) => {
 
   if (currentPlan === "pro" && arActiveCount <= 10 && extraSlots > 0) {
     extraSlots = 0;
-    await admin.graphql(
-      `#graphql
+    await admin.graphql(`
       mutation resetStaleSlots($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) { metafields { id } }
-      }`,
-      {
-        variables: {
-          metafields: [{ ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: "0" }]
-        }
       }
-    );
+    `, { variables: { metafields: [{ ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: "0" }] } });
   }
 
   const currentMonthStr = new Date().toISOString().substring(0, 7); 
@@ -468,22 +444,20 @@ export const loader = async ({ request }) => {
       const actualExcess = Math.max(0, arActiveCount - 10);
       if (actualExcess > 0) {
         const totalOveragePrice = (actualExcess * 1.99).toFixed(2);
-        const renewRes = await admin.graphql(
-          `#graphql
+        const renewRes = await admin.graphql(`
           mutation autoRenewSlotsCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
             appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) {
               userErrors { field message }
               appUsageRecord { id }
             }
-          }`,
-          {
-            variables: {
-              description: `Vision3D extra ${actualExcess} AR slots monthly subscription auto-renewal`,
-              price: { amount: parseFloat(totalOveragePrice), currencyCode: "USD" },
-              subscriptionLineItemId: usageLineItemId
-            }
           }
-        );
+        `, {
+          variables: {
+            description: `Vision3D extra ${actualExcess} AR slots monthly subscription auto-renewal`,
+            price: { amount: parseFloat(totalOveragePrice), currencyCode: "USD" },
+            subscriptionLineItemId: usageLineItemId
+          }
+        });
         const renewJson = await renewRes.json();
         const renewErrors = renewJson.data?.appUsageRecordCreate?.userErrors;
 
@@ -496,22 +470,20 @@ export const loader = async ({ request }) => {
         extraSlots = 0;
       }
 
-      await admin.graphql(
-        `#graphql
+      await admin.graphql(`
         mutation updateRenewMonth($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) { metafields { id } }
-        }`,
-        {
-          variables: {
-            metafields: [
-              { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: extraSlots.toString() },
-              { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
-            ]
-          }
         }
-      );
+      `, {
+        variables: {
+          metafields: [
+            { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: extraSlots.toString() },
+            { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
+          ]
+        }
+      });
     } catch (renewErr) {
-      console.error("👉 自动续费通信异常:", renewErr);
+      console.error("👉 自动续费异常:", renewErr);
     }
   }
 
@@ -529,7 +501,7 @@ export const loader = async ({ request }) => {
 };
 
 // ========================================================
-// 🖥️ 3. Polaris 视图表现层组件
+// 🖥️ 4. Polaris React 纯净无死角主面板
 // ========================================================
 export default function ModelMappingDashboard() {
   const { initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots } = useLoaderData();
@@ -553,7 +525,6 @@ export default function ModelMappingDashboard() {
   const [limitModalType, setLimitModalType] = useState("AR"); 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [inputModelUrl, setInputModelUrl] = useState("");
-  const [isLargeFile, setIsLargeFile] = useState(false); 
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -589,14 +560,6 @@ export default function ModelMappingDashboard() {
     revalidator.revalidate(); 
     setTimeout(() => { setIsSyncing(false); }, 600);
   };
-
-  useEffect(() => {
-    if (inputModelUrl.toLowerCase().includes("heavy") || inputModelUrl.length > 120) {
-      setIsLargeFile(true);
-    } else {
-      setIsLargeFile(false);
-    }
-  }, [inputModelUrl]);
 
   useEffect(() => {
     if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
@@ -836,16 +799,6 @@ export default function ModelMappingDashboard() {
               
               {inputModelUrl && inputModelUrl.toLowerCase().endsWith(".glb") && (
                 <BlockStack gap="300">
-                  <Box background={isLargeFile ? "bg-surface-warning-subdued" : "bg-surface-success-subdued"} padding="300" borderRadius="200">
-                    <InlineStack gap="100" blockAlign="start">
-                      <Box width="16px"><Icon source={InfoIcon} tone={isLargeFile ? "warning" : "success"} /></Box>
-                      <BlockStack gap="050">
-                        <Text variant="headingSm" tone={isLargeFile ? "warning" : "success"}>{t.perfTitle}</Text>
-                        <Text variant="bodySm" tone={isLargeFile ? "warning" : "success"}>{isLargeFile ? t.perfWarn : t.perfGood}</Text>
-                      </BlockStack>
-                    </InlineStack>
-                  </Box>
-
                   <InlineStack gap="100" blockAlign="center"><Icon source={ViewIcon} tone="info" /><Text variant="headingSm">{t.modalPreview}</Text></InlineStack>
                   <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid #ddd', overflow: 'hidden' }}><model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }} /></Box>
                 </BlockStack>
@@ -875,7 +828,6 @@ export default function ModelMappingDashboard() {
             </BlockStack>
           </Modal.Section>
         </Modal>
-        {showToast && <Toast content={toastMessage} onDismiss={() => setShowToast(false)} />}
       </Page>
     </Frame>
   );
