@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-// 🚨 唯一修复点：将 react-router 替换为项目原生自带的 @remix-run/react，彻底填平 Vercel 编译报错的暗坑
+// 🛡️ 终极隔离锁：100% 确保所有路由骨架钩子均来自 @remix-run/react，彻底绝育 react-router 编译幽灵
 import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "@remix-run/react"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
@@ -278,18 +278,18 @@ export default function ModelMappingDashboard() {
     setActiveModal(true);
   };
 
-  // 🎯 终极自愈的核心战场：重构 handleSaveMapping 激活双轨对账
+  // 🎯 彻底解决重载回弹的核心保存函数：
   const handleSaveMapping = () => {
     const targetUrl = inputModelUrl.trim();
     if (!targetUrl) return;
 
-    // 1. 立即变更本地渲染栈，避免页面响应死板
+    // 1. 强行拉起本地视图闪存变更
     setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, modelUrl: targetUrl } : p));
     
-    // 2. 将数据正式推送至后端的 Action 中转隧道入库
+    // 2. 正式向后端 Action 管道发射写入命令
     submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" });
     
-    // 3. 核心解法：在这里加入一个微小的延迟防抖锁，在弹窗关闭的一瞬间强制 Remix 清洗重载最新快照
+    // 3. 强制对账锁：延迟 250 毫秒在弹窗关闭瞬间强行清洗 Remix 前端路由依赖快照
     setTimeout(() => {
       revalidator.revalidate();
     }, 250);
@@ -301,7 +301,7 @@ export default function ModelMappingDashboard() {
     if (confirm("解除绑定会同步关闭该商品的移动端 AR 实景功能。确定吗？")) {
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : p));
       submit({ actionType: "unbind", productId: product.id }, { method: "POST" });
-      setTimeout(() => { revalidator.revalidate(); }, 250); // 解绑时同步增加自愈对账
+      setTimeout(() => { revalidator.revalidate(); }, 250); 
     }
   };
 
