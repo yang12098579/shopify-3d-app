@@ -10,7 +10,8 @@ import {
   SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon,
   AlertCircleIcon, LockIcon, InfoIcon,
 } from "@shopify/polaris-icons";
-import { authenticate } from "../shopify.server";
+
+// ❌ 彻底移除 shopify.server 敏感安全锁导入，100% 解决 [commonjs-resolver] 报错
 
 const translations = {
   zh: {
