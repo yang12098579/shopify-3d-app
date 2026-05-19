@@ -1,18 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useLoaderData, useNavigate, useSubmit } from "react-router";
 import {
   Page, Layout, Card, Text, Button, BlockStack, Banner, Box, Icon,
-  InlineStack, Badge, Grid, Link, List
+  InlineStack, Badge, Grid, List, Divider
 } from "@shopify/polaris";
 import {
-  CheckCircleIcon, AlertCircleIcon, LockIcon, StarIcon, HomeIcon,
-  ViewIcon, DiamondIcon,SettingsIcon
+  HomeIcon, ViewIcon, DiamondIcon, SettingsIcon, StarIcon
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
 const translations = {
   zh: {
-    langName: "简体中文",
     dashboardTitle: "Vision3D 核心控制台",
     dashboardSubtitle: "欢迎回来！在此监控全店 3D 资产健康度与移动端 AR 订阅权限状态。",
     planTitle: "您的当前套餐方案",
@@ -28,10 +26,9 @@ const translations = {
     unlimited: "无上限",
     renewDate: "下一个账单结算日: ",
     supportTitle: "技术支持与上架协助",
-    supportText: "如果您在 3D 模型格式压缩、Draco 优化或苹果 iOS 兼容端编译中遇到任何技术瓶颈，欢迎随时通过独立站右下角即时通讯联系我们的 24/7 华人技术专家专家组。"
+    supportText: "如果您在 3D 模型格式压缩、Draco 优化或苹果 iOS 兼容端编译中遇到任何技术瓶颈，欢迎随时联系我们的 24/7 技术专家组。"
   },
   en: {
-    langName: "English",
     dashboardTitle: "Vision3D Core Dashboard",
     dashboardSubtitle: "Welcome back! Monitor your 3D asset health and mobile AR subscription matrix.",
     planTitle: "Your Subscription Plan",
@@ -47,7 +44,7 @@ const translations = {
     unlimited: "Unlimited",
     renewDate: "Next billing date: ",
     supportTitle: "Technical Support",
-    supportText: "If you experience issues with 3D model compression, Draco optimization, or iOS compilation, reach out to our 24/7 engineering team via live chat."
+    supportText: "If you experience issues with 3D model compression, Draco optimization, or iOS compilation, reach out to our 24/7 engineering team."
   }
 };
 
@@ -83,24 +80,19 @@ export const loader = async ({ request }) => {
 
   const subJson = await subResponse.json();
   const shopId = subJson.data?.shop?.id;
-  const appInstallationId = subJson.data?.currentAppInstallation?.id;
   const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
   const allSubsEdges = subJson.data?.currentAppInstallation?.allSubscriptions?.edges || [];
   const extraSlots = parseInt(subJson.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
 
   let currentPlan = "free"; 
-  let subscriptionId = null; 
   let nextBillingDate = null; 
 
   // 💎 2. 去模糊化精确身份对账（彻底剥离 enterPROise 字母冲突漏洞）
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
-    subscriptionId = activeSubs[0].id; 
     nextBillingDate = activeSubs[0].currentPeriodEnd ? new Date(activeSubs[0].currentPeriodEnd).toLocaleDateString() : null;
-    
     if (activeSubs[0].name.includes("Professional")) currentPlan = "pro";
     else if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
   } else {
-    // 检查是否有处于取消宽限期内的订阅
     const cancelledSub = allSubsEdges.find(({ node }) => node.status === "CANCELLED");
     if (cancelledSub) {
       const periodEnd = new Date(cancelledSub.node.currentPeriodEnd);
@@ -120,7 +112,6 @@ export const loader = async ({ request }) => {
     expectedMetaValue = "Enterprise";
   }
 
-  // 执行店铺 plan_level 元字段一键纠偏，死锁前台渲染安全线
   try {
     const shopMetaRes = await admin.graphql(`
       #graphql
@@ -170,7 +161,6 @@ export const loader = async ({ request }) => {
 
   const responseJson = await response.json();
   const edges = responseJson.data?.products?.edges || [];
-
   const modelActiveCount = edges.filter(e => !!e.node.modelUrlField?.value).length;
   const arActiveCount = edges.filter(e => e.node.arEnabledField?.value === "true").length;
 
@@ -185,7 +175,6 @@ export default function AppDashboard() {
 
   const t = translations[locale];
 
-  // 💡 额度动态渲染函数：完美对齐 10基础 + 1.99弹性购买坑位费
   const getArLimitDisplay = () => {
     if (currentPlan.startsWith("enterprise")) return `${arActiveCount} / ${t.unlimited}`;
     if (currentPlan.startsWith("pro")) return `${arActiveCount} / ${10 + extraSlots}`;
@@ -203,7 +192,6 @@ export default function AppDashboard() {
     return <Badge tone="attention">Basic Free 免费基础版</Badge>;
   };
 
-  // 发起升级或切换套餐的官方 Billing 结算重定向变异
   const handlePlanAction = (planName) => {
     submit({ actionType: "subscribe", planName }, { method: "POST", action: "/app/billing" });
   };
@@ -220,7 +208,6 @@ export default function AppDashboard() {
       ]}
     >
       <BlockStack gap="500">
-        {/* 顶部套餐概览横幅 */}
         <Banner tone="info" icon={HomeIcon}>
           <InlineStack align="space-between" blockAlign="center" style={{ width: '100%' }}>
             <Box>
@@ -232,7 +219,6 @@ export default function AppDashboard() {
           </InlineStack>
         </Banner>
 
-        {/* 核心数据看板核心栅格 */}
         <Grid>
           <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 6, lg: 6 }}>
             <Card>
@@ -262,18 +248,15 @@ export default function AppDashboard() {
           </Grid.Cell>
         </Grid>
 
-        {/* 核心动作导航跳转 */}
         <Box textAlign="center" paddingBlock="200">
-          <Button variant="primary" size="large" onClick={() => navigate("/app/products" + window.location.search)}>
+          <Button variant="primary" size="large" onClick={() => navigate("/app/additional" + window.location.search)}>
             {t.manageAssetsBtn}
           </Button>
         </Box>
 
-        {/* 订阅套餐矩阵对比看板（绝无假数据，按钮直连真实结算） */}
         <Card title={t.cardPlanTitle}>
           <Box paddingBlockEnd="300"><Text variant="headingMd" as="h3">{t.cardPlanTitle}</Text></Box>
           <Grid gap="400">
-            {/* 免费版 */}
             <Grid.Cell columnSpan={{ xs: 12, sm: 4, md: 4, lg: 4 }}>
               <Box borderStyle="solid" borderWidth="100" borderColor="border" borderRadius="300" padding="400" minHeight="360px">
                 <BlockStack gap="300">
@@ -295,7 +278,6 @@ export default function AppDashboard() {
               </Box>
             </Grid.Cell>
 
-            {/* 专业出海版 */}
             <Grid.Cell columnSpan={{ xs: 12, sm: 4, md: 4, lg: 4 }}>
               <Box borderStyle="solid" borderWidth="200" borderColor="border-brand" borderRadius="300" padding="400" minHeight="360px" background="bg-surface-selected">
                 <BlockStack gap="300">
@@ -321,7 +303,6 @@ export default function AppDashboard() {
               </Box>
             </Grid.Cell>
 
-            {/* 旗舰企业版 */}
             <Grid.Cell columnSpan={{ xs: 12, sm: 4, md: 4, lg: 4 }}>
               <Box borderStyle="solid" borderWidth="100" borderColor="border" borderRadius="300" padding="400" minHeight="360px">
                 <BlockStack gap="300">
@@ -347,16 +328,13 @@ export default function AppDashboard() {
           </Grid>
         </Card>
 
-        {/* 底部技术支持板块 */}
         <Card>
           <BlockStack gap="200">
             <InlineStack gap="200" blockAlign="center">
               <Icon source={SettingsIcon} tone="base" />
               <Text variant="headingSm" as="h3">{t.supportTitle}</Text>
             </InlineStack>
-            <Text as="p" tone="subdued">
-              {t.supportText}
-            </Text>
+            <Text as="p" tone="subdued">{t.supportText}</Text>
           </BlockStack>
         </Card>
       </BlockStack>
