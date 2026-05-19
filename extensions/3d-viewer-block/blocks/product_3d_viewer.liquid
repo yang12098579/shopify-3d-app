@@ -51,7 +51,7 @@
   {% assign primary_ios_src = target_glb_url %}
 {% endif %}
 
-{% comment } 步骤 4：免费版坑位熔断安全网 {% endcomment %}
+{% comment %} 步骤 4：免费版坑位熔断安全网（已完美修复错字） {% endcomment %}
 {% if is_premium_plan == false or is_premium_plan == blank %}
   {% unless allowed_products contains search_id %}
     {% assign target_glb_url = blank %}
@@ -163,7 +163,6 @@
           // ==========================================
           // 👑 2. 旗舰级多属性变体（Variant）实时对账刷新引擎
           // ==========================================
-          // 建立当前商品下所有变体资产字典，由 Liquid 在宿主服务器编译期安全注入
           const variantModelMap = {
             {% for variant in product.variants %}
               "{{ variant.id }}": {
@@ -173,22 +172,18 @@
             {% endfor %}
           };
 
-          // 封装平滑资产变道函数
           const switch3DVariantAssets = (variantId) => {
             const activeRecord = variantModelMap[variantId];
             if (activeRecord) {
-              // 执行网页端3D模型平滑切道
               if (activeRecord.glb && viewer.getAttribute('src') !== activeRecord.glb) {
                 viewer.setAttribute('src', activeRecord.glb);
               }
-              // 执行苹果端AR投影通道平滑切道
               if (activeRecord.usdz && viewer.getAttribute('ios-src') !== activeRecord.usdz) {
                 viewer.setAttribute('ios-src', activeRecord.usdz);
               }
             }
           };
 
-          // 机制 A：标准URL变动拦截监听器（Shopify原生切换单品多属性会更改 variant= 参数）
           let lastTrackedUrl = location.href;
           const performUrlDeconstruct = () => {
             const urlQueryTokens = new URLSearchParams(window.location.search);
@@ -198,7 +193,6 @@
             }
           };
 
-          // 机制 B：高频静默轮询，降维打破由于复杂第三方模板劫持跳转导致的事件丢失
           setInterval(() => {
             if (location.href !== lastTrackedUrl) {
               lastTrackedUrl = location.href;
@@ -206,7 +200,6 @@
             }
           }, 400);
 
-          // 机制 C：首次开屏页面加载防滞后触发现场校验
           performUrlDeconstruct();
         }
       });
