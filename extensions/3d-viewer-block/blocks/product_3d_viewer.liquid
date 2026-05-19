@@ -1,5 +1,5 @@
 {% comment %}
-  Vision3D Pro - 智能3D/AR核心渲染引擎（双端AR兼容 + 旗舰Variant动态联动版）
+  商用高级版 3D 商品展示器 App Block (国际化极简右上角 3D-AR 图标版)
 {% endcomment %}
 
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js" defer></script>
@@ -10,73 +10,46 @@
 {% assign app_plan = shop.metafields.product_3d_app.plan_level.value | default: shop.metafields.product_3d_app.plan_level %}
 {% assign allowed_products = shop.metafields.product_3d_app.allowed_products.value | default: shop.metafields.product_3d_app.allowed_products %}
 
-{% comment %} 🛡️ 安全熔断修复：强制将当前商品 ID 转为纯数字字符串，防止免费版拦截失效 {% endcomment %}
-{% assign search_id = product.id | append: "" %}
-
-{% comment %} 商业方案合法性评估 {% endcomment %}
+{% comment %} 
+  综合审查当前店铺是否具备合法的商业付费包身份
+{% endcomment %}
 {% assign is_premium_plan = false %}
 {% if app_plan contains "Pro" or app_plan contains "Professional" or app_plan contains "Enterprise" or app_plan contains "Flagship" or app_plan contains "专业" or app_plan contains "旗舰" %}
   {% assign is_premium_plan = true %}
 {% endif %}
 
 {% comment %} 
-  步骤 2：多属性智能数据寻址算子 (网页端 GLB)
+  智能数据寻址算子
 {% endcomment %}
-{% assign current_variant = product.selected_or_first_available_variant %}
-{% assign variant_glb_url = current_variant.metafields.custom.variant_3d_model.value | default: current_variant.metafields.custom.variant_3d_model %}
-{% assign product_glb_url = product.metafields.custom.product_3d_model.value | default: product.metafields.custom.product_3d_model %}
-
-{% comment %} 付费版优先采用多属性 Variant 模型，否则用商品 Product 级别兜底 {% endcomment %}
-{% if variant_glb_url != blank and is_premium_plan %}
-  {% assign target_glb_url = variant_glb_url %}
-{% else %}
-  {% assign target_glb_url = product_glb_url %}
-{% endif %}
-
-{% comment %} 获取 AR 空间投影激活开关状态 {% endcomment %}
+{% assign target_model_url = product.metafields.custom.product_3d_model.value | default: product.metafields.custom.product_3d_model %}
 {% assign ar_is_enabled = product.metafields.custom.ar_enabled.value | default: product.metafields.custom.ar_enabled %}
 
-{% comment %} 
-  步骤 3：🛠️ 【核心突破：iOS 点击 AR 闪退终极安全寻址算子】
-  苹果系统的 Quick Look 引擎极其挑剔，绝不能强行塞给它非 USDZ 的普通 GLB。
-  如果云端没有检测到后端自动编译的 .usdz（通过 custom.ios_3d_model 存放），
-  我们必须将 ios-src 降维重新导向给主模型的链接。
-  这样 model-viewer 内部的 WebXR 运行时会自动在 iPhone 本地发起格式托管转换，绝不执行闪退！
-{% endcomment %}
-{% assign primary_usdz_meta = product.metafields.custom.ios_3d_model.value | default: product.metafields.custom.ios_3d_model %}
-
-{% if primary_usdz_meta != blank and is_premium_plan %}
-  {% assign primary_ios_src = primary_usdz_meta %}
-{% else %}
-  {% assign primary_ios_src = target_glb_url %}
-{% endif %}
-
-{% comment %} 步骤 4：免费版坑位熔断安全网（已完美修复错字） {% endcomment %}
 {% if is_premium_plan == false or is_premium_plan == blank %}
   {% unless allowed_products contains search_id %}
-    {% assign target_glb_url = blank %}
+    {% assign target_model_url = blank %}
   {% endunless %}
   {% assign ar_is_enabled = false %}
 {% endif %}
 
-{% comment %} 步骤 5：全局静态兜底 {% endcomment %}
-{% if target_glb_url == blank %}
+{% if target_model_url == blank %}
   {% if is_premium_plan %}
-    {% assign target_glb_url = block.settings.model_url %}
+    {% assign target_model_url = block.settings.model_url %}
     {% assign ar_is_enabled = true %}
-    {% assign primary_ios_src = target_glb_url %}
   {% else %}
-    {% assign target_glb_url = blank %}
+    {% assign target_model_url = blank %}
   {% endif %}
 {% endif %}
 
-<div class="product-3d-viewer-wrapper" data-product-id="{{ product.id }}" style="width: 100%; max-width: 100%; margin: {{ block.settings.margin_y }}px 0; position: relative; border-radius: {{ block.settings.border_radius }}px; overflow: hidden; border: 1px solid #eef0f2; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-  {% if target_glb_url != blank %}
+<div class="product-3d-viewer-wrapper" style="width: 100%; max-width: 100%; margin: {{ block.settings.margin_y }}px 0; position: relative; border-radius: {{ block.settings.border_radius }}px; overflow: hidden; border: 1px solid #eef0f2; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+  {% if target_model_url != blank %}
     
     <model-viewer
-      id="shopify-vision3d-viewer"
-      src="{{ target_glb_url }}"
-      ios-src="{{ primary_ios_src }}"
+      src="{{ target_model_url }}"
+      {% if block.settings.ios_model_url != blank %}
+        ios-src="{{ block.settings.ios_model_url }}"
+      {% else %}
+        ios-src="{{ target_model_url }}"
+      {% endif %}
       alt="{{ product.title | escape }} 3D Model"
       shadow-intensity="{{ block.settings.shadow_intensity }}"
       camera-controls
@@ -85,7 +58,12 @@
       style="width: 100%; height: {{ block.settings.viewer_height }}px; background-color: {{ block.settings.bg_color }};"
     >
       
-      {% comment %} 🎯 国际化极简纯图标 UI 升级（48x48 黄金触控毛玻璃立体按钮） {% endcomment %}
+      {% comment %} 
+        🎯 【国际化纯图标 UI 升级】：
+        1. 采用 48x48 黄金触控面积的毛玻璃微立体圆角卡片。
+        2. SVG 图标融合了“AR 扫描框 [ ]”与“3D 盒子 📦”，极具辨识度。
+        3. 底部追加极致微小的英文“AR”字标，零门槛无语种隔阂沟通。
+      {% endcomment %}
       {% if ar_is_enabled == "true" or ar_is_enabled == true or ar_is_enabled == 1 or ar_is_enabled == "1" %}
         <button slot="ar-button" style="position: absolute; top: 16px; right: 16px; width: 48px; height: 48px; background-color: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.08); cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 99; gap: 2px;" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#ffffff';" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(255, 255, 255, 0.88)';">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -101,14 +79,14 @@
         </button>
       {% endif %}
 
-      {% comment %} 免费版独立站水印墙 {% endcomment %}
+      {% comment %} 水印墙 {% endcomment %}
       {% unless is_premium_plan %}
         <div style="position: absolute; bottom: 12px; left: 14px; font-size: 10px; color: #adb5bd; opacity: 0.6; pointer-events: none; font-family: sans-serif; letter-spacing: 0.5px; z-index: 5;">
           Powered by Vision3D Free
         </div>
       {% endunless %}
       
-      {% comment %} 极致流畅加载骨架状态壁纸 {% endcomment %}
+      {% comment %} 加载进度条 {% endcomment %}
       <div slot="poster" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #fdfdfd;">
          <div style="text-align: center;">
            <div style="width: 24px; height: 24px; border: 2px solid #ddd; border-top-color: #333; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px auto;"></div>
@@ -121,17 +99,14 @@
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 
-    {% comment %} 数据分析埋点核心脚本 + 旗舰版变体联动无感无刷编译引擎 {% endcomment %}
+    {% comment %} 📊 数据分析埋点 {% endcomment %}
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        const viewer = document.getElementById('shopify-vision3d-viewer');
+        const viewer = document.querySelector('model-viewer');
         let interactionStartTime = 0;
         let hasInteracted = false;
 
         if (viewer) {
-          // ==========================================
-          // 📊 1. C端买家互动行为深度行为埋点监测
-          // ==========================================
           viewer.addEventListener('camera-change', (event) => {
             if (event.detail.source === 'user-interaction' && !hasInteracted) {
               hasInteracted = true;
@@ -159,48 +134,6 @@
               }
             }
           });
-
-          // ==========================================
-          // 👑 2. 旗舰级多属性变体（Variant）实时对账刷新引擎
-          // ==========================================
-          const variantModelMap = {
-            {% for variant in product.variants %}
-              "{{ variant.id }}": {
-                "glb": "{{ variant.metafields.custom.variant_3d_model.value | default: variant.metafields.custom.variant_3d_model | default: product_glb_url }}",
-                "usdz": "{{ variant.metafields.custom.variant_ios_model.value | default: variant.metafields.custom.variant_ios_model | default: primary_usdz_meta | default: product_glb_url }}"
-              }{% unless forloop.last %},{% endunless %}
-            {% endfor %}
-          };
-
-          const switch3DVariantAssets = (variantId) => {
-            const activeRecord = variantModelMap[variantId];
-            if (activeRecord) {
-              if (activeRecord.glb && viewer.getAttribute('src') !== activeRecord.glb) {
-                viewer.setAttribute('src', activeRecord.glb);
-              }
-              if (activeRecord.usdz && viewer.getAttribute('ios-src') !== activeRecord.usdz) {
-                viewer.setAttribute('ios-src', activeRecord.usdz);
-              }
-            }
-          };
-
-          let lastTrackedUrl = location.href;
-          const performUrlDeconstruct = () => {
-            const urlQueryTokens = new URLSearchParams(window.location.search);
-            const currentVariantToken = urlQueryTokens.get('variant');
-            if (currentVariantToken) {
-              switch3DVariantAssets(currentVariantToken);
-            }
-          };
-
-          setInterval(() => {
-            if (location.href !== lastTrackedUrl) {
-              lastTrackedUrl = location.href;
-              performUrlDeconstruct();
-            }
-          }, 400);
-
-          performUrlDeconstruct();
         }
       });
     </script>
@@ -234,6 +167,11 @@
       "type": "text",
       "id": "model_url",
       "label": "静态兜底 3D 链接 (.glb)"
+    },
+    {
+      "type": "text",
+      "id": "ios_model_url",
+      "label": "iOS 专用 AR 链接 (.usdz)"
     },
     {
       "type": "header",
