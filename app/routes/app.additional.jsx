@@ -12,13 +12,12 @@ import {
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
-// 💡 后端微服务异步发射器：不使用死锁轮询！发射完任务直接撤退，完美绕开 Vercel 运行超时熔断
+// 💡 后端微服务异步发射器：不再使用死锁轮询！发射完任务直接撤退，完美绕开 Vercel 运行超时熔断
 async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
-  const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NT60MTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
+  const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
   if (!apiKey || !glbUrl) return;
 
   try {
-    // 🌐 核心纠偏：将转码门牌号死死咬合在当前文件的专用数据中转路由上
     const appBaseUrl = `https://${shopDomain}`;
     
     await fetch("https://api.cloudconvert.com/v2/jobs", {
@@ -31,6 +30,7 @@ async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
           "export-1": { 
             operation: "export/url", 
             input: "convert-1",
+            // 🎯 集成闭环路由：将转码回调门牌号死死定向在此文件自带的 Action 流量入口上
             webhook: `${appBaseUrl}/app/additional?actionType=webhook_callback&productId=${encodeURIComponent(productId)}`
           }
         }
@@ -130,7 +130,6 @@ const translations = {
 };
 
 export const action = async ({ request }) => {
-  // ✅ 核心隔离安全流：允许来自第三方 CloudConvert 编译引擎的直接跨域推送
   if (request.method === "OPTIONS") {
     return new Response(null, {
       headers: {
@@ -141,7 +140,7 @@ export const action = async ({ request }) => {
     });
   }
 
-  // 📡 雷达拦截分水岭：检查是否为 CloudConvert 转码完成后的就地回执通知
+  // 📡 就地集成接收端：拦截并处理来自 CloudConvert 的转码完毕回执流量
   const url = new URL(request.url);
   const isWebhookCallback = url.searchParams.get("actionType") === "webhook_callback";
   const targetProductId = url.searchParams.get("productId");
@@ -152,7 +151,7 @@ export const action = async ({ request }) => {
       const eventType = body.event;
       const jobData = body.job;
 
-      console.log(`📡 [就地集成雷达捕获流量] 状态: ${eventType} | 目标商品: ${targetProductId}`);
+      console.log(`📡 [内网就地雷达捕获流量] 状态: ${eventType} | 目标商品: ${targetProductId}`);
 
       if (eventType === "job.finished") {
         const exportTask = jobData.tasks?.find(t => t.operation === "export/url" && t.status === "finished");
@@ -160,7 +159,7 @@ export const action = async ({ request }) => {
 
         if (iosModelUrl) {
           const { admin } = await authenticate.public(request);
-          // ⚡ 反向直接将编译好的原生苹果 .usdz 元字段落库入盘，瞬间摧毁宇航员！
+          // ⚡ 直接对账落库：在接收到通知时直接将 .usdz 塞满苹果元字段，瞬间摧毁宇航员
           await admin.graphql(
             `#graphql
             mutation webhookDirectAppendAppleAsset($metafields: [MetafieldsSetInput!]!) {
@@ -177,17 +176,16 @@ export const action = async ({ request }) => {
               }
             }
           );
-          console.log(`💎 [大功告成] 苹果原生 USDZ 资产元字段已全自动写入完毕。`);
+          console.log(`💎 [苹果 AR 闭环大功告成] .usdz 格式元字段落库成功。`);
         }
       }
       return new Response("Callback Processed", { status: 200, headers: { "Access-Control-Allow-Origin": "*" } });
     } catch (err) {
-      console.error("❌ 集成内网回调接力异常:", err);
+      console.error("❌ 内部中转接力异常:", err);
       return new Response("Error", { status: 500 });
     }
   }
 
-  // 🛡️ 标准管理面板控制端路由流量
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = String(formData.get("actionType") || "").trim();
@@ -427,7 +425,7 @@ export const loader = async ({ request }) => {
 
   const subResponse = await admin.graphql(
     `#graphql
-    query getSubscriptionForManagerExtended {
+    query getSubscriptionForManager {
       shop { id }
       currentAppInstallation { 
         id
@@ -459,7 +457,7 @@ export const loader = async ({ request }) => {
 
   const response = await admin.graphql(
     `#graphql
-    query getProductsWithArExtended {
+    query getProductsWithAr {
       products(first: 50, sortKey: UPDATED_AT, reverse: true) {
         edges {
           node {
@@ -496,7 +494,7 @@ export const loader = async ({ request }) => {
     extraSlots = 0;
     await admin.graphql(
       `#graphql
-      mutation resetStaleSlotsExtended($metafields: [MetafieldsSetInput!]!) {
+      mutation resetStaleSlots($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) { metafields { id } }
       }`,
       { variables: { metafields: [{ ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: "0" }] } }
@@ -512,7 +510,7 @@ export const loader = async ({ request }) => {
         const totalOveragePrice = (actualExcess * 1.99).toFixed(2);
         const renewRes = await admin.graphql(
           `#graphql
-          mutation autoRenewSlotsChargeExtended($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
+          mutation autoRenewSlotsCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
             appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) {
               userErrors { field message }
               appUsageRecord { id }
@@ -540,7 +538,7 @@ export const loader = async ({ request }) => {
 
       await admin.graphql(
         `#graphql
-        mutation updateRenewMonthExtended($metafields: [MetafieldsSetInput!]!) {
+        mutation updateRenewMonth($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) { metafields { id } }
         }`,
         {
@@ -773,6 +771,52 @@ export default function ModelMappingDashboard() {
       setTimeout(() => { if (revalidator && revalidator.revalidate) revalidator.revalidate(); }, 450);
     }
   };
+
+  // ✅ 【满血修复核心点】：把漏掉的 renderQuotaBanner 全量函数彻底塞回组件体内部！
+  const renderQuotaBanner = () => {
+    if (currentPlan === "pro") {
+      return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / {10 + extraSlots}</b> 个商品名额</Text></Banner>;
+    }
+    if (currentPlan === "enterprise") {
+      return <Banner tone="success" title="旗舰版 套餐状态"><p>{t.quotaBannerEnterprise}</p></Banner>;
+    }
+    return <Banner tone="warning" title="免费版 套餐状态"><p>{t.quotaBannerFree.replace("{modelCount}", modelActiveCount)}</p></Banner>;
+  };
+
+  const rowMarkup = filteredProducts.map((product, index) => (
+    <IndexTable.Row id={product.id} key={product.id} selected={selectedResources.includes(product.id)} position={index}>
+      <IndexTable.Cell>
+        <InlineStack gap="300" blockAlign="center">
+          <Thumbnail source={product.image} alt={product.title} size="small" />
+          <BlockStack gap="050">
+            <Text variant="bodyMd" fontWeight="bold" as="span">{product.title}</Text>
+            <Text variant="bodySm" tone="subdued" as="span">SKU: {product.sku}</Text>
+          </BlockStack>
+        </InlineStack>
+      </IndexTable.Cell>
+      <IndexTable.Cell>
+        <Badge tone={product.modelUrl ? "success" : "attention"}>
+          <InlineStack gap="100" blockAlign="center">
+            <Icon source={product.modelUrl ? CheckCircleIcon : AlertCircleIcon} tone={product.modelUrl ? "success" : "attention"} />
+            {product.modelUrl ? t.bound : t.unbound}
+          </InlineStack>
+        </Badge>
+      </IndexTable.Cell>
+      <IndexTable.Cell>
+        <InlineStack gap="100" blockAlign="center">
+          <Checkbox label="" checked={product.arEnabled} disabled={!product.modelUrl} onChange={(newChecked) => handleToggleAr(product, newChecked)} />
+          {currentPlan === "free" && <Icon source={LockIcon} tone="subdued" />}
+          <Text variant="bodySm" tone={product.arEnabled ? "base" : "subdued"}>{t.arToggleLabel}</Text>
+        </InlineStack>
+      </IndexTable.Cell>
+      <IndexTable.Cell>
+        <InlineStack gap="150" align="end" blockAlign="center">
+          {product.modelUrl && <Button variant="plain" tone="critical" icon={DeleteIcon} onClick={() => handleUnbind(product)} />}
+          <Button variant={product.modelUrl ? "secondary" : "primary"} onClick={() => handleOpenModal(product)}>{product.modelUrl ? t.btnModify : t.btnBind}</Button>
+        </InlineStack>
+      </IndexTable.Cell>
+    </IndexTable.Row>
+  ));
 
   return (
     <Frame>
