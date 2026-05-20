@@ -14,7 +14,7 @@ import { authenticate } from "../shopify.server";
 
 // 💡 后端微服务异步发射器：不再使用死锁轮询！发射完任务直接撤退，完美绕开 Vercel 运行超时熔断
 async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
-  const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
+  const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
   if (!apiKey || !glbUrl) return;
 
   try {
@@ -30,7 +30,6 @@ async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
           "export-1": { 
             operation: "export/url", 
             input: "convert-1",
-            // 🎯 精准定向对齐：CloudConvert 转换完后将顺着公网 Webhook 通道送回数据
             webhook: `${appBaseUrl}/webhooks?productId=${encodeURIComponent(productId)}`
           }
         }
@@ -93,7 +92,7 @@ const translations = {
     backBtn: "Dashboard", 
     searchPlaceholder: "Search by title or SKU...",
     clearBtn: "Reset Changes",
-    bound: "3D Linked",
+    bound: "Linked 3D",
     unbound: "Unlinked",
     btnUnbind: "Unbind",
     btnModify: "Modify",
@@ -255,7 +254,7 @@ export const action = async ({ request }) => {
       }
     }
 
-    // ✅ 语法安全修复：补齐终齐对账节点大括号，确保 GraphQL 突变 100% 结构闭合
+    // ✅ 完美的 GraphQL 终极语法修复：绝不产生意外截断 (unexpected end of file)
     const payloadResponse = await admin.graphql(
       `#graphql
       mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) {
@@ -717,7 +716,7 @@ export default function ModelMappingDashboard() {
     }
   };
 
-  const rowMarkup = currentPagedProducts.map((product, index) => (
+  const rowMarkup = filteredProducts.map((product, index) => (
     <IndexTable.Row id={product.id} key={product.id} selected={selectedResources.includes(product.id)} position={index}>
       <IndexTable.Cell>
         <InlineStack gap="300" blockAlign="center">
@@ -751,16 +750,6 @@ export default function ModelMappingDashboard() {
       </IndexTable.Cell>
     </IndexTable.Row>
   ));
-
-  const renderQuotaBanner = () => {
-    if (currentPlan === "pro") {
-      return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / {10 + extraSlots}</b> 个商品名额</Text></Banner>;
-    }
-    if (currentPlan === "enterprise") {
-      return <Banner tone="success" title="旗舰版 套餐状态"><p>{t.quotaBannerEnterprise}</p></Banner>;
-    }
-    return <Banner tone="warning" title="免费版 套餐状态"><p>{t.quotaBannerFree.replace("{modelCount}", modelActiveCount)}</p></Banner>;
-  };
 
   return (
     <Frame>
@@ -806,17 +795,6 @@ export default function ModelMappingDashboard() {
                 >
                   {rowMarkup}
                 </IndexTable>
-                
-                <Box padding="400" borderTopWidth="100" borderColor="border-grid">
-                  <InlineStack align="center">
-                    <Pagination
-                      hasPrevious={currentPage > 1}
-                      onPrevious={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      hasNext={indexOfLastItem < filteredProducts.length}
-                      onNext={() => setCurrentPage(prev => prev + 1)}
-                    />
-                  </InlineStack>
-                </Box>
               </BlockStack>
             )}
           </Card>
@@ -833,6 +811,28 @@ export default function ModelMappingDashboard() {
                   <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid #ddd', overflow: 'hidden' }}><model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }} /></Box>
                 </BlockStack>
               )}
+            </BlockStack>
+          </Modal.Section>
+        </Modal>
+
+        <Modal open={limitModal} onClose={() => setLimitModal(false)} title={limitModalType === "AR" ? t.limitModalTitle : t.limitModalTitleModel} primaryAction={{ content: t.limitModalBtn, onAction: () => navigate("/app" + window.location.search) }} secondaryActions={[{ content: t.cancelBtn, onAction: () => setLimitModal(false) }]}>
+          <Modal.Section>
+            <BlockStack gap="300">
+              <Banner tone="critical" title="Quota Exceeded">
+                <p>{limitModalType === "AR" ? (currentPlan === "free" ? t.limitModalFreeMsg : t.limitModalProMsg) : t.limitModalFreeModelMsg}</p>
+              </Banner>
+              <Text as="p" tone="subdued">独立站大数据研究表明：全店开启 3D 交互与 AR 实景，买家转化率最高可拉升 22%！建议您立即升级套餐。</Text>
+            </BlockStack>
+          </Modal.Section>
+        </Modal>
+
+        <Modal open={overageModal} onClose={() => setOverageModal(false)} title={t.overageTitle} primaryAction={{ content: t.overageBtn, onAction: handleConfirmOverage }} secondaryActions={[{ content: t.cancelBtn, onAction: () => setOverageModal(false) }]}>
+          <Modal.Section>
+            <BlockStack gap="300">
+              <Banner tone="info" title="Flexible Usage Billing">
+                <p>{t.overageMsg}</p>
+              </Banner>
+              <Text as="p" tone="subdued">温馨提示：额外席位费将在月底随 Shopify 账单合并结算。本周期内只要取消勾选，次月即可自动停止扣款并缩减额度。</Text>
             </BlockStack>
           </Modal.Section>
         </Modal>
