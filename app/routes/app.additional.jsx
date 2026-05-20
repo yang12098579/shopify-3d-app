@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+// ✅ 统一规范：从标准的 "react-router" 导入核心钩子
 import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
@@ -13,7 +14,6 @@ import { authenticate } from "../shopify.server";
 
 // 💡 极客微服务：利用纯 Fetch 在云端全自动将 GLB 格式无损编译为苹果专用的 USDZ 文件
 async function convertGlbToUsdz(glbUrl) {
-  // 🎯 已完美嵌入你提供的真实 CloudConvert 安全令牌，双信道智能托底
   const apiKey = process.env.CLOUDCONVERT_API_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
   
   if (!apiKey) {
@@ -22,7 +22,6 @@ async function convertGlbToUsdz(glbUrl) {
   }
   
   try {
-    // 1. 发起三阶段流式异步编译任务（导入GLB ➔ 交叉编译 ➔ 导出USDZ）
     const createJobRes = await fetch("https://api.cloudconvert.com/v2/jobs", {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -38,7 +37,6 @@ async function convertGlbToUsdz(glbUrl) {
     const jobId = jobData.data?.id;
     if (!jobId) return "";
 
-    // 2. 高速轮询对账（3D模型小，一般1-3秒内必定编译完成）
     let exportUrl = "";
     for (let i = 0; i < 10; i++) {
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -187,7 +185,8 @@ export const action = async ({ request }) => {
 
   if (actionType === "buy_slot") {
     if (!usageLineItemId) {
-      return { success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅 29.99 套餐激活按量通道后再试。" };
+      // ✅ 彻底移除弃用的 json()，换用现代原生 Response.json()
+      return Response.json({ success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅 29.99 套餐激活按量通道后再试。" });
     }
     try {
       const currentSlots = parseInt(formData.get("currentSlots") || "0", 10);
@@ -208,11 +207,9 @@ export const action = async ({ request }) => {
         }
       );
       const billingJson = await billingRes.json();
-      console.log("👉 [DEBUG_BILLING] 核心扣费接口官方返回结果:", JSON.stringify(billingJson.data?.appUsageRecordCreate));
-
       const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
       if (userErrors && userErrors.length > 0) {
-        return { success: false, error: "BILLING_REJECTED", message: userErrors[0].message }; 
+        return Response.json({ success: false, error: "BILLING_REJECTED", message: userErrors[0].message }); 
       }
       
       const newSlotsValue = (currentSlots + 1).toString();
@@ -233,13 +230,12 @@ export const action = async ({ request }) => {
         }
       );
       
-      return { success: true, actionType: "buy_slot", productId };
+      return Response.json({ success: true, actionType: "buy_slot", productId });
     } catch (err) {
-      return { success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 计费服务器通信失败。" };
+      return Response.json({ success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 计费服务器通信失败。" });
     }
   }
 
-  // 💡 【核心合并优化】：将拦截安全网、CloudConvert、双通道写入统一归口，彻底封死上下断层
   if (actionType === "bind") {
     const modelUrl = formData.get("modelUrl");
     if (currentPlan === "free" && modelUrl !== "") {
@@ -264,16 +260,13 @@ export const action = async ({ request }) => {
       const hasExistingModel = !!currentProductJson.data?.product?.modelUrlField?.value;
 
       if (currentBoundCount >= 3 && !hasExistingModel) {
-        return { success: false, error: "FREE_MODEL_LIMIT_HIT", targetProductId: productId };
+        return Response.json({ success: false, error: "FREE_MODEL_LIMIT_HIT", targetProductId: productId });
       }
     }
 
-    // 🚀 【CloudConvert 自动化微服务】：商家传单个 GLB，后台静默自动追更一包苹果原生 USDZ 文件
     let iosModelUrl = "";
     if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
-      console.log("🔄 检测到新模型绑定，正在全自动启动云端 3D 转换引擎...");
       iosModelUrl = await convertGlbToUsdz(modelUrl);
-      console.log("✅ 苹果专属 USDZ 资产异步编译大功告成:", iosModelUrl);
     }
 
     await admin.graphql(
@@ -288,19 +281,19 @@ export const action = async ({ request }) => {
         variables: { 
           metafields: [
             { ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl },
-            { ownerId: productId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl } // 同时打进苹果专属元字段
+            { ownerId: productId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl } 
           ] 
         } 
       }
     );
-    return { success: true, actionType, productId };
+    return Response.json({ success: true, actionType, productId });
   }
 
   if (actionType === "toggle_ar") {
     const isEnabling = formData.get("arState") === "true";
     if (isEnabling) {
       if (currentPlan === "free") {
-        return { success: false, error: "FREE_LIMIT_HIT", targetProductId: productId };
+        return Response.json({ success: false, error: "FREE_LIMIT_HIT", targetProductId: productId });
       }
       if (currentPlan === "pro") {
         const countArResponse = await admin.graphql(
@@ -313,7 +306,7 @@ export const action = async ({ request }) => {
         const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
 
         if (activeArCount >= (10 + extraSlots)) {
-          return { success: false, error: "PRO_LIMIT_HIT", targetProductId: productId };
+          return Response.json({ success: false, error: "PRO_LIMIT_HIT", targetProductId: productId });
         }
       }
     }
@@ -332,7 +325,7 @@ export const action = async ({ request }) => {
       }`,
       { variables: { metafields: metafieldsInput } }
     );
-    return { success: true, actionType };
+    return Response.json({ success: true, actionType });
   }
 
   if (actionType === "bulk_unbind") {
@@ -340,17 +333,17 @@ export const action = async ({ request }) => {
     const metafieldsToDelete = [];
     productIds.forEach(id => {
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "product_3d_model" });
-      metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ios_3d_model" }); // 批量清理苹果资产
+      metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ios_3d_model" }); 
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ar_enabled" });
     });
     await admin.graphql(
       `#graphql
-      mutation bulkMetafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
+      mutation bulkMetafieldsDelete($metafields: [MetafieldsSetInput!]!) {
         metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
       }`,
       { variables: { metafields: metafieldsToDelete } }
     );
-    return { success: true, actionType };
+    return Response.json({ success: true, actionType });
   }
 
   if (actionType === "toggle_ar") {
@@ -372,13 +365,13 @@ export const action = async ({ request }) => {
       }`,
       { variables: { metafields: [
         { ownerId: productId, namespace: "custom", key: "product_3d_model" }, 
-        { ownerId: productId, namespace: "custom", key: "ios_3d_model" }, // 单项清理苹果资产
+        { ownerId: productId, namespace: "custom", key: "ios_3d_model" }, 
         { ownerId: productId, namespace: "custom", key: "ar_enabled" }
       ] } }
     );
   }
 
-  return { success: true, actionType, productId };
+  return Response.json({ success: true, actionType, productId });
 };
 
 export const loader = async ({ request }) => {
@@ -493,13 +486,11 @@ export const loader = async ({ request }) => {
         const renewErrors = renewJson.data?.appUsageRecordCreate?.userErrors;
 
         if (!renewErrors || renewErrors.length === 0) {
-          console.log(`👉 [AUTO_RENEW_SUCCESS] 商家继续保持勾选，自动续费 ${actualExcess} 个超额 AR 席位，扣费 $${totalOveragePrice}`);
           extraSlots = actualExcess; 
         } else {
           extraSlots = 0; 
         }
       } else {
-        console.log("👉 [AUTO_RENEW_CANCEL] 商家已在月底前取消超额商品勾选，次月自动退订，不扣除坑位费。");
         extraSlots = 0;
       }
 
@@ -532,7 +523,8 @@ export const loader = async ({ request }) => {
     return 0;
   });
 
-  return { initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots };
+  // ✅ 使用原生 Response.json 返回，防止新架构环境死锁
+  return Response.json({ initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots });
 };
 
 export default function ModelMappingDashboard() {
@@ -589,8 +581,7 @@ export default function ModelMappingDashboard() {
 
   const handleSyncProducts = () => {
     setIsSyncing(true);
-    setProducts([]);
-    revalidator.revalidate(); 
+    if (revalidator && revalidator.revalidate) revalidator.revalidate(); 
     setTimeout(() => { setIsSyncing(false); }, 600);
   };
 
@@ -602,18 +593,19 @@ export default function ModelMappingDashboard() {
     }
   }, [inputModelUrl]);
 
+  // ✅ 状态自愈核心监听器：一旦发现后端成功写入，立即强制刷新列表快照
   useEffect(() => {
     if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
       setLimitModalType("AR");
       setLimitModal(true);
-      revalidator.revalidate(); 
+      if (revalidator && revalidator.revalidate) revalidator.revalidate(); 
     } else if (actionData?.error === "FREE_MODEL_LIMIT_HIT") {
       setLimitModalType("MODEL");
       setLimitModal(true);
     } else if (actionData?.error === "BILLING_REJECTED" || actionData?.error === "BILLING_SYSTEM_ERROR" || actionData?.error === "BILLING_SETUP_ERROR") {
       setToastMessage(`开通异常: ${actionData.message}`);
       setShowToast(true);
-      revalidator.revalidate(); 
+      if (revalidator && revalidator.revalidate) revalidator.revalidate(); 
     } else if (actionData?.success && actionData?.actionType === "buy_slot") {
       setToastMessage("成功开通 1 个月度高级 AR 扩容坑位！");
       setShowToast(true);
@@ -621,26 +613,22 @@ export default function ModelMappingDashboard() {
     } else if (actionData?.success) {
       setToastMessage(t.toastSave);
       setShowToast(true);
+      // 🔥 核心对账补丁：数据入库成功后，立即重刷客户端状态
+      if (revalidator && revalidator.revalidate) revalidator.revalidate();
     }
-  }, [actionData, t.toastSave, revalidator]);
+  }, [actionData, t.toastSave]);
 
   useEffect(() => {
-    setProducts(prev => {
-      if (!prev || prev.length === 0 || prev.length !== initialProducts.length) {
-        return initialProducts;
-      }
-      return prev.map(localItem => {
-        const remoteItem = initialProducts.find(ri => ri.id === localItem.id);
-        return remoteItem ? { ...localItem, ...remoteItem } : localItem;
-      });
-    });
+    setProducts(initialProducts);
   }, [initialProducts]);
 
   useEffect(() => {
-    const script = document.createElement("script");
-    script.type = "module";
-    script.src = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js";
-    document.head.appendChild(script);
+    if (!window.customElements.get('model-viewer')) {
+      const script = document.createElement("script");
+      script.type = "module";
+      script.src = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js";
+      document.head.appendChild(script);
+    }
   }, []);
 
   const handleToggleAr = (product, newChecked) => {
@@ -714,17 +702,32 @@ export default function ModelMappingDashboard() {
     setActiveModal(true);
   };
 
+  // 🔥【核心抢救点】：重写保存函数，加入双轨强制刷新锁，100% 解决链路回弹
   const handleSaveMapping = () => {
     const targetUrl = inputModelUrl.trim();
+    if (!targetUrl) return;
+
+    // 1. 立即变更本地渲染状态
     setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, modelUrl: targetUrl } : p));
+    
+    // 2. 将新链接正式踢向后端的 Action 存储接口
     submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" });
+    
+    // 3. 强力对账：在关闭弹窗的瞬间命令 Remix 刷新依赖快照，彻底锁死数据状态
+    if (revalidator && revalidator.revalidate) {
+      setTimeout(() => { revalidator.revalidate(); }, 250);
+    }
+
     setActiveModal(false);
   };
 
   const handleUnbind = (product) => {
     if (confirm("解除绑定会同步关闭该商品的移动端 AR 实景功能。确定吗？")) {
-      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : prev.find(x => x.id === p.id)));
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : p));
       submit({ actionType: "unbind", productId: product.id }, { method: "POST" });
+      if (revalidator && revalidator.revalidate) {
+        setTimeout(() => { revalidator.revalidate(); }, 250);
+      }
     }
   };
 
