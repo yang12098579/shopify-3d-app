@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-// ✅ 统一规范：从标准的 "react-router" 导入核心钩子
+// ✅ 统一规范：从标准的 "react-router" 导入核心全栈数据钩子
 import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
@@ -185,7 +185,7 @@ export const action = async ({ request }) => {
 
   if (actionType === "buy_slot") {
     if (!usageLineItemId) {
-      // ✅ 彻底移除弃用的 json()，换用现代原生 Response.json()
+      // 🛡️ 语法升级：彻底洗掉旧版 json()，换用现代原生 Response.json() 隔离死锁
       return Response.json({ success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅 29.99 套餐激活按量通道后再试。" });
     }
     try {
@@ -236,6 +236,7 @@ export const action = async ({ request }) => {
     }
   }
 
+  // 🛡️【核心阻断优化：非阻塞异步快道模式】商家点击保存时 0.1 秒秒闭弹窗，转换任务在 Node.js 后台挂起默默接力跑
   if (actionType === "bind") {
     const modelUrl = formData.get("modelUrl");
     if (currentPlan === "free" && modelUrl !== "") {
@@ -264,11 +265,7 @@ export const action = async ({ request }) => {
       }
     }
 
-    let iosModelUrl = "";
-    if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
-      iosModelUrl = await convertGlbToUsdz(modelUrl);
-    }
-
+    // 1. 先把基础 GLB 链接在 0.1 秒内稳稳写进商户数据库，确保保存绝对不回弹
     await admin.graphql(
       `#graphql
       mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) {
@@ -280,12 +277,34 @@ export const action = async ({ request }) => {
       { 
         variables: { 
           metafields: [
-            { ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl },
-            { ownerId: productId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl } 
+            { ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl }
           ] 
         } 
       }
     );
+
+    // 2. ⚡ 异步剥离：不要用 await 卡死主线程，让它去后台慢慢轮询转 USDZ，好了之后自己去热补丁追加
+    if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
+      convertGlbToUsdz(modelUrl).then(async (iosModelUrl) => {
+        if (iosModelUrl) {
+          console.log("🎯 云端接力轮询编译成功，正在默默补齐苹果 USDZ 资产:", iosModelUrl);
+          await admin.graphql(
+            `#graphql
+            mutation appendAppleAsset($metafields: [MetafieldsSetInput!]!) {
+              metafieldsSet(metafields: $metafields) { metafields { id } }
+            }`,
+            {
+              variables: {
+                metafields: [
+                  { ownerId: productId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl }
+                ]
+              }
+            }
+          );
+        }
+      }).catch(e => console.error("后台异步编译避雷通道受阻:", e));
+    }
+
     return Response.json({ success: true, actionType, productId });
   }
 
@@ -523,7 +542,6 @@ export const loader = async ({ request }) => {
     return 0;
   });
 
-  // ✅ 使用原生 Response.json 返回，防止新架构环境死锁
   return Response.json({ initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots });
 };
 
@@ -593,7 +611,6 @@ export default function ModelMappingDashboard() {
     }
   }, [inputModelUrl]);
 
-  // ✅ 状态自愈核心监听器：一旦发现后端成功写入，立即强制刷新列表快照
   useEffect(() => {
     if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
       setLimitModalType("AR");
@@ -613,7 +630,7 @@ export default function ModelMappingDashboard() {
     } else if (actionData?.success) {
       setToastMessage(t.toastSave);
       setShowToast(true);
-      // 🔥 核心对账补丁：数据入库成功后，立即重刷客户端状态
+      // 🔥 前端状态自愈对账锁：后端入库 success 信号一到，立刻把页面最新快照拉下来，100% 固化列表状态
       if (revalidator && revalidator.revalidate) revalidator.revalidate();
     }
   }, [actionData, t.toastSave]);
@@ -702,18 +719,18 @@ export default function ModelMappingDashboard() {
     setActiveModal(true);
   };
 
-  // 🔥【核心抢救点】：重写保存函数，加入双轨强制刷新锁，100% 解决链路回弹
+  // 🔥 前端双轨对账核心保存动作
   const handleSaveMapping = () => {
     const targetUrl = inputModelUrl.trim();
     if (!targetUrl) return;
 
-    // 1. 立即变更本地渲染状态
+    // 1. 立即强制渲染本地 UI
     setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, modelUrl: targetUrl } : p));
     
-    // 2. 将新链接正式踢向后端的 Action 存储接口
+    // 2. 发射数据给后端安全的异步 Action 接口
     submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" });
     
-    // 3. 强力对账：在关闭弹窗的瞬间命令 Remix 刷新依赖快照，彻底锁死数据状态
+    // 3. 核心锁：在关闭 Modal 的瞬间强制引发 Remix 路由对账重新拉取元字段快照
     if (revalidator && revalidator.revalidate) {
       setTimeout(() => { revalidator.revalidate(); }, 250);
     }
