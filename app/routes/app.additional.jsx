@@ -12,12 +12,13 @@ import {
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
-// 💡 后端微服务异步发射器：不再使用死锁轮询！发射完任务直接撤退，完美绕开 Vercel 运行超时熔断
+// 💡 后端微服务异步发射器：不使用死锁轮询！发射完任务直接撤退，完美绕开 Vercel 运行超时熔断
 async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
-  const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
+  const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NT60MTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
   if (!apiKey || !glbUrl) return;
 
   try {
+    // 🌐 核心纠偏：将转码门牌号死死咬合在当前文件的专用数据中转路由上
     const appBaseUrl = `https://${shopDomain}`;
     
     await fetch("https://api.cloudconvert.com/v2/jobs", {
@@ -30,12 +31,12 @@ async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
           "export-1": { 
             operation: "export/url", 
             input: "convert-1",
-            webhook: `${appBaseUrl}/webhooks?productId=${encodeURIComponent(productId)}`
+            webhook: `${appBaseUrl}/app/additional?actionType=webhook_callback&productId=${encodeURIComponent(productId)}`
           }
         }
       })
     });
-    console.log(`📡 [转码雷达发射成功] 目标商品: ${productId}`);
+    console.log(`📡 [雷达成功发射] 异步追踪商品: ${productId}`);
   } catch (err) {
     console.error("❌ 异步转码调度发生系统级异常:", err);
   }
@@ -61,7 +62,7 @@ const translations = {
     modalPreview: "3D 实时预览与资产优化检测",
     saveBtn: "保存配置关系",
     cancelBtn: "取消",
-    toastSave: "操作成功！数据已同步至云端（后台正在异步编译苹果AR端，15秒后手机自动生效）",
+    toastSave: "操作成功！数据已同步至云端（后台正在全自动异步编译苹果AR端，15秒后手机自动生效）",
     previewWarn: "请输入有效的 .glb 链接以开启实时预览。",
     filterAll: "全部状态",
     filterBound: "已绑定 3D 模型",
@@ -79,7 +80,7 @@ const translations = {
     limitModalBtn: "去主页升级套餐",
     perfTitle: "⚡ 资产运行性能分析 (AI)",
     perfGood: "文件状态健康 (建议保持在 10MB 以内)",
-    perfWarn: "🚨 警告：检测到该 3D 模型 file 可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议 optimization！",
+    perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
     overageTitle: "💎 开启额外 AR 扩展坑位",
     overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外开通 1 个高级 AR 扩展席位（本月计费启用），本月内该席位额度可任意替换商品，次月若保持勾选将自动续杯，是否立即开通？",
     overageBtn: "确认开通扩展坑位"
@@ -107,7 +108,7 @@ const translations = {
     previewWarn: "Enter a valid .glb link for preview.",
     filterAll: "All Status",
     filterBound: "Linked 3D",
-    filterUnbound: "Unlinked",
+    filterUnlinked: "Unlinked",
     filterArActive: "AR Activated", 
     arToggleLabel: "Enable Mobile AR View",
     quotaBannerFree: "💡 Basic Free Plan: 3D Models mapped {modelCount} / 3. Mobile AR features are locked, upgrade to activate!",
@@ -129,6 +130,64 @@ const translations = {
 };
 
 export const action = async ({ request }) => {
+  // ✅ 核心隔离安全流：允许来自第三方 CloudConvert 编译引擎的直接跨域推送
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      }
+    });
+  }
+
+  // 📡 雷达拦截分水岭：检查是否为 CloudConvert 转码完成后的就地回执通知
+  const url = new URL(request.url);
+  const isWebhookCallback = url.searchParams.get("actionType") === "webhook_callback";
+  const targetProductId = url.searchParams.get("productId");
+
+  if (isWebhookCallback && targetProductId) {
+    try {
+      const body = await request.json();
+      const eventType = body.event;
+      const jobData = body.job;
+
+      console.log(`📡 [就地集成雷达捕获流量] 状态: ${eventType} | 目标商品: ${targetProductId}`);
+
+      if (eventType === "job.finished") {
+        const exportTask = jobData.tasks?.find(t => t.operation === "export/url" && t.status === "finished");
+        const iosModelUrl = exportTask?.result?.files?.[0]?.url || "";
+
+        if (iosModelUrl) {
+          const { admin } = await authenticate.public(request);
+          // ⚡ 反向直接将编译好的原生苹果 .usdz 元字段落库入盘，瞬间摧毁宇航员！
+          await admin.graphql(
+            `#graphql
+            mutation webhookDirectAppendAppleAsset($metafields: [MetafieldsSetInput!]!) {
+              metafieldsSet(metafields: $metafields) {
+                metafields { id value }
+                userErrors { field message }
+              }
+            }`,
+            {
+              variables: {
+                metafields: [
+                  { ownerId: targetProductId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl }
+                ]
+              }
+            }
+          );
+          console.log(`💎 [大功告成] 苹果原生 USDZ 资产元字段已全自动写入完毕。`);
+        }
+      }
+      return new Response("Callback Processed", { status: 200, headers: { "Access-Control-Allow-Origin": "*" } });
+    } catch (err) {
+      console.error("❌ 集成内网回调接力异常:", err);
+      return new Response("Error", { status: 500 });
+    }
+  }
+
+  // 🛡️ 标准管理面板控制端路由流量
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = String(formData.get("actionType") || "").trim();
@@ -136,7 +195,7 @@ export const action = async ({ request }) => {
 
   const shopQueryRes = await admin.graphql(
     `#graphql
-    query getShopDomain {
+    query getShopDomainExtended {
       shop {
         myshopifyDomain
       }
@@ -254,7 +313,6 @@ export const action = async ({ request }) => {
       }
     }
 
-    // ✅ 完美的 GraphQL 终极语法修复：绝不产生意外截断 (unexpected end of file)
     const payloadResponse = await admin.graphql(
       `#graphql
       mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) {
@@ -349,7 +407,7 @@ export const action = async ({ request }) => {
   if (actionType === "unbind") {
     await admin.graphql(
       `#graphql
-      mutation metafieldsDeleteSingle($metafields: [MetafieldIdentifierInput!]!) {
+      mutation metafieldsDeleteSingle($metafields: [MetafieldsSetInput!]!) {
         metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
       }`,
       { variables: { metafields: [
@@ -369,7 +427,7 @@ export const loader = async ({ request }) => {
 
   const subResponse = await admin.graphql(
     `#graphql
-    query getSubscriptionForManager {
+    query getSubscriptionForManagerExtended {
       shop { id }
       currentAppInstallation { 
         id
@@ -401,7 +459,7 @@ export const loader = async ({ request }) => {
 
   const response = await admin.graphql(
     `#graphql
-    query getProductsWithAr {
+    query getProductsWithArExtended {
       products(first: 50, sortKey: UPDATED_AT, reverse: true) {
         edges {
           node {
@@ -438,7 +496,7 @@ export const loader = async ({ request }) => {
     extraSlots = 0;
     await admin.graphql(
       `#graphql
-      mutation resetStaleSlots($metafields: [MetafieldsSetInput!]!) {
+      mutation resetStaleSlotsExtended($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) { metafields { id } }
       }`,
       { variables: { metafields: [{ ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: "0" }] } }
@@ -454,7 +512,7 @@ export const loader = async ({ request }) => {
         const totalOveragePrice = (actualExcess * 1.99).toFixed(2);
         const renewRes = await admin.graphql(
           `#graphql
-          mutation autoRenewSlotsCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
+          mutation autoRenewSlotsChargeExtended($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
             appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) {
               userErrors { field message }
               appUsageRecord { id }
@@ -482,7 +540,7 @@ export const loader = async ({ request }) => {
 
       await admin.graphql(
         `#graphql
-        mutation updateRenewMonth($metafields: [MetafieldsSetInput!]!) {
+        mutation updateRenewMonthExtended($metafields: [MetafieldsSetInput!]!) {
           metafieldsSet(metafields: $metafields) { metafields { id } }
         }`,
         {
@@ -715,41 +773,6 @@ export default function ModelMappingDashboard() {
       setTimeout(() => { if (revalidator && revalidator.revalidate) revalidator.revalidate(); }, 450);
     }
   };
-
-  const rowMarkup = filteredProducts.map((product, index) => (
-    <IndexTable.Row id={product.id} key={product.id} selected={selectedResources.includes(product.id)} position={index}>
-      <IndexTable.Cell>
-        <InlineStack gap="300" blockAlign="center">
-          <Thumbnail source={product.image} alt={product.title} size="small" />
-          <BlockStack gap="050">
-            <Text variant="bodyMd" fontWeight="bold" as="span">{product.title}</Text>
-            <Text variant="bodySm" tone="subdued" as="span">SKU: {product.sku}</Text>
-          </BlockStack>
-        </InlineStack>
-      </IndexTable.Cell>
-      <IndexTable.Cell>
-        <Badge tone={product.modelUrl ? "success" : "attention"}>
-          <InlineStack gap="100" blockAlign="center">
-            <Icon source={product.modelUrl ? CheckCircleIcon : AlertCircleIcon} tone={product.modelUrl ? "success" : "attention"} />
-            {product.modelUrl ? t.bound : t.unbound}
-          </InlineStack>
-        </Badge>
-      </IndexTable.Cell>
-      <IndexTable.Cell>
-        <InlineStack gap="100" blockAlign="center">
-          <Checkbox label="" checked={product.arEnabled} disabled={!product.modelUrl} onChange={(newChecked) => handleToggleAr(product, newChecked)} />
-          {currentPlan === "free" && <Icon source={LockIcon} tone="subdued" />}
-          <Text variant="bodySm" tone={product.arEnabled ? "base" : "subdued"}>{t.arToggleLabel}</Text>
-        </InlineStack>
-      </IndexTable.Cell>
-      <IndexTable.Cell>
-        <InlineStack gap="150" align="end" blockAlign="center">
-          {product.modelUrl && <Button variant="plain" tone="critical" icon={DeleteIcon} onClick={() => handleUnbind(product)} />}
-          <Button variant={product.modelUrl ? "secondary" : "primary"} onClick={() => handleOpenModal(product)}>{product.modelUrl ? t.btnModify : t.btnBind}</Button>
-        </InlineStack>
-      </IndexTable.Cell>
-    </IndexTable.Row>
-  ));
 
   return (
     <Frame>
