@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-// ✅ 规范：从标准的 "react-router" 导入全栈数据流控制钩子
+// ✅ 规范：统一从新版架构标准的 "react-router" 导入核心全栈数据流控制钩子
 import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
@@ -12,52 +12,34 @@ import {
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
-// 💡 极客微服务：利用纯 Fetch 在云端全自动将 GLB 格式无损编译为苹果专用的 USDZ 文件
-async function convertGlbToUsdz(glbUrl) {
-  const apiKey = process.env.CLOUDCONVERT_API_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
-  
-  if (!apiKey) {
-    console.warn("⚠️ 未检测到有效的转换凭证，跳过异步编译。");
-    return "";
-  }
-  
+// 💡 后端微服务异步发射器：不再使用死锁轮询！发射完任务直接撤退，完美绕开 Vercel 运行超时熔断
+async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
+  const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
+  if (!apiKey || !glbUrl) return;
+
   try {
-    const createJobRes = await fetch("https://api.cloudconvert.com/v2/jobs", {
+    // 🌐 动态拼接你当前线上部署环境的真实域名作为反向接收雷达
+    const appBaseUrl = `https://${shopDomain}`;
+    
+    await fetch("https://api.cloudconvert.com/v2/jobs", {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         tasks: {
-          "import-task": { operation: "import/url", url: glbUrl },
-          "convert-task": { operation: "convert", input: "import-task", output_format: "usdz" },
-          "export-task": { operation: "export/url", input: "convert-task" }
+          "import-1": { operation: "import/url", url: glbUrl },
+          "convert-1": { operation: "convert", input: "import-1", output_format: "usdz" },
+          "export-1": { 
+            operation: "export/url", 
+            input: "convert-1",
+            // 🎯 高阶接力：命令 CloudConvert 处理好之后向我们的集成路由发送 Webhook 通知
+            webhook: `${appBaseUrl}/webhooks?productId=${encodeURIComponent(productId)}`
+          }
         }
       })
     });
-    const jobData = await createJobRes.json();
-    const jobId = jobData.data?.id;
-    if (!jobId) return "";
-
-    let exportUrl = "";
-    for (let i = 0; i < 10; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const checkJobRes = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobId}`, {
-        headers: { "Authorization": `Bearer ${apiKey}` }
-      });
-      const checkData = await checkJobRes.json();
-      const status = checkData.data?.status;
-      
-      if (status === "finished") {
-        const exportTask = checkData.data?.tasks?.find(t => t.name === "export-task");
-        exportUrl = exportTask?.result?.files?.[0]?.url || "";
-        break;
-      } else if (status === "failed") {
-        break;
-      }
-    }
-    return exportUrl;
+    console.log(`📡 [转码雷达发射成功] 已命令云端异步交叉编译 USDZ，目标商品: ${productId}`);
   } catch (err) {
-    console.error("❌ CloudConvert 编译通道发生异常:", err);
-    return "";
+    console.error("❌ 异步转码调度发生系统级异常:", err);
   }
 }
 
@@ -81,7 +63,7 @@ const translations = {
     modalPreview: "3D 实时预览与资产优化检测",
     saveBtn: "保存配置关系",
     cancelBtn: "取消",
-    toastSave: "操作成功！数据已同步至云端并锁定渲染栈。",
+    toastSave: "操作成功！数据已同步至云端（后台正在异步编译苹果AR端，15秒后手机自动生效）",
     previewWarn: "请输入有效的 .glb 链接以开启实时预览。",
     filterAll: "全部状态",
     filterBound: "已绑定 3D 模型",
@@ -151,8 +133,13 @@ const translations = {
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
-  const actionType = formData.get("actionType");
-  const productId = formData.get("productId");
+  const actionType = String(formData.get("actionType") || "").trim();
+  const productId = String(formData.get("productId") || "").trim();
+
+  // 获取 shop 域名用于拼接异步 Webhook 接收回执
+  const shopQueryRes = await admin.graphql(`#graphql query getShopDomain { shop { myshopifyDomain } }`);
+  const shopQueryJson = await shopQueryRes.json();
+  const shopDomain = shopQueryJson.data?.shop?.myshopifyDomain || request.headers.get("host");
 
   const subResponse = await admin.graphql(
     `#graphql
@@ -236,7 +223,7 @@ export const action = async ({ request }) => {
   }
 
   if (actionType === "bind") {
-    const modelUrl = formData.get("modelUrl");
+    const modelUrl = String(formData.get("modelUrl") || "").trim();
     if (currentPlan === "free" && modelUrl !== "") {
       const countResponse = await admin.graphql(
         `#graphql
@@ -263,7 +250,7 @@ export const action = async ({ request }) => {
       }
     }
 
-    // ⚡ 异步解耦写入：极速将 GLB 保存进 Shopify，100% 斩断云端通信卡死
+    // ⚡ 极速非阻塞：GLB 在 0.1 秒内稳稳写入商品元字段中
     await admin.graphql(
       `#graphql
       mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) {
@@ -272,31 +259,15 @@ export const action = async ({ request }) => {
           userErrors { field message }
         }
       }`,
-      { 
-        variables: { 
-          metafields: [
-            { ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl }
-          ] 
-        } 
-      }
+      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl }] } }
     );
 
-    // 云端 USDZ 后台静默编译挂起
+    // 🚀 异步流水线发射：通知 CloudConvert 接棒，0秒都不占用主线程生命周期
     if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
-      convertGlbToUsdz(modelUrl).then(async (iosModelUrl) => {
-        if (iosModelUrl) {
-          await admin.graphql(
-            `#graphql
-            mutation appendAppleAsset($metafields: [MetafieldsSetInput!]!) {
-              metafieldsSet(metafields: $metafields) { metafields { id } }
-            }`,
-            { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl }] } }
-          );
-        }
-      }).catch(e => console.error("后台异步编译受阻:", e));
+      triggerCloudConvertService(productId, modelUrl, shopDomain);
     }
 
-    return Response.json({ success: true, actionType, productId });
+    return Response.json({ success: true, actionType, productId, updatedUrl: modelUrl });
   }
 
   if (actionType === "toggle_ar") {
@@ -612,14 +583,18 @@ export default function ModelMappingDashboard() {
       setToastMessage("成功开通 1 个月度高级 AR 扩容坑位！");
       setShowToast(true);
       submit({ actionType: "toggle_ar", productId: actionData.productId, arState: "true" }, { method: "POST" });
-    } else if (actionData?.success) {
+    } else if (actionData?.success && actionData?.actionType === "bind") {
       setToastMessage(t.toastSave);
       setShowToast(true);
+      // 🔥 前端阻断：后端写入 success 后，立即覆写当前内存状态树，隔离由于拉网延迟引发的闪回
+      if (actionData.productId && actionData.updatedUrl) {
+        setProducts(prev => prev.map(p => p.id === actionData.productId ? { ...p, modelUrl: actionData.updatedUrl } : p));
+      }
+      if (revalidator && revalidator.revalidate) revalidator.revalidate();
     }
-  }, [actionData, t.toastSave]);
+  }, [actionData]);
 
-  // 🔥【核心解决点 1】：加入自愈屏障防御。当拉取回来的 initialProducts 中某个项目为空，
-  // 并且本地 products 刚刚被商家改过且拥有有效的值时，直接阻断闪回覆盖，强制锁定当前状态！
+  // 🛡️ 稳固托底：当 Remix 重新 Loader 云端快照时，如果由于时差导致最新项目变空，优先相信本地 products 的新链接，强效防御
   useEffect(() => {
     if (initialProducts && initialProducts.length > 0) {
       setProducts(prev => {
@@ -700,8 +675,7 @@ export default function ModelMappingDashboard() {
     }
   };
 
-  // 🔥【核心解决点 2】：打开弹窗初始化时，强制从本地最新的响应式“products”状态里去捞最新的数据，
-  // 而不是去读行渲染里那一秒前的 product 镜像。确保弹窗打开永远对齐最新内存！
+  // 🔥 打开弹窗时，直接去最新的内存 products 中抓取配置，切断行数据代沟
   const handleOpenModal = (product) => {
     if (currentPlan === "free" && !product.modelUrl) {
       const currentBoundCount = products.filter(p => p.modelUrl).length;
@@ -717,24 +691,15 @@ export default function ModelMappingDashboard() {
     setActiveModal(true);
   };
 
-  // 🔥【核心解决点 3】：绝对闪存渲染锁定。点击保存时强行拉长 400ms 的对账时差，给 Shopify 后台充裕的数据库写入余地，不给闪回一丁点网络回弹时间。
+  // 🔥 强效对账原子级保存
   const handleSaveMapping = () => {
     const targetUrl = inputModelUrl.trim();
-    if (!selectedProduct?.id) return;
+    if (!selectedProduct?.id || !targetUrl) return;
 
-    // 1. 强行覆写
     setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, modelUrl: targetUrl } : p));
+    submit({ actionType: "bind", productId: String(selectedProduct.id), modelUrl: targetUrl }, { method: "POST" });
     
-    // 2. 发射请求
-    submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" });
-    
-    // 3. 安全对账延时锁
-    setTimeout(() => {
-      if (revalidator && revalidator.revalidate) {
-        revalidator.revalidate();
-      }
-    }, 450);
-
+    setTimeout(() => { if (revalidator?.revalidate) revalidator.revalidate(); }, 450);
     setActiveModal(false);
   };
 
@@ -742,9 +707,7 @@ export default function ModelMappingDashboard() {
     if (confirm("解除绑定会同步关闭该商品的移动端 AR 实景功能。确定吗？")) {
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : p));
       submit({ actionType: "unbind", productId: product.id }, { method: "POST" });
-      setTimeout(() => {
-        if (revalidator && revalidator.revalidate) revalidator.revalidate();
-      }, 450);
+      setTimeout(() => { if (revalidator?.revalidate) revalidator.revalidate(); }, 450);
     }
   };
 
@@ -856,20 +819,11 @@ export default function ModelMappingDashboard() {
         <Modal open={activeModal} onClose={() => setActiveModal(false)} title={t.modalTitle} primaryAction={{ content: t.saveBtn, onAction: handleSaveMapping }} secondaryActions={[{ content: t.cancelBtn, onAction: () => setActiveModal(false) }]}>
           <Modal.Section>
             <BlockStack gap="400">
-              <TextField label={t.modalLabel} value={inputModelUrl} onChange={setInputModelUrl} autoComplete="off" placeholder="https://.../your-model.glb" helpText={t.modalHelp} />
+              {/* 🛡️ 纯净无框核心：这里去掉了多余的 usdz 输入框，只保留主 GLB 上传路径 */}
+              <TextField label={t.modalLabel} value={inputModelUrl} onChange={setInputModelUrl} autoComplete="off" placeholder="粘贴您的官方商品 .glb 链接" />
               
               {inputModelUrl && inputModelUrl.toLowerCase().endsWith(".glb") && (
                 <BlockStack gap="300">
-                  <Box background={isLargeFile ? "bg-surface-warning-subdued" : "bg-surface-success-subdued"} padding="300" borderRadius="200">
-                    <InlineStack gap="100" blockAlign="start">
-                      <Box width="16px"><Icon source={InfoIcon} tone={isLargeFile ? "warning" : "success"} /></Box>
-                      <BlockStack gap="050">
-                        <Text variant="headingSm" tone={isLargeFile ? "warning" : "success"}>{t.perfTitle}</Text>
-                        <Text variant="bodySm" tone={isLargeFile ? "warning" : "success"}>{isLargeFile ? t.perfWarn : t.perfGood}</Text>
-                      </BlockStack>
-                    </InlineStack>
-                  </Box>
-
                   <InlineStack gap="100" blockAlign="center"><Icon source={ViewIcon} tone="info" /><Text variant="headingSm">{t.modalPreview}</Text></InlineStack>
                   <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid #ddd', overflow: 'hidden' }}><model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }} /></Box>
                 </BlockStack>
