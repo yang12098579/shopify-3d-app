@@ -14,7 +14,7 @@ import { authenticate } from "../shopify.server";
 
 // 💡 极客微服务：利用纯 Fetch 在云端全自动将 GLB 格式无损编译为苹果专用的 USDZ 文件
 async function convertGlbToUsdz(glbUrl) {
-  const apiKey = process.env.CLOUDCONVERT_API_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
+  const apiKey = process.env.CLOUDCONVERT_API_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
   
   if (!apiKey) {
     console.warn("⚠️ 未检测到有效的转换凭证，跳过异步编译。");
@@ -101,7 +101,7 @@ const translations = {
     perfGood: "文件状态健康 (建议保持在 10MB 以内)",
     perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
     overageTitle: "💎 开启额外 AR 扩展坑位",
-    overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外开通 1 个高级 AR 扩展席位（本月计费启用），本月内该席位额度可任意替换商品，次月若保持勾选将自动续杯，是否立即开通？",
+    overageMsg: "您当前专业版自带 of 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外开通 1 个高级 AR 扩展席位（本月计费启用），本月内该席位额度可任意替换商品，次月若保持勾选将自动续杯，是否立即开通？",
     overageBtn: "确认开通扩展坑位"
   },
   en: {
@@ -185,8 +185,7 @@ export const action = async ({ request }) => {
 
   if (actionType === "buy_slot") {
     if (!usageLineItemId) {
-      // 🛡️ 语法升级：彻底洗掉旧版 json()，换用现代原生 Response.json() 隔离死锁
-      return Response.json({ success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅 29.99 套餐激活按量通道后再试。" });
+      return Response.json({ success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅套餐激活按量通道后再试。" });
     }
     try {
       const currentSlots = parseInt(formData.get("currentSlots") || "0", 10);
@@ -236,9 +235,16 @@ export const action = async ({ request }) => {
     }
   }
 
-  // 🛡️【核心阻断优化：非阻塞异步快道模式】商家点击保存时 0.1 秒秒闭弹窗，转换任务在 Node.js 后台挂起默默接力跑
+  // 🛡️【核心阻断优化：非阻塞异步快道模式 + 严格诊断】
   if (actionType === "bind") {
     const modelUrl = formData.get("modelUrl");
+    
+    // 强制验证：如果前端误传了空或者错误的 productId，在这里直接进行服务器兜底防护
+    if (!productId || !productId.startsWith("gid://shopify/Product/")) {
+      console.error("❌ [致命异常] 后端接收到非法的商品 GID:", productId);
+      return Response.json({ success: false, error: "INVALID_PRODUCT_ID", message: `非法的商品ID: ${productId}` });
+    }
+
     if (currentPlan === "free" && modelUrl !== "") {
       const countResponse = await admin.graphql(
         `#graphql
@@ -265,29 +271,50 @@ export const action = async ({ request }) => {
       }
     }
 
-    // 1. 先把基础 GLB 链接在 0.1 秒内稳稳写进商户数据库，确保保存绝对不回弹
-    await admin.graphql(
+    // 1. 核心修复：显式将 value 包装为 String，防止部分老版 Node.js 运行时发生隐式类型转换丢失
+    const stringifiedValue = String(modelUrl || "");
+
+    console.log(`🚀 [数据对账] 准备向商品 ${productId} 写入模型链接: ${stringifiedValue}`);
+
+    const graphqlPayload = await admin.graphql(
       `#graphql
       mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) { 
-          metafields { id value }
+          metafields { id value namespace key }
           userErrors { field message }
         }
       }`,
       { 
         variables: { 
           metafields: [
-            { ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl }
+            { 
+              ownerId: productId, 
+              namespace: "custom", 
+              key: "product_3d_model", 
+              type: "single_line_text_field", 
+              value: stringifiedValue 
+            }
           ] 
         } 
       }
     );
 
-    // 2. ⚡ 异步剥离：不要用 await 卡死主线程，让它去后台慢慢轮询转 USDZ，好了之后自己去热补丁追加
-    if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
-      convertGlbToUsdz(modelUrl).then(async (iosModelUrl) => {
+    const saveMainModelJson = await graphqlPayload.json();
+    const userErrors = saveMainModelJson.data?.metafieldsSet?.userErrors || [];
+    
+    // 💡 监控核心：如果 Shopify 官方默默拦截了数据，这里会在控制台精准打印原因
+    if (userErrors.length > 0) {
+      console.error("❌ [Shopify 官方拒收数据反馈]:", JSON.stringify(userErrors));
+      return Response.json({ success: false, error: "SHOPIFY_API_REJECTED", message: userErrors[0].message });
+    } else {
+      console.log("✅ [Shopify 官方入库成功反馈]:", JSON.stringify(saveMainModelJson.data?.metafieldsSet?.metafields));
+    }
+
+    // 2. ⚡ 异步解耦编译：将转码任务在后台挂起默默跑，0.1秒都不卡前端
+    if (stringifiedValue && stringifiedValue.toLowerCase().includes(".glb")) {
+      convertGlbToUsdz(stringifiedValue).then(async (iosModelUrl) => {
         if (iosModelUrl) {
-          console.log("🎯 云端接力轮询编译成功，正在默默补齐苹果 USDZ 资产:", iosModelUrl);
+          console.log("🎯 云端异步编译成功，追加苹果苹果 USDZ 元字段:", iosModelUrl);
           await admin.graphql(
             `#graphql
             mutation appendAppleAsset($metafields: [MetafieldsSetInput!]!) {
@@ -305,7 +332,7 @@ export const action = async ({ request }) => {
       }).catch(e => console.error("后台异步编译避雷通道受阻:", e));
     }
 
-    return Response.json({ success: true, actionType, productId });
+    return Response.json({ success: true, actionType, productId, updatedUrl: stringifiedValue });
   }
 
   if (actionType === "toggle_ar") {
@@ -329,6 +356,16 @@ export const action = async ({ request }) => {
         }
       }
     }
+    
+    const arState = formData.get("arState") === "true";
+    await admin.graphql(
+      `#graphql
+      mutation metafieldsSetAr($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) { metafields { id value } }
+      }`,
+      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false" }] } }
+    );
+    return Response.json({ success: true, actionType, productId });
   }
 
   if (actionType === "bulk_toggle_ar") {
@@ -365,17 +402,6 @@ export const action = async ({ request }) => {
     return Response.json({ success: true, actionType });
   }
 
-  if (actionType === "toggle_ar") {
-    const arState = formData.get("arState") === "true";
-    await admin.graphql(
-      `#graphql
-      mutation metafieldsSetAr($metafields: [MetafieldsSetInput!]!) {
-        metafieldsSet(metafields: $metafields) { metafields { id value } }
-      }`,
-      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false" }] } }
-    );
-  }
-
   if (actionType === "unbind") {
     await admin.graphql(
       `#graphql
@@ -388,9 +414,10 @@ export const action = async ({ request }) => {
         { ownerId: productId, namespace: "custom", key: "ar_enabled" }
       ] } }
     );
+    return Response.json({ success: true, actionType, productId });
   }
 
-  return Response.json({ success: true, actionType, productId });
+  return Response.json({ success: true });
 };
 
 export const loader = async ({ request }) => {
@@ -615,28 +642,42 @@ export default function ModelMappingDashboard() {
     if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
       setLimitModalType("AR");
       setLimitModal(true);
-      if (revalidator && revalidator.revalidate) revalidator.revalidate(); 
     } else if (actionData?.error === "FREE_MODEL_LIMIT_HIT") {
       setLimitModalType("MODEL");
       setLimitModal(true);
-    } else if (actionData?.error === "BILLING_REJECTED" || actionData?.error === "BILLING_SYSTEM_ERROR" || actionData?.error === "BILLING_SETUP_ERROR") {
-      setToastMessage(`开通异常: ${actionData.message}`);
+    } else if (actionData?.error === "SHOPIFY_API_REJECTED" || actionData?.error === "BILLING_REJECTED" || actionData?.error === "BILLING_SYSTEM_ERROR" || actionData?.error === "BILLING_SETUP_ERROR" || actionData?.error === "INVALID_PRODUCT_ID") {
+      setToastMessage(`同步失败反馈: ${actionData.message || "未知异常"}`);
       setShowToast(true);
-      if (revalidator && revalidator.revalidate) revalidator.revalidate(); 
     } else if (actionData?.success && actionData?.actionType === "buy_slot") {
       setToastMessage("成功开通 1 个月度高级 AR 扩容坑位！");
       setShowToast(true);
       submit({ actionType: "toggle_ar", productId: actionData.productId, arState: "true" }, { method: "POST" });
-    } else if (actionData?.success) {
+    } else if (actionData?.success && actionData?.actionType === "bind") {
       setToastMessage(t.toastSave);
       setShowToast(true);
-      // 🔥 前端状态自愈对账锁：后端入库 success 信号一到，立刻把页面最新快照拉下来，100% 固化列表状态
+      // 🔥 前端锁定铁律：后端一旦提示 bind 成功，强制用后端传回来的最新 updatedUrl 覆写本地状态，绝不允许回弹
+      if (actionData.productId && actionData.updatedUrl) {
+        setProducts(prev => prev.map(p => p.id === actionData.productId ? { ...p, modelUrl: actionData.updatedUrl } : p));
+      }
       if (revalidator && revalidator.revalidate) revalidator.revalidate();
     }
-  }, [actionData, t.toastSave]);
+  }, [actionData]);
 
   useEffect(() => {
-    setProducts(initialProducts);
+    // 🛡️ 防御机制：当 Remix 刷新的最新云端快照到来时，如果最新快照非空，则信任它。
+    // 如果快照因为各种偶发网络迟滞还没刷新过来，则维持前端刚才点击保存的数据，不让旧数据冲洗掉当前状态
+    if (initialProducts && initialProducts.length > 0) {
+      setProducts(prev => {
+        return initialProducts.map(initItem => {
+          const matchedPrev = prev.find(p => p.id === initItem.id);
+          // 如果前端刚好执行过局部保存，且云端由于时差还在拉扯旧状态，保留前端刚输入的状态
+          if (matchedPrev && matchedPrev.modelUrl && !initItem.modelUrl) {
+            return { ...initItem, modelUrl: matchedPrev.modelUrl };
+          }
+          return initItem;
+        });
+      });
+    }
   }, [initialProducts]);
 
   useEffect(() => {
@@ -719,32 +760,44 @@ export default function ModelMappingDashboard() {
     setActiveModal(true);
   };
 
-  // 🔥 前端双轨对账核心保存动作
+  // 🔥 核心对账阻断方案：显式注入所选商品的绝对实体 ID，不给闭包延迟任何错位回弹的机会
   const handleSaveMapping = () => {
     const targetUrl = inputModelUrl.trim();
-    if (!targetUrl) return;
+    if (!selectedProduct?.id) {
+      console.error("❌ 前端校验失败：未抓取到当前的商品对象状态指针");
+      return;
+    }
 
-    // 1. 立即强制渲染本地 UI
+    // 1. 强制锁死前端本地 UI，让小车或者老虎立刻定格
     setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { ...p, modelUrl: targetUrl } : p));
     
-    // 2. 发射数据给后端安全的异步 Action 接口
-    submit({ actionType: "bind", productId: selectedProduct.id, modelUrl: targetUrl }, { method: "POST" });
+    // 2. 发射强类型的表单字段至后端后台
+    submit(
+      { 
+        actionType: "bind", 
+        productId: String(selectedProduct.id), 
+        modelUrl: targetUrl 
+      }, 
+      { method: "POST" }
+    );
     
-    // 3. 核心锁：在关闭 Modal 的瞬间强制引发 Remix 路由对账重新拉取元字段快照
-    if (revalidator && revalidator.revalidate) {
-      setTimeout(() => { revalidator.revalidate(); }, 250);
-    }
+    // 3. 延迟 350ms 对账，确保给 Shopify 足够长的写入余地
+    setTimeout(() => {
+      if (revalidator && revalidator.revalidate) {
+        revalidator.revalidate();
+      }
+    }, 350);
 
     setActiveModal(false);
   };
 
   const handleUnbind = (product) => {
     if (confirm("解除绑定会同步关闭该商品的移动端 AR 实景功能。确定吗？")) {
-      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, modelUrl: "", arEnabled: false } : p));
+      setProducts(prev => prev.map(p => product.id === p.id ? { ...p, modelUrl: "", arEnabled: false } : p));
       submit({ actionType: "unbind", productId: product.id }, { method: "POST" });
-      if (revalidator && revalidator.revalidate) {
-        setTimeout(() => { revalidator.revalidate(); }, 250);
-      }
+      setTimeout(() => {
+        if (revalidator && revalidator.revalidate) revalidator.revalidate();
+      }, 350);
     }
   };
 
