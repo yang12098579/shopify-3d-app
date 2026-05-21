@@ -1,39 +1,41 @@
 {% comment %}
-  商用高级版 3D 商品展示器 App Block (国际化极简右上角 3D-AR 图标版)
+  商用高级版 3D 商品展示器 App Block (完美对齐 0 / 29.99 / 49.99 商业限制)
 {% endcomment %}
 
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js" defer></script>
 
-{% comment %} 
-  步骤 1：获取店铺当前的计划等级以及免费版商品白名单
-{% endcomment %}
+{% comment %} 1. 获取店铺当前的计划等级和白名单 {% endcomment %}
 {% assign app_plan = shop.metafields.product_3d_app.plan_level.value | default: shop.metafields.product_3d_app.plan_level %}
 {% assign allowed_products = shop.metafields.product_3d_app.allowed_products.value | default: shop.metafields.product_3d_app.allowed_products %}
 
-{% comment %} 
-  综合审查当前店铺是否具备合法的商业付费包身份
-{% endcomment %}
+{% comment %} 2. 识别是否为付费套餐 ($29.99 专业版 或 $49.99 旗舰版) {% endcomment %}
 {% assign is_premium_plan = false %}
 {% if app_plan contains "Pro" or app_plan contains "Professional" or app_plan contains "Enterprise" or app_plan contains "Flagship" or app_plan contains "专业" or app_plan contains "旗舰" %}
   {% assign is_premium_plan = true %}
 {% endif %}
 
-{% comment %} 
-  智能数据寻址算子
-{% endcomment %}
+{% comment %} 3. 获取后台辛辛苦苦转码存好的模型链接 {% endcomment %}
 {% assign target_model_url = product.metafields.custom.product_3d_model.value | default: product.metafields.custom.product_3d_model %}
+{% assign ios_model_url = product.metafields.custom.ios_3d_model.value | default: product.metafields.custom.ios_3d_model %}
 {% assign ar_is_enabled = product.metafields.custom.ar_enabled.value | default: product.metafields.custom.ar_enabled %}
 
+{% comment %} 🎯 修复点 1：获取当前商品正确的 ID，用来做免费版白名单核对 {% endcomment %}
+{% assign current_product_id = product.id | append: "" %}
+
+{% comment %} 🔒 核心商业风控拦截（严格执行你的截图逻辑） {% endcomment %}
 {% if is_premium_plan == false or is_premium_plan == blank %}
-  {% unless allowed_products contains search_id %}
+  {% comment %} 免费版：如果商品不在那 3 个白名单里，强行清空 3D 链接 {% endcomment %}
+  {% unless allowed_products contains current_product_id %}
     {% assign target_model_url = blank %}
   {% endunless %}
+  {% comment %} 免费版：强制剥夺 AR 权限！ {% endcomment %}
   {% assign ar_is_enabled = false %}
 {% endif %}
 
 {% if target_model_url == blank %}
   {% if is_premium_plan %}
     {% assign target_model_url = block.settings.model_url %}
+    {% assign ios_model_url = block.settings.ios_model_url %}
     {% assign ar_is_enabled = true %}
   {% else %}
     {% assign target_model_url = blank %}
@@ -44,28 +46,28 @@
   {% if target_model_url != blank %}
     
     <model-viewer
+      {% comment %} 喂给安卓和网页的 GLB {% endcomment %}
       src="{{ target_model_url }}"
-      {% if block.settings.ios_model_url != blank %}
-        ios-src="{{ block.settings.ios_model_url }}"
-      {% else %}
-        ios-src="{{ target_model_url }}"
+      
+      {% comment %} 🎯 修复点 2：喂给苹果专属的 USDZ，彻底击碎宇航员！ {% endcomment %}
+      {% if ios_model_url != blank %}
+        ios-src="{{ ios_model_url }}"
       {% endif %}
+      
       alt="{{ product.title | escape }} 3D Model"
       shadow-intensity="{{ block.settings.shadow_intensity }}"
       camera-controls
       {% if block.settings.auto_rotate %}auto-rotate{% endif %}
+      
+      {% comment %} 只有后台合法开启了 AR（专业版10个/旗舰版无限），才生成 AR 属性 {% endcomment %}
       {% if ar_is_enabled == "true" or ar_is_enabled == true or ar_is_enabled == 1 or ar_is_enabled == "1" %}ar ar-modes="quick-look scene-viewer webxr"{% endif %}
+      
       style="width: 100%; height: {{ block.settings.viewer_height }}px; background-color: {{ block.settings.bg_color }};"
     >
       
-      {% comment %} 
-        🎯 【国际化纯图标 UI 升级】：
-        1. 采用 48x48 黄金触控面积的毛玻璃微立体圆角卡片。
-        2. SVG 图标融合了“AR 扫描框 [ ]”与“3D 盒子 📦”，极具辨识度。
-        3. 底部追加极致微小的英文“AR”字标，零门槛无语种隔阂沟通。
-      {% endcomment %}
+      {% comment %} AR 激活按钮 {% endcomment %}
       {% if ar_is_enabled == "true" or ar_is_enabled == true or ar_is_enabled == 1 or ar_is_enabled == "1" %}
-        <button slot="ar-button" style="position: absolute; top: 16px; right: 16px; width: 48px; height: 48px; background-color: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.08); cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 99; gap: 2px;" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='#ffffff';" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(255, 255, 255, 0.88)';">
+        <button slot="ar-button" style="position: absolute; top: 16px; right: 16px; width: 48px; height: 48px; background-color: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.08); cursor: pointer; z-index: 99; gap: 2px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
             <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
@@ -75,18 +77,17 @@
             <path d="M6 10.5L12 14l6-3.5"></path>
             <path d="M12 14v5"></path>
           </svg>
-          <span style="font-size: 9px; font-weight: 800; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; letter-spacing: 0.5px; line-height: 1;">AR</span>
+          <span style="font-size: 9px; font-weight: 800; color: #111111;">AR</span>
         </button>
       {% endif %}
 
-      {% comment %} 水印墙 {% endcomment %}
+      {% comment %} 免费版强制保留的水印 {% endcomment %}
       {% unless is_premium_plan %}
         <div style="position: absolute; bottom: 12px; left: 14px; font-size: 10px; color: #adb5bd; opacity: 0.6; pointer-events: none; font-family: sans-serif; letter-spacing: 0.5px; z-index: 5;">
           Powered by Vision3D Free
         </div>
       {% endunless %}
       
-      {% comment %} 加载进度条 {% endcomment %}
       <div slot="poster" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #fdfdfd;">
          <div style="text-align: center;">
            <div style="width: 24px; height: 24px; border: 2px solid #ddd; border-top-color: #333; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px auto;"></div>
@@ -98,47 +99,8 @@
     <style>
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
-
-    {% comment %} 📊 数据分析埋点 {% endcomment %}
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const viewer = document.querySelector('model-viewer');
-        let interactionStartTime = 0;
-        let hasInteracted = false;
-
-        if (viewer) {
-          viewer.addEventListener('camera-change', (event) => {
-            if (event.detail.source === 'user-interaction' && !hasInteracted) {
-              hasInteracted = true;
-              interactionStartTime = Date.now();
-            }
-          });
-
-          viewer.addEventListener('ar-status', (event) => {
-            if (event.detail.status === 'session-started') {
-              fetch('/apps/api/track', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ eventType: 'ar_click' })
-              }).catch(e => console.error(e));
-            }
-          });
-
-          window.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'hidden' && hasInteracted) {
-              const stayTime = Date.now() - interactionStartTime;
-              if (stayTime > 1000) { 
-                const blob = new Blob([JSON.stringify({ eventType: 'view', timeMs: stayTime })], {type: 'application/json'});
-                navigator.sendBeacon('/apps/api/track', blob);
-                hasInteracted = false; 
-              }
-            }
-          });
-        }
-      });
-    </script>
-
   {% else %}
+    {% comment %} 没有模型时的占位符 {% endcomment %}
     <div style="width: 100%; height: {{ block.settings.viewer_height }}px; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8f9fa; border: 2px dashed #ced4da; padding: 24px; text-align: center;">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -147,7 +109,7 @@
       </svg>
       <p style="color: #495057; font-size: 15px; font-weight: bold; margin: 0 0 4px 0;">3D Module Active</p>
       <p style="color: #6c757d; font-size: 12px; max-width: 280px; line-height: 1.5;">
-        No 3D asset link detected, or the rendering has been paused due to plan restrictions. Please manage configurations in your admin center.
+        No 3D asset link detected, or the rendering has been paused due to plan restrictions.
       </p>
     </div>
   {% endif %}
@@ -159,20 +121,6 @@
   "target": "section",
   "templates": ["product"],
   "settings": [
-    {
-      "type": "header",
-      "content": "🛠️ 数据源配置"
-    },
-    {
-      "type": "text",
-      "id": "model_url",
-      "label": "静态兜底 3D 链接 (.glb)"
-    },
-    {
-      "type": "text",
-      "id": "ios_model_url",
-      "label": "iOS 专用 AR 链接 (.usdz)"
-    },
     {
       "type": "header",
       "content": "🎨 视觉控制"
@@ -190,7 +138,7 @@
     {
       "type": "color",
       "id": "bg_color",
-      "label": "背景色 (十六进制)",
+      "label": "背景色",
       "default": "#ffffff"
     },
     {
@@ -205,7 +153,7 @@
     {
       "type": "checkbox",
       "id": "auto_rotate",
-      "label": "开启自动匀速旋转",
+      "label": "开启自动旋转",
       "default": true
     },
     {
@@ -215,7 +163,7 @@
       "max": 40,
       "step": 4,
       "unit": "px",
-      "label": "容器圆角弧度",
+      "label": "容器圆角",
       "default": 12
     },
     {
@@ -225,7 +173,7 @@
       "max": 60,
       "step": 5,
       "unit": "px",
-      "label": "模块上下外边距",
+      "label": "上下边距",
       "default": 20
     }
   ]

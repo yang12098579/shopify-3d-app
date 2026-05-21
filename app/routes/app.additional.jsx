@@ -10,7 +10,8 @@ import {
   SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon,
   AlertCircleIcon, LockIcon, InfoIcon,
 } from "@shopify/polaris-icons";
-import { authenticate } from "../shopify.server";
+// 💡 修复：引入 unauthenticated 用于处理外部云端回调
+import { authenticate, unauthenticated } from "../shopify.server";
 
 // 💡 后端微服务异步发射器：不再使用死锁轮询！发射完任务直接撤退，完美绕开 Vercel 运行超时熔断
 async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
@@ -30,8 +31,8 @@ async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
           "export-1": { 
             operation: "export/url", 
             input: "convert-1",
-            // 🎯 集成闭环路由：将转码回调门牌号死死定向在此文件自带的 Action 流量入口上
-            webhook: `${appBaseUrl}/app/additional?actionType=webhook_callback&productId=${encodeURIComponent(productId)}`
+            // 🎯 修复隐患 1：必须把 shop 域名带上，否则脱机鉴权无法识别商户
+            webhook: `${appBaseUrl}/app/additional?actionType=webhook_callback&productId=${encodeURIComponent(productId)}&shop=${encodeURIComponent(shopDomain)}`
           }
         }
       })
@@ -140,12 +141,13 @@ export const action = async ({ request }) => {
     });
   }
 
-  // 📡 就地集成接收端：拦截并处理来自 CloudConvert 的转码完毕回执流量
   const url = new URL(request.url);
   const isWebhookCallback = url.searchParams.get("actionType") === "webhook_callback";
   const targetProductId = url.searchParams.get("productId");
+  const targetShop = url.searchParams.get("shop"); // 获取透传的 shop
 
-  if (isWebhookCallback && targetProductId) {
+  // 📡 处理 CloudConvert Webhook
+  if (isWebhookCallback && targetProductId && targetShop) {
     try {
       const body = await request.json();
       const eventType = body.event;
@@ -158,8 +160,9 @@ export const action = async ({ request }) => {
         const iosModelUrl = exportTask?.result?.files?.[0]?.url || "";
 
         if (iosModelUrl) {
-          const { admin } = await authenticate.public(request);
-          // ⚡ 直接对账落库：在接收到通知时直接将 .usdz 塞满苹果元字段，瞬间摧毁宇航员
+          // 🎯 修复隐患 1：使用 unauthenticated 脱机获取权限（因为 Webhook 没有 Session）
+          const { admin } = await unauthenticated.admin(targetShop);
+          
           await admin.graphql(
             `#graphql
             mutation webhookDirectAppendAppleAsset($metafields: [MetafieldsSetInput!]!) {
@@ -186,6 +189,7 @@ export const action = async ({ request }) => {
     }
   }
 
+  // 👇 以下是正常的客户端请求处理（带 Session）
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = String(formData.get("actionType") || "").trim();
@@ -215,7 +219,6 @@ export const action = async ({ request }) => {
   const subJson = await subResponse.json();
   const appInstallationId = subJson.data?.currentAppInstallation?.id;
   const activeSubs = subJson.data?.currentAppInstallation?.activeSubscriptions || [];
-  const extraSlots = parseInt(subJson.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
   
   let currentPlan = "free";
   let usageLineItemId = null;
@@ -351,7 +354,9 @@ export const action = async ({ request }) => {
         const countArJson = await countArResponse.json();
         const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
 
-        if (activeArCount >= (10 + extraSlots)) {
+        const extraSlotsValue = parseInt((await admin.graphql(`{currentAppInstallation{extraSlotsField: metafield(namespace: "custom", key: "extra_slots") { value }}}`)).json()?.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
+
+        if (activeArCount >= (10 + extraSlotsValue)) {
           return Response.json({ success: false, error: "PRO_LIMIT_HIT", targetProductId: productId });
         }
       }
@@ -458,7 +463,7 @@ export const loader = async ({ request }) => {
   const response = await admin.graphql(
     `#graphql
     query getProductsWithAr {
-      products(first: 50, sortKey: UPDATED_AT, reverse: true) {
+      products(first: 250, sortKey: UPDATED_AT, reverse: true) {
         edges {
           node {
             id
@@ -578,7 +583,8 @@ export default function ModelMappingDashboard() {
   const [products, setProducts] = useState(initialProducts);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); 
-  const [locale, setLocale] = useState("zh");
+  // 💡 修复隐患：语言默认设置为英文
+  const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [toastMessage, setToastMessage] = useState(""); 
   const [showToast, setShowToast] = useState(false);
@@ -592,6 +598,7 @@ export default function ModelMappingDashboard() {
   const [inputModelUrl, setInputModelUrl] = useState("");
   const [isLargeFile, setIsLargeFile] = useState(false); 
 
+  // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -609,9 +616,11 @@ export default function ModelMappingDashboard() {
 
   const { selectedResources, allResourcesSelected, handleSelectionChange, clearSelection } = useIndexResourceState(filteredProducts);
 
+  // 分页切割计算
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentPagedProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
 
   const filterOptions = [
     { label: t.filterAll, value: "all" },
@@ -772,7 +781,6 @@ export default function ModelMappingDashboard() {
     }
   };
 
-  // ✅ 【满血修复核心点】：把漏掉的 renderQuotaBanner 全量函数彻底塞回组件体内部！
   const renderQuotaBanner = () => {
     if (currentPlan === "pro") {
       return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / {10 + extraSlots}</b> 个商品名额</Text></Banner>;
@@ -783,7 +791,8 @@ export default function ModelMappingDashboard() {
     return <Banner tone="warning" title="免费版 套餐状态"><p>{t.quotaBannerFree.replace("{modelCount}", modelActiveCount)}</p></Banner>;
   };
 
-  const rowMarkup = filteredProducts.map((product, index) => (
+  // 💡 修复隐患：采用当前分页数组 currentPagedProducts 进行渲染
+  const rowMarkup = currentPagedProducts.map((product, index) => (
     <IndexTable.Row id={product.id} key={product.id} selected={selectedResources.includes(product.id)} position={index}>
       <IndexTable.Cell>
         <InlineStack gap="300" blockAlign="center">
@@ -850,7 +859,7 @@ export default function ModelMappingDashboard() {
               <BlockStack>
                 <IndexTable
                   resourceName={{ singular: '商品', plural: '商品' }}
-                  itemCount={filteredProducts.length}
+                  itemCount={currentPagedProducts.length}
                   selectedItemsCount={allResourcesSelected ? 'All' : selectedResources.length}
                   onSelectionChange={handleSelectionChange}
                   bulkActions={[
@@ -862,6 +871,21 @@ export default function ModelMappingDashboard() {
                 >
                   {rowMarkup}
                 </IndexTable>
+                
+                {/* 🎯 修复隐患 2：被遗漏的翻页器组件终于补全了！否则商品会假死消失 */}
+                {totalPages > 1 && (
+                  <Box padding="400" borderBlockStart="1px solid var(--p-color-border-subdued)">
+                    <InlineStack align="center">
+                      <Pagination
+                        hasPrevious={currentPage > 1}
+                        onPrevious={() => { setCurrentPage(prev => prev - 1); clearSelection(); }}
+                        hasNext={currentPage < totalPages}
+                        onNext={() => { setCurrentPage(prev => prev + 1); clearSelection(); }}
+                        label={`${currentPage} / ${totalPages}`}
+                      />
+                    </InlineStack>
+                  </Box>
+                )}
               </BlockStack>
             )}
           </Card>

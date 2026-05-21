@@ -10,6 +10,10 @@ import {
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server"; 
 
+// 💡 修复隐患三：将套餐名称抽离为全局常量，杜绝硬编码风险
+const PLAN_PRO = "Vision3D Professional Plan";
+const PLAN_ENT = "Vision3D Enterprise Plan";
+
 const translations = {
   zh: {
     langName: "简体中文",
@@ -41,7 +45,7 @@ const translations = {
     statTime: "平均模型互动时间",        
     statSub: "当前 AR 额度占用", 
     limitLocked: "0 / 0 (免费版锁定 AR 功能)",
-    planSelectTitle: "💎 请为您的店铺选择更具商业效益的 Vision3D 套cam",
+    planSelectTitle: "💎 请为您的店铺选择更具商业效益的 Vision3D 套餐",
     tierFreeName: "免费基础版",
     tierFreeF1: "限制只能激活 3 款商品的 3D 模型",
     tierFreeF2: "标准服务器网速，加载速度一般",
@@ -146,11 +150,11 @@ export const action = async ({ request }) => {
   let trialDaysConfig = 0; 
 
   if (intent === "upgrade_pro") {
-    planName = "Vision3D Professional Plan";
+    planName = PLAN_PRO; // 使用常量
     planPrice = 29.99;
     trialDaysConfig = 3; 
   } else if (intent === "upgrade_enterprise") {
-    planName = "Vision3D Enterprise Plan";
+    planName = PLAN_ENT; // 使用常量
     planPrice = 49.99;
     trialDaysConfig = 0; 
   } else if (intent === "cancel") {
@@ -189,6 +193,9 @@ export const action = async ({ request }) => {
     });
   }
 
+  // 💡 修复隐患一：自动判断测试模式，生产环境强制真实扣费
+  const isTestBilling = process.env.NODE_ENV === "development";
+
   const response = await admin.graphql(
     `#graphql
     mutation appSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineItemInput!]!, $returnUrl: URL!, $trialDays: Int, $test: Boolean) {
@@ -199,7 +206,7 @@ export const action = async ({ request }) => {
         name: planName,
         returnUrl: `${appUrl}/app`,
         trialDays: trialDaysConfig > 0 ? trialDaysConfig : null, 
-        test: true, 
+        test: isTestBilling, 
         lineItems: lineItemsPayload
       }
     }
@@ -211,7 +218,6 @@ export const action = async ({ request }) => {
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
 
-  // 💡 升级对账查询：顺便捞出前台对应的店铺级别元字段进行碰撞匹配
   const response = await admin.graphql(
     `#graphql
     query getAppSubscriptionWithMetafields {
@@ -239,26 +245,25 @@ export const loader = async ({ request }) => {
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
     subscriptionId = activeSubs[0].id; 
     rawDate = activeSubs[0].currentPeriodEnd; 
-    if (activeSubs[0].name.includes("Professional")) currentPlan = "pro";
-    if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
+    // 💡 修复隐患三：使用常量进行精准匹配
+    if (activeSubs[0].name === PLAN_PRO) currentPlan = "pro";
+    if (activeSubs[0].name === PLAN_ENT) currentPlan = "enterprise";
   } else {
     const cancelledSub = allSubsEdges.find(({ node }) => node.status === "CANCELLED");
     if (cancelledSub) {
       const periodEnd = new Date(cancelledSub.node.currentPeriodEnd);
       if (periodEnd > new Date()) {
         rawDate = periodEnd.toISOString(); 
-        if (cancelledSub.node.name.includes("Professional")) currentPlan = "pro_cancelled";
-        if (cancelledSub.node.name.includes("Enterprise")) currentPlan = "enterprise_cancelled";
+        if (cancelledSub.node.name === PLAN_PRO) currentPlan = "pro_cancelled";
+        if (cancelledSub.node.name === PLAN_ENT) currentPlan = "enterprise_cancelled";
       }
     }
   }
 
-  // 💡 【全自动无感对账中心】：精准计算前台 Liquid 渴望得到的文案标识
   let expectedMetaValue = "Free";
   if (currentPlan.includes("pro")) expectedMetaValue = "Professional";
   if (currentPlan.includes("enterprise")) expectedMetaValue = "Enterprise";
 
-  // 如果发现云端元字段和当下最新账单对不上，立刻执行 GraphQL 注入强制纠偏
   if (currentMetaPlanValue !== expectedMetaValue) {
     try {
       await admin.graphql(
@@ -325,7 +330,7 @@ export const loader = async ({ request }) => {
   let dateStr = "";
   if (rawDate) {
     const d = new Date(rawDate);
-    dateStr = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+    dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   let statsData = { views: 0, arUses: 0, stayTime: "0.0s", conversion: "0%" };
@@ -357,7 +362,8 @@ export default function Index() {
   const location = useLocation(); 
   const navigate = useNavigate(); 
 
-  const [locale, setLocale] = useState("zh");
+  // 💡 修复：默认语言设为英语
+  const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
