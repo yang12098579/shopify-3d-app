@@ -10,7 +10,7 @@ import {
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server"; 
 
-// 💡 修复隐患三：将套餐名称抽离为全局常量，杜绝硬编码风险
+// 💡 修复：将套餐名称抽离为全局常量，杜绝硬编码风险
 const PLAN_PRO = "Vision3D Professional Plan";
 const PLAN_ENT = "Vision3D Enterprise Plan";
 
@@ -150,11 +150,11 @@ export const action = async ({ request }) => {
   let trialDaysConfig = 0; 
 
   if (intent === "upgrade_pro") {
-    planName = PLAN_PRO; // 使用常量
+    planName = PLAN_PRO; 
     planPrice = 29.99;
     trialDaysConfig = 3; 
   } else if (intent === "upgrade_enterprise") {
-    planName = PLAN_ENT; // 使用常量
+    planName = PLAN_ENT; 
     planPrice = 49.99;
     trialDaysConfig = 0; 
   } else if (intent === "cancel") {
@@ -193,7 +193,7 @@ export const action = async ({ request }) => {
     });
   }
 
-  // 💡 修复隐患一：自动判断测试模式，生产环境强制真实扣费
+  // 💡 修复：自动判断测试模式，生产环境强制真实扣费！
   const isTestBilling = process.env.NODE_ENV === "development";
 
   const response = await admin.graphql(
@@ -245,7 +245,6 @@ export const loader = async ({ request }) => {
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
     subscriptionId = activeSubs[0].id; 
     rawDate = activeSubs[0].currentPeriodEnd; 
-    // 💡 修复隐患三：使用常量进行精准匹配
     if (activeSubs[0].name === PLAN_PRO) currentPlan = "pro";
     if (activeSubs[0].name === PLAN_ENT) currentPlan = "enterprise";
   } else {
@@ -286,7 +285,6 @@ export const loader = async ({ request }) => {
           }
         }
       );
-      console.log(`👉 [BILLING_SYNC] 成功为店铺 ${session.shop} 执行身份纠偏同步！前台现在合规识别为: ${expectedMetaValue}`);
     } catch (metaErr) {
       console.error("👉 [BILLING_SYNC_ERROR] 店铺元字段同步失败:", metaErr);
     }
@@ -362,7 +360,7 @@ export default function Index() {
   const location = useLocation(); 
   const navigate = useNavigate(); 
 
-  // 💡 修复：默认语言设为英语
+  // 💡 修复：默认语言为英文
   const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [showToast, setShowToast] = useState(false);

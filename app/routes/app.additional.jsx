@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-// ✅ 规范：统一从新版架构标准的 "react-router" 导入核心全栈数据流控制钩子
 import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
@@ -10,10 +9,9 @@ import {
   SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon,
   AlertCircleIcon, LockIcon, InfoIcon,
 } from "@shopify/polaris-icons";
-// 💡 修复：引入 unauthenticated 用于处理外部云端回调
-import { authenticate, unauthenticated } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 
-// 💡 后端微服务异步发射器：不再使用死锁轮询！发射完任务直接撤退，完美绕开 Vercel 运行超时熔断
+// 💡 后端微服务异步发射器：将回调地址死死定向在 webhooks 路由上
 async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
   const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
   if (!apiKey || !glbUrl) return;
@@ -31,8 +29,8 @@ async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
           "export-1": { 
             operation: "export/url", 
             input: "convert-1",
-            // 🎯 修复隐患 1：必须把 shop 域名带上，否则脱机鉴权无法识别商户
-            webhook: `${appBaseUrl}/app/additional?actionType=webhook_callback&productId=${encodeURIComponent(productId)}&shop=${encodeURIComponent(shopDomain)}`
+            // 🎯 精准制导：将回调打入 webhooks 专用防线，并带上关键的脱机参数
+            webhook: `${appBaseUrl}/webhooks?productId=${encodeURIComponent(productId)}&shop=${encodeURIComponent(shopDomain)}`
           }
         }
       })
@@ -131,65 +129,6 @@ const translations = {
 };
 
 export const action = async ({ request }) => {
-  if (request.method === "OPTIONS") {
-    return new Response(null, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      }
-    });
-  }
-
-  const url = new URL(request.url);
-  const isWebhookCallback = url.searchParams.get("actionType") === "webhook_callback";
-  const targetProductId = url.searchParams.get("productId");
-  const targetShop = url.searchParams.get("shop"); // 获取透传的 shop
-
-  // 📡 处理 CloudConvert Webhook
-  if (isWebhookCallback && targetProductId && targetShop) {
-    try {
-      const body = await request.json();
-      const eventType = body.event;
-      const jobData = body.job;
-
-      console.log(`📡 [内网就地雷达捕获流量] 状态: ${eventType} | 目标商品: ${targetProductId}`);
-
-      if (eventType === "job.finished") {
-        const exportTask = jobData.tasks?.find(t => t.operation === "export/url" && t.status === "finished");
-        const iosModelUrl = exportTask?.result?.files?.[0]?.url || "";
-
-        if (iosModelUrl) {
-          // 🎯 修复隐患 1：使用 unauthenticated 脱机获取权限（因为 Webhook 没有 Session）
-          const { admin } = await unauthenticated.admin(targetShop);
-          
-          await admin.graphql(
-            `#graphql
-            mutation webhookDirectAppendAppleAsset($metafields: [MetafieldsSetInput!]!) {
-              metafieldsSet(metafields: $metafields) {
-                metafields { id value }
-                userErrors { field message }
-              }
-            }`,
-            {
-              variables: {
-                metafields: [
-                  { ownerId: targetProductId, namespace: "custom", key: "ios_3d_model", type: "single_line_text_field", value: iosModelUrl }
-                ]
-              }
-            }
-          );
-          console.log(`💎 [苹果 AR 闭环大功告成] .usdz 格式元字段落库成功。`);
-        }
-      }
-      return new Response("Callback Processed", { status: 200, headers: { "Access-Control-Allow-Origin": "*" } });
-    } catch (err) {
-      console.error("❌ 内部中转接力异常:", err);
-      return new Response("Error", { status: 500 });
-    }
-  }
-
-  // 👇 以下是正常的客户端请求处理（带 Session）
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
   const actionType = String(formData.get("actionType") || "").trim();
@@ -583,8 +522,7 @@ export default function ModelMappingDashboard() {
   const [products, setProducts] = useState(initialProducts);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); 
-  // 💡 修复隐患：语言默认设置为英文
-  const [locale, setLocale] = useState("en");
+  const [locale, setLocale] = useState("en"); // 💡 默认英文
   const [popoverActive, setPopoverActive] = useState(false);
   const [toastMessage, setToastMessage] = useState(""); 
   const [showToast, setShowToast] = useState(false);
@@ -598,7 +536,6 @@ export default function ModelMappingDashboard() {
   const [inputModelUrl, setInputModelUrl] = useState("");
   const [isLargeFile, setIsLargeFile] = useState(false); 
 
-  // 分页状态
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -616,7 +553,6 @@ export default function ModelMappingDashboard() {
 
   const { selectedResources, allResourcesSelected, handleSelectionChange, clearSelection } = useIndexResourceState(filteredProducts);
 
-  // 分页切割计算
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentPagedProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
@@ -791,7 +727,6 @@ export default function ModelMappingDashboard() {
     return <Banner tone="warning" title="免费版 套餐状态"><p>{t.quotaBannerFree.replace("{modelCount}", modelActiveCount)}</p></Banner>;
   };
 
-  // 💡 修复隐患：采用当前分页数组 currentPagedProducts 进行渲染
   const rowMarkup = currentPagedProducts.map((product, index) => (
     <IndexTable.Row id={product.id} key={product.id} selected={selectedResources.includes(product.id)} position={index}>
       <IndexTable.Cell>
@@ -872,7 +807,6 @@ export default function ModelMappingDashboard() {
                   {rowMarkup}
                 </IndexTable>
                 
-                {/* 🎯 修复隐患 2：被遗漏的翻页器组件终于补全了！否则商品会假死消失 */}
                 {totalPages > 1 && (
                   <Box padding="400" borderBlockStart="1px solid var(--p-color-border-subdued)">
                     <InlineStack align="center">
