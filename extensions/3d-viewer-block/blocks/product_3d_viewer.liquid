@@ -22,7 +22,7 @@
 {% comment %} 🎯 修复点 1：获取当前商品正确的 ID，用来做免费版白名单核对 {% endcomment %}
 {% assign current_product_id = product.id | append: "" %}
 
-{% comment %} 🔒 核心商业风控拦截（严格执行你的截图逻辑） {% endcomment %}
+{% comment %} 🔒 核心商业风控拦截 {% endcomment %}
 {% if is_premium_plan == false or is_premium_plan == blank %}
   {% comment %} 免费版：如果商品不在那 3 个白名单里，强行清空 3D 链接 {% endcomment %}
   {% unless allowed_products contains current_product_id %}
@@ -46,20 +46,17 @@
   {% if target_model_url != blank %}
     
     <model-viewer
-      {% comment %} 喂给安卓和网页的 GLB {% endcomment %}
+      id="vision3d-model-viewer"
       src="{{ target_model_url }}"
-      
-      {% comment %} 🎯 修复点 2：喂给苹果专属的 USDZ，彻底击碎宇航员！ {% endcomment %}
       {% if ios_model_url != blank %}
         ios-src="{{ ios_model_url }}"
       {% endif %}
-      
       alt="{{ product.title | escape }} 3D Model"
       shadow-intensity="{{ block.settings.shadow_intensity }}"
       camera-controls
       {% if block.settings.auto_rotate %}auto-rotate{% endif %}
       
-      {% comment %} 只有后台合法开启了 AR（专业版10个/旗舰版无限），才生成 AR 属性 {% endcomment %}
+      {% comment %} 只有后台合法开启了 AR 才生成 AR 属性 {% endcomment %}
       {% if ar_is_enabled == "true" or ar_is_enabled == true or ar_is_enabled == 1 or ar_is_enabled == "1" %}ar ar-modes="quick-look scene-viewer webxr"{% endif %}
       
       style="width: 100%; height: {{ block.settings.viewer_height }}px; background-color: {{ block.settings.bg_color }};"
@@ -99,6 +96,52 @@
     <style>
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+
+    {% comment %} 📊 核心数据雷达：与你的 api.track.jsx 后端无缝衔接 {% endcomment %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const viewer = document.getElementById('vision3d-model-viewer');
+        if (!viewer) return;
+
+        // 记录进入页面的时间，用于计算停留时长 (Time Engage)
+        const startTime = Date.now();
+        let viewTracked = false;
+
+        // ⚠️ 极其关键：请将这里的 /apps/YOUR_PROXY_PREFIX 替换为你在 Shopify Partner 后台配置的 App Proxy URL 前缀！
+        // 如果你不确定，通常它是 /apps/xxx (比如 /apps/vision3d)
+        const PROXY_TRACK_URL = '/apps/vision3d-proxy/api/track'; 
+
+        function sendTrackingData(type, time) {
+          fetch(PROXY_TRACK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventType: type, timeMs: time })
+          })
+          .then(res => res.json())
+          .then(data => console.log(`[Vision3D 统计引擎] ${type} 数据上报成功`))
+          .catch(err => console.error(`[Vision3D 统计引擎] 上报失败:`, err));
+        }
+
+        // 1. 监听用户的 3D 交互 (拖拽/旋转)
+        viewer.addEventListener('camera-change', (event) => {
+          if (!viewTracked && event.detail.source === 'user-interaction') {
+            viewTracked = true;
+            const timeMs = Date.now() - startTime;
+            sendTrackingData('view', timeMs);
+          }
+        });
+
+        // 2. 🎯 核心：精准监听 AR 成功唤醒事件！
+        viewer.addEventListener('ar-status', (event) => {
+          // 当底层引擎正式开启 AR 会话时，向后台发射 ar_click 信号
+          if (event.detail.status === 'session-started') {
+            console.log('🚀 买家成功拉起 AR 实景，正在写入数据库...');
+            sendTrackingData('ar_click', 0);
+          }
+        });
+      });
+    </script>
+
   {% else %}
     {% comment %} 没有模型时的占位符 {% endcomment %}
     <div style="width: 100%; height: {{ block.settings.viewer_height }}px; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8f9fa; border: 2px dashed #ced4da; padding: 24px; text-align: center;">
