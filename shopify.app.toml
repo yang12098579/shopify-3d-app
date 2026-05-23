@@ -1,5 +1,5 @@
 # =================================================================
-# 1. 应用核心标识声明 (已同步你截图里的真实客户端 ID)
+# 1. 应用核心标识声明
 # =================================================================
 client_id = "27a6b6770a4af998e5601b052e0d0b53"
 application_url = "https://shopify-3d-app-phi.vercel.app"
@@ -35,12 +35,13 @@ api_version = "2026-07"
   customer_deletion_url = "/webhooks"
   shop_deletion_url = "/webhooks"
 
+  # 🚨 修复：统一使用 /webhooks 入口，配合代码里的 switch (topic) 逻辑
   [[webhooks.subscriptions]]
-  uri = "/webhooks/app/uninstalled"
+  uri = "/webhooks"
   topics = [ "app/uninstalled" ]
 
   [[webhooks.subscriptions]]
-  uri = "/webhooks/app/scopes_update"
+  uri = "/webhooks"
   topics = [ "app/scopes_update" ]
 
 # =================================================================
