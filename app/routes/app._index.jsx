@@ -193,7 +193,7 @@ export const action = async ({ request }) => {
     });
   }
 
-  // 💡 修复：自动判断测试模式，生产环境强制真实扣费！
+  // 💡 自动判断测试模式
   const isTestBilling = process.env.NODE_ENV === "development";
 
   const response = await admin.graphql(
@@ -206,7 +206,7 @@ export const action = async ({ request }) => {
         name: planName,
         returnUrl: `${appUrl}/app`,
         trialDays: trialDaysConfig > 0 ? trialDaysConfig : null, 
-        test: isTestBilling, 
+        test: true, // 🚨🚨🚨 临时强制开启测试扣款 (录屏完成后改回: isTestBilling) 🚨🚨🚨
         lineItems: lineItemsPayload
       }
     }
