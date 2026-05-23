@@ -5,7 +5,7 @@ export const action = async ({ request }) => {
   // 1. 🌐 跨域预检：为第三方转码云接口 (CloudConvert) 铺设 CORS 绿灯
   if (request.method === "OPTIONS") {
     return new Response(null, {
-      status: 204, // OPTIONS 最好返回 204 No Content
+      status: 204,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -136,7 +136,6 @@ export const action = async ({ request }) => {
         return new Response("Subscription Handled", { status: 200 });
 
       default:
-        // 返回 200 防止 Shopify 因收不到成功响应而不断重试
         return new Response("Unhandled webhook topic", { status: 200 });
     }
   }
@@ -161,7 +160,6 @@ export const action = async ({ request }) => {
         const iosModelUrl = exportTask?.result?.files?.[0]?.url || "";
 
         if (iosModelUrl) {
-          // 💡 离线鉴权注入
           const { admin } = await unauthenticated.admin(targetShop);
           
           await admin.graphql(
@@ -190,6 +188,5 @@ export const action = async ({ request }) => {
     }
   }
 
-  // 防止意外请求卡死
   return new Response("Bad Request", { status: 400 });
 };
