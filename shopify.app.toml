@@ -1,8 +1,8 @@
 # =================================================================
-# 1. 应用核心标识声明 (✅ 已同步你的新域名)
+# 1. 应用核心标识声明
 # =================================================================
 client_id = "27a6b6770a4af998e5601b052e0d0b53"
-application_url = "https://vision3d-app.vercel.app"
+application_url = "https://shopify-3d-app-phi.vercel.app"
 embedded = true
 name = "Product-3D-Viewer"
 
@@ -24,18 +24,18 @@ description = "Stores the mapped or AI-generated .glb 3D asset link"
   admin = "merchant_read_write"
 
 # =================================================================
-# 4. Webhook 事件订阅 & GDPR 隐私合规 (✅ 已适配 Remix 真实路由)
+# 4. Webhook 事件订阅 & GDPR 隐私合规 (🔥 终极修复：绝对路径击碎缓存)
 # =================================================================
 [webhooks]
 api_version = "2024-04"
 
-  # 🛡️ GDPR 隐私路由，统一指向 webhooks.jsx
+  # 🛡️ GDPR 隐私路由：使用最新域名的绝对路径
   [webhooks.privacy_compliance]
-  customer_data_request_url = "/webhooks"
-  customer_deletion_url = "/webhooks"
-  shop_deletion_url = "/webhooks"
+  customer_data_request_url = "https://shopify-3d-app-phi.vercel.app/webhooks"
+  customer_deletion_url = "https://shopify-3d-app-phi.vercel.app/webhooks"
+  shop_deletion_url = "https://shopify-3d-app-phi.vercel.app/webhooks"
 
-  # 🔧 将卸载和权限更新统一定向到 /webhooks，以便触发你 webhooks.jsx 中的 switch 逻辑
+  # 🔧 普通订阅路由
   [[webhooks.subscriptions]]
   uri = "/webhooks"
   topics = [ "app/uninstalled" ]
@@ -45,13 +45,13 @@ api_version = "2024-04"
   topics = [ "app/scopes_update" ]
 
 # =================================================================
-# 5. 路由鉴权与构建行为 (✅ 已同步修复新域名的 Remix 授权回调)
+# 5. 路由鉴权与构建行为 (已同步最新域名)
 # =================================================================
 [auth]
 redirect_urls = [ 
-  "https://vision3d-app.vercel.app/auth/callback",
-  "https://vision3d-app.vercel.app/auth/shopify/callback",
-  "https://vision3d-app.vercel.app/api/auth" 
+  "https://shopify-3d-app-phi.vercel.app/auth/callback",
+  "https://shopify-3d-app-phi.vercel.app/auth/shopify/callback",
+  "https://shopify-3d-app-phi.vercel.app/api/auth" 
 ]
 
 [build]
@@ -73,9 +73,9 @@ view_history = true
   pathname = "/app/additional"
 
 # =================================================================
-# 7. 应用代理配置 (✅ 已同步你的新域名)
+# 7. 应用代理配置 (已同步最新域名)
 # =================================================================
 [app_proxy]
-url = "https://vision3d-app.vercel.app/api"
+url = "https://shopify-3d-app-phi.vercel.app/api"
 subpath = "api"
 prefix = "apps"
