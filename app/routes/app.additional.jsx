@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
+import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "@remix-run/react"; 
+import { json } from "@remix-run/node"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
   Popover, ActionList, Frame, Toast, InlineStack, Badge, TextField, Modal,
@@ -11,14 +12,13 @@ import {
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
-// 💡 后端微服务异步发射器：将回调地址死死定向在 webhooks 路由上
+// 后端微服务异步发射器
 async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
   const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
   if (!apiKey || !glbUrl) return;
 
   try {
     const appBaseUrl = `https://${shopDomain}`;
-    
     await fetch("https://api.cloudconvert.com/v2/jobs", {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -29,7 +29,6 @@ async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
           "export-1": { 
             operation: "export/url", 
             input: "convert-1",
-            // 🎯 精准制导：将回调打入 webhooks 专用防线，并带上关键的脱机参数
             webhook: `${appBaseUrl}/webhooks?productId=${encodeURIComponent(productId)}&shop=${encodeURIComponent(shopDomain)}`
           }
         }
@@ -78,7 +77,7 @@ const translations = {
     limitModalProMsg: "您当前使用的是专业出海版，该套餐最多仅支持 10 款商品激活 AR 实景功能。当前您的所有可用名额已全部用满！",
     limitModalBtn: "去主页升级套餐",
     perfTitle: "⚡ 资产运行性能分析 (AI)",
-    perfGood: "文件状态健康 (建议保持在 10MB 以内)",
+    perfGood: "文件状态健康 (建议保持在 10MB以内)",
     perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
     overageTitle: "💎 开启额外 AR 扩展坑位",
     overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外开通 1 个高级 AR 扩展席位（本月计费启用），本月内该席位额度可任意替换商品，次月若保持勾选将自动续杯，是否立即开通？",
@@ -134,14 +133,7 @@ export const action = async ({ request }) => {
   const actionType = String(formData.get("actionType") || "").trim();
   const productId = String(formData.get("productId") || "").trim();
 
-  const shopQueryRes = await admin.graphql(
-    `#graphql
-    query getShopDomainExtended {
-      shop {
-        myshopifyDomain
-      }
-    }`
-  );
+  const shopQueryRes = await admin.graphql(`{ shop { myshopifyDomain } }`);
   const shopQueryJson = await shopQueryRes.json();
   const shopDomain = shopQueryJson.data?.shop?.myshopifyDomain || request.headers.get("host");
 
@@ -165,18 +157,14 @@ export const action = async ({ request }) => {
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
     if (activeSubs[0].name.includes("Professional")) {
       currentPlan = "pro";
-      const uItem = activeSubs[0].lineItems.find(item => 
-        item.plan?.pricingDetails?.__typename === "AppUsagePricing"
-      );
+      const uItem = activeSubs[0].lineItems.find(item => item.plan?.pricingDetails?.__typename === "AppUsagePricing");
       usageLineItemId = uItem ? uItem.id : null; 
     }
     if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
   }
 
   if (actionType === "buy_slot") {
-    if (!usageLineItemId) {
-      return Response.json({ success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅套餐激活按量通道后再试。" });
-    }
+    if (!usageLineItemId) return json({ success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅套餐激活按量通道后再试。" });
     try {
       const currentSlots = parseInt(formData.get("currentSlots") || "0", 10);
       const billingRes = await admin.graphql(
@@ -187,145 +175,83 @@ export const action = async ({ request }) => {
             appUsageRecord { id }
           }
         }`,
-        {
-          variables: {
-            description: `Vision3D extra AR active overage slot expansion tier charge (monthly billing)`,
-            price: { amount: 1.99, currencyCode: "USD" },
-            subscriptionLineItemId: usageLineItemId
-          }
-        }
+        { variables: { description: `Vision3D extra AR active overage slot expansion tier charge (monthly billing)`, price: { amount: 1.99, currencyCode: "USD" }, subscriptionLineItemId: usageLineItemId } }
       );
       const billingJson = await billingRes.json();
       const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
-      if (userErrors && userErrors.length > 0) {
-        return Response.json({ success: false, error: "BILLING_REJECTED", message: userErrors[0].message }); 
-      }
+      if (userErrors && userErrors.length > 0) return json({ success: false, error: "BILLING_REJECTED", message: userErrors[0].message }); 
       
       const newSlotsValue = (currentSlots + 1).toString();
       const currentMonthStr = new Date().toISOString().substring(0, 7); 
 
       await admin.graphql(
         `#graphql
-        mutation setExtraSlotsAndMonth($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) { metafields { id } }
-        }`,
-        {
-          variables: {
-            metafields: [
-              { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: newSlotsValue },
-              { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
-            ]
-          }
-        }
+        mutation setExtraSlotsAndMonth($metafields: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $metafields) { metafields { id } } }`,
+        { variables: { metafields: [
+          { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: newSlotsValue },
+          { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
+        ] } }
       );
-      
-      return Response.json({ success: true, actionType: "buy_slot", productId });
+      return json({ success: true, actionType: "buy_slot", productId });
     } catch (err) {
-      return Response.json({ success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 计费服务器通信失败。" });
+      return json({ success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 计费服务器通信失败。" });
     }
   }
 
   if (actionType === "bind") {
     const modelUrl = String(formData.get("modelUrl") || "").trim();
     if (currentPlan === "free" && modelUrl !== "") {
-      const countResponse = await admin.graphql(
-        `#graphql
-        query countBoundModelsAction {
-          products(first: 250) { edges { node { modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value } } } }
-        }`
-      );
+      const countResponse = await admin.graphql(`{ products(first: 250) { edges { node { modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value } } } } }`);
       const countJson = await countResponse.json();
-      const edges = countJson.data?.products?.edges || [];
-      const currentBoundCount = edges.filter(e => !!e.node.modelUrlField?.value).length;
+      const currentBoundCount = (countJson.data?.products?.edges || []).filter(e => !!e.node.modelUrlField?.value).length;
 
-      const currentProductResponse = await admin.graphql(
-        `#graphql
-        query checkSingleProductAction($id: ID!) {
-          product(id: $id) { modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value } }
-        }`,
-        { variables: { id: productId } }
-      );
+      const currentProductResponse = await admin.graphql(`query($id: ID!) { product(id: $id) { modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value } } }`, { variables: { id: productId } });
       const currentProductJson = await currentProductResponse.json();
       const hasExistingModel = !!currentProductJson.data?.product?.modelUrlField?.value;
 
-      if (currentBoundCount >= 3 && !hasExistingModel) {
-        return Response.json({ success: false, error: "FREE_MODEL_LIMIT_HIT", targetProductId: productId });
-      }
+      if (currentBoundCount >= 3 && !hasExistingModel) return json({ success: false, error: "FREE_MODEL_LIMIT_HIT", targetProductId: productId });
     }
 
     const payloadResponse = await admin.graphql(
-      `#graphql
-      mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) {
-        metafieldsSet(metafields: $metafields) { 
-          metafields { id value }
-          userErrors { field message }
-        }
-      }`,
+      `mutation metafieldsSetBind($metafields: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $metafields) { userErrors { field message } } }`,
       { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl }] } }
     );
-
     const saveMainModelJson = await payloadResponse.json();
     const userErrors = saveMainModelJson.data?.metafieldsSet?.userErrors || [];
-    if (userErrors.length > 0) {
-      return Response.json({ success: false, error: "SHOPIFY_ERROR", message: userErrors[0].message });
-    }
+    if (userErrors.length > 0) return json({ success: false, error: "SHOPIFY_ERROR", message: userErrors[0].message });
 
     if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
       triggerCloudConvertService(productId, modelUrl, shopDomain);
     }
-
-    return Response.json({ success: true, actionType, productId, updatedUrl: modelUrl });
+    return json({ success: true, actionType, productId, updatedUrl: modelUrl });
   }
 
   if (actionType === "toggle_ar") {
     const isEnabling = formData.get("arState") === "true";
     if (isEnabling) {
-      if (currentPlan === "free") {
-        return Response.json({ success: false, error: "FREE_LIMIT_HIT", targetProductId: productId });
-      }
+      if (currentPlan === "free") return json({ success: false, error: "FREE_LIMIT_HIT", targetProductId: productId });
       if (currentPlan === "pro") {
-        const countArResponse = await admin.graphql(
-          `#graphql
-          query getArActiveCountBackend {
-            products(first: 250) { edges { node { arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value } } } }
-          }`
-        );
+        const countArResponse = await admin.graphql(`{ products(first: 250) { edges { node { arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value } } } } }`);
         const countArJson = await countArResponse.json();
         const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
-
         const extraSlotsValue = parseInt((await admin.graphql(`{currentAppInstallation{extraSlotsField: metafield(namespace: "custom", key: "extra_slots") { value }}}`)).json()?.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
-
-        if (activeArCount >= (10 + extraSlotsValue)) {
-          return Response.json({ success: false, error: "PRO_LIMIT_HIT", targetProductId: productId });
-        }
+        if (activeArCount >= (10 + extraSlotsValue)) return json({ success: false, error: "PRO_LIMIT_HIT", targetProductId: productId });
       }
     }
     
-    const arState = formData.get("arState") === "true";
     await admin.graphql(
-      `#graphql
-      mutation metafieldsSetAr($metafields: [MetafieldsSetInput!]!) {
-        metafieldsSet(metafields: $metafields) { metafields { id value } }
-      }`,
-      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false" }] } }
+      `mutation metafieldsSetAr($metafields: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $metafields) { metafields { id } } }`,
+      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ar_enabled", type: "boolean", value: isEnabling ? "true" : "false" }] } }
     );
-    return Response.json({ success: true, actionType, productId });
+    return json({ success: true, actionType, productId });
   }
 
   if (actionType === "bulk_toggle_ar") {
     const productIds = JSON.parse(formData.get("productIds"));
     const arState = formData.get("arState") === "true";
-    const metafieldsInput = productIds.map(id => ({
-      ownerId: id, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false"
-    }));
-    await admin.graphql(
-      `#graphql
-      mutation bulkMetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-        metafieldsSet(metafields: $metafields) { metafields { id } }
-      }`,
-      { variables: { metafields: metafieldsInput } }
-    );
-    return Response.json({ success: true, actionType });
+    const metafieldsInput = productIds.map(id => ({ ownerId: id, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false" }));
+    await admin.graphql(`mutation bulkMetafieldsSet($metafields: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $metafields) { metafields { id } } }`, { variables: { metafields: metafieldsInput } });
+    return json({ success: true, actionType });
   }
 
   if (actionType === "bulk_unbind") {
@@ -336,32 +262,19 @@ export const action = async ({ request }) => {
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ios_3d_model" }); 
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ar_enabled" });
     });
-    await admin.graphql(
-      `#graphql
-      mutation bulkMetafieldsDelete($metafields: [MetafieldsSetInput!]!) {
-        metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
-      }`,
-      { variables: { metafields: metafieldsToDelete } }
-    );
-    return Response.json({ success: true, actionType });
+    await admin.graphql(`mutation bulkMetafieldsDelete($metafields: [MetafieldsSetInput!]!) { metafieldsDelete(metafields: $metafields) { deletedMetafields { key } } }`, { variables: { metafields: metafieldsToDelete } });
+    return json({ success: true, actionType });
   }
 
   if (actionType === "unbind") {
     await admin.graphql(
-      `#graphql
-      mutation metafieldsDeleteSingle($metafields: [MetafieldsSetInput!]!) {
-        metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
-      }`,
-      { variables: { metafields: [
-        { ownerId: productId, namespace: "custom", key: "product_3d_model" }, 
-        { ownerId: productId, namespace: "custom", key: "ios_3d_model" }, 
-        { ownerId: productId, namespace: "custom", key: "ar_enabled" }
-      ] } }
+      `mutation metafieldsDeleteSingle($metafields: [MetafieldsSetInput!]!) { metafieldsDelete(metafields: $metafields) { deletedMetafields { key } } }`,
+      { variables: { metafields: [ { ownerId: productId, namespace: "custom", key: "product_3d_model" }, { ownerId: productId, namespace: "custom", key: "ios_3d_model" }, { ownerId: productId, namespace: "custom", key: "ar_enabled" } ] } }
     );
-    return Response.json({ success: true, actionType, productId });
+    return json({ success: true, actionType, productId });
   }
 
-  return Response.json({ success: true });
+  return json({ success: true });
 };
 
 export const loader = async ({ request }) => {
@@ -391,9 +304,7 @@ export const loader = async ({ request }) => {
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
     if (activeSubs[0].name.includes("Professional")) {
       currentPlan = "pro";
-      const uItem = activeSubs[0].lineItems.find(item => 
-        item.plan?.pricingDetails?.__typename === "AppUsagePricing"
-      );
+      const uItem = activeSubs[0].lineItems.find(item => item.plan?.pricingDetails?.__typename === "AppUsagePricing");
       usageLineItemId = uItem ? uItem.id : null;
     }
     if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
@@ -436,71 +347,35 @@ export const loader = async ({ request }) => {
 
   if (currentPlan === "pro" && arActiveCount <= 10 && extraSlots > 0) {
     extraSlots = 0;
-    await admin.graphql(
-      `#graphql
-      mutation resetStaleSlots($metafields: [MetafieldsSetInput!]!) {
-        metafieldsSet(metafields: $metafields) { metafields { id } }
-      }`,
-      { variables: { metafields: [{ ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: "0" }] } }
-    );
+    await admin.graphql(`mutation resetStaleSlots($metafields: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $metafields) { metafields { id } } }`, { variables: { metafields: [{ ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: "0" }] } });
   }
 
   const currentMonthStr = new Date().toISOString().substring(0, 7); 
   if (currentPlan === "pro" && lastChargedMonth !== currentMonthStr && usageLineItemId) {
     try {
       const actualExcess = Math.max(0, arActiveCount - 10);
-      
       if (actualExcess > 0) {
         const totalOveragePrice = (actualExcess * 1.99).toFixed(2);
         const renewRes = await admin.graphql(
-          `#graphql
-          mutation autoRenewSlotsCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) {
-            appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) {
-              userErrors { field message }
-              appUsageRecord { id }
-            }
-          }`,
-          {
-            variables: {
-              description: `Vision3D extra ${actualExcess} AR slots monthly subscription auto-renewal`,
-              price: { amount: parseFloat(totalOveragePrice), currencyCode: "USD" },
-              subscriptionLineItemId: usageLineItemId
-            }
-          }
+          `mutation autoRenewSlotsCharge($description: String!, $price: MoneyInput!, $subscriptionLineItemId: ID!) { appUsageRecordCreate(description: $description, price: $price, subscriptionLineItemId: $subscriptionLineItemId) { userErrors { field message } } }`,
+          { variables: { description: `Vision3D extra ${actualExcess} AR slots monthly subscription auto-renewal`, price: { amount: parseFloat(totalOveragePrice), currencyCode: "USD" }, subscriptionLineItemId: usageLineItemId } }
         );
         const renewJson = await renewRes.json();
-        const renewErrors = renewJson.data?.appUsageRecordCreate?.userErrors;
-
-        if (!renewErrors || renewErrors.length === 0) {
-          extraSlots = actualExcess; 
-        } else {
-          extraSlots = 0; 
-        }
+        extraSlots = (!renewJson.data?.appUsageRecordCreate?.userErrors || renewJson.data?.appUsageRecordCreate?.userErrors.length === 0) ? actualExcess : 0; 
       } else {
         extraSlots = 0;
       }
-
       await admin.graphql(
-        `#graphql
-        mutation updateRenewMonth($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) { metafields { id } }
-        }`,
-        {
-          variables: {
-            metafields: [
-              { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: extraSlots.toString() },
-              { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
-            ]
-          }
-        }
+        `mutation updateRenewMonth($metafields: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $metafields) { metafields { id } } }`,
+        { variables: { metafields: [
+          { ownerId: appInstallationId, namespace: "custom", key: "extra_slots", type: "integer", value: extraSlots.toString() },
+          { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
+        ] } }
       );
-    } catch (renewErr) {
-      console.error("👉 自动续费通信异常:", renewErr);
-    }
+    } catch (renewErr) { console.error("👉 自动续费通信异常:", renewErr); }
   }
 
   const modelActiveCount = rawProducts.filter(p => !!p.modelUrl).length;
-
   const initialProducts = rawProducts.sort((a, b) => {
     if (a.arEnabled && !b.arEnabled) return -1;
     if (!a.arEnabled && b.arEnabled) return 1;
@@ -509,7 +384,7 @@ export const loader = async ({ request }) => {
     return 0;
   });
 
-  return Response.json({ initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots });
+  return json({ initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots });
 };
 
 export default function ModelMappingDashboard() {
@@ -522,7 +397,7 @@ export default function ModelMappingDashboard() {
   const [products, setProducts] = useState(initialProducts);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); 
-  const [locale, setLocale] = useState("en"); // 💡 默认英文
+  const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [toastMessage, setToastMessage] = useState(""); 
   const [showToast, setShowToast] = useState(false);
@@ -534,7 +409,6 @@ export default function ModelMappingDashboard() {
   const [limitModalType, setLimitModalType] = useState("AR"); 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [inputModelUrl, setInputModelUrl] = useState("");
-  const [isLargeFile, setIsLargeFile] = useState(false); 
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -552,7 +426,6 @@ export default function ModelMappingDashboard() {
   });
 
   const { selectedResources, allResourcesSelected, handleSelectionChange, clearSelection } = useIndexResourceState(filteredProducts);
-
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentPagedProducts = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
@@ -570,14 +443,6 @@ export default function ModelMappingDashboard() {
     if (revalidator && revalidator.revalidate) revalidator.revalidate(); 
     setTimeout(() => { setIsSyncing(false); }, 600);
   };
-
-  useEffect(() => {
-    if (inputModelUrl.toLowerCase().includes("heavy") || inputModelUrl.length > 120) {
-      setIsLargeFile(true);
-    } else {
-      setIsLargeFile(false);
-    }
-  }, [inputModelUrl]);
 
   useEffect(() => {
     if (actionData?.error === "FREE_LIMIT_HIT" || actionData?.error === "PRO_LIMIT_HIT") {
@@ -642,7 +507,6 @@ export default function ModelMappingDashboard() {
         }
       }
     }
-
     setProducts(prev => prev.map(p => p.id === product.id ? { ...p, arEnabled: newChecked } : p));
     submit({ actionType: "toggle_ar", productId: product.id, arState: newChecked ? "true" : "false" }, { method: "POST" });
   };
@@ -668,7 +532,6 @@ export default function ModelMappingDashboard() {
         return;
       }
     }
-
     setProducts(prev => prev.map(p => selectedResources.includes(p.id) ? { ...p, arEnabled: enable ? (!!p.modelUrl) : false } : p));
     submit({ actionType: "bulk_toggle_ar", productIds: JSON.stringify(selectedResources), arState: enable ? "true" : "false" }, { method: "POST" });
     clearSelection();
@@ -718,12 +581,8 @@ export default function ModelMappingDashboard() {
   };
 
   const renderQuotaBanner = () => {
-    if (currentPlan === "pro") {
-      return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / {10 + extraSlots}</b> 个商品名额</Text></Banner>;
-    }
-    if (currentPlan === "enterprise") {
-      return <Banner tone="success" title="旗舰版 套餐状态"><p>{t.quotaBannerEnterprise}</p></Banner>;
-    }
+    if (currentPlan === "pro") return <Banner tone="info" title="专业版 套餐状态"><Text as="p">{t.quotaBannerPro} <b>{arActiveCount} / {10 + extraSlots}</b> 个商品名额</Text></Banner>;
+    if (currentPlan === "enterprise") return <Banner tone="success" title="旗舰版 套餐状态"><p>{t.quotaBannerEnterprise}</p></Banner>;
     return <Banner tone="warning" title="免费版 套餐状态"><p>{t.quotaBannerFree.replace("{modelCount}", modelActiveCount)}</p></Banner>;
   };
 
@@ -829,7 +688,6 @@ export default function ModelMappingDashboard() {
           <Modal.Section>
             <BlockStack gap="400">
               <TextField label={t.modalLabel} value={inputModelUrl} onChange={setInputModelUrl} autoComplete="off" placeholder="粘贴您的官方商品 .glb 链接" />
-              
               {inputModelUrl && inputModelUrl.toLowerCase().endsWith(".glb") && (
                 <BlockStack gap="300">
                   <InlineStack gap="100" blockAlign="center"><Icon source={ViewIcon} tone="info" /><Text variant="headingSm">{t.modalPreview}</Text></InlineStack>

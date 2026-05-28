@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { useLoaderData, useActionData, useSubmit, useLocation, useNavigate } from "react-router"; 
+import { useLoaderData, useActionData, useSubmit, useLocation, useNavigate } from "@remix-run/react"; 
+import { json } from "@remix-run/node"; 
 import {
   Page, Layout, Text, Card, Button, BlockStack, Banner, Divider, Box, Badge,
   Icon, InlineGrid, InlineStack, Popover, ActionList, Toast, Frame,
@@ -10,7 +11,6 @@ import {
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server"; 
 
-// 💡 修复：将套餐名称抽离为全局常量，杜绝硬编码风险
 const PLAN_PRO = "Vision3D Professional Plan";
 const PLAN_ENT = "Vision3D Enterprise Plan";
 
@@ -166,7 +166,7 @@ export const action = async ({ request }) => {
       }`,
       { variables: { id: subscriptionId } }
     );
-    return { canceled: true };
+    return json({ canceled: true });
   } else {
     return null;
   }
@@ -193,7 +193,6 @@ export const action = async ({ request }) => {
     });
   }
 
-  // 💡 修复：自动判断测试模式，生产环境强制真实扣费！
   const isTestBilling = process.env.NODE_ENV === "development";
 
   const response = await admin.graphql(
@@ -212,7 +211,7 @@ export const action = async ({ request }) => {
     }
   );
   const responseJson = await response.json();
-  return { confirmationUrl: responseJson.data?.appSubscriptionCreate?.confirmationUrl };
+  return json({ confirmationUrl: responseJson.data?.appSubscriptionCreate?.confirmationUrl });
 };
 
 export const loader = async ({ request }) => {
@@ -350,7 +349,7 @@ export const loader = async ({ request }) => {
     console.error("获取真实看板数据失败", error);
   }
 
-  return { shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount };
+  return json({ shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount });
 };
 
 export default function Index() {
@@ -360,7 +359,6 @@ export default function Index() {
   const location = useLocation(); 
   const navigate = useNavigate(); 
 
-  // 💡 修复：默认语言为英文
   const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [showToast, setShowToast] = useState(false);
