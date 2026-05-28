@@ -4,9 +4,8 @@
 
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js" defer></script>
 
-{% comment %} 1. 获取店铺当前的计划等级和白名单 {% endcomment %}
+{% comment %} 1. 获取店铺当前的计划等级 {% endcomment %}
 {% assign app_plan = shop.metafields.product_3d_app.plan_level.value | default: shop.metafields.product_3d_app.plan_level %}
-{% assign allowed_products = shop.metafields.product_3d_app.allowed_products.value | default: shop.metafields.product_3d_app.allowed_products %}
 
 {% comment %} 2. 识别是否为付费套餐 ($29.99 专业版 或 $49.99 旗舰版) {% endcomment %}
 {% assign is_premium_plan = false %}
@@ -19,16 +18,9 @@
 {% assign ios_model_url = product.metafields.custom.ios_3d_model.value | default: product.metafields.custom.ios_3d_model %}
 {% assign ar_is_enabled = product.metafields.custom.ar_enabled.value | default: product.metafields.custom.ar_enabled %}
 
-{% comment %} 🎯 修复点 1：获取当前商品正确的 ID，用来做免费版白名单核对 {% endcomment %}
-{% assign current_product_id = product.id | append: "" %}
-
-{% comment %} 🔒 核心商业风控拦截 {% endcomment %}
+{% comment %} 🔒 核心商业风控拦截 (已修复：移除冗余白名单，依赖后端安全校验) {% endcomment %}
 {% if is_premium_plan == false or is_premium_plan == blank %}
-  {% comment %} 免费版：如果商品不在那 3 个白名单里，强行清空 3D 链接 {% endcomment %}
-  {% unless allowed_products contains current_product_id %}
-    {% assign target_model_url = blank %}
-  {% endunless %}
-  {% comment %} 免费版：强制剥夺 AR 权限！ {% endcomment %}
+  {% comment %} 免费版：强制剥夺手机端 AR 空间投影权限！(网页 3D 旋转正常放行) {% endcomment %}
   {% assign ar_is_enabled = false %}
 {% endif %}
 
@@ -56,7 +48,7 @@
       camera-controls
       {% if block.settings.auto_rotate %}auto-rotate{% endif %}
       
-      {% comment %} 只有后台合法开启了 AR 才生成 AR 属性 {% endcomment %}
+      {% comment %} 只有后台合法开启了 AR 且通过套餐验证才生成 AR 属性 {% endcomment %}
       {% if ar_is_enabled == "true" or ar_is_enabled == true or ar_is_enabled == 1 or ar_is_enabled == "1" %}ar ar-modes="quick-look scene-viewer webxr"{% endif %}
       
       style="width: 100%; height: {{ block.settings.viewer_height }}px; background-color: {{ block.settings.bg_color }};"
@@ -103,12 +95,9 @@
         const viewer = document.getElementById('vision3d-model-viewer');
         if (!viewer) return;
 
-        // 记录进入页面的时间，用于计算停留时长 (Time Engage)
         const startTime = Date.now();
         let viewTracked = false;
 
-        // ⚠️ 极其关键：请将这里的 /apps/YOUR_PROXY_PREFIX 替换为你在 Shopify Partner 后台配置的 App Proxy URL 前缀！
-        // 如果你不确定，通常它是 /apps/xxx (比如 /apps/vision3d)
         const PROXY_TRACK_URL = '/apps/vision3d-proxy/api/track'; 
 
         function sendTrackingData(type, time) {
@@ -122,7 +111,6 @@
           .catch(err => console.error(`[Vision3D 统计引擎] 上报失败:`, err));
         }
 
-        // 1. 监听用户的 3D 交互 (拖拽/旋转)
         viewer.addEventListener('camera-change', (event) => {
           if (!viewTracked && event.detail.source === 'user-interaction') {
             viewTracked = true;
@@ -131,9 +119,7 @@
           }
         });
 
-        // 2. 🎯 核心：精准监听 AR 成功唤醒事件！
         viewer.addEventListener('ar-status', (event) => {
-          // 当底层引擎正式开启 AR 会话时，向后台发射 ar_click 信号
           if (event.detail.status === 'session-started') {
             console.log('🚀 买家成功拉起 AR 实景，正在写入数据库...');
             sendTrackingData('ar_click', 0);
@@ -143,7 +129,7 @@
     </script>
 
   {% else %}
-    {% comment %} 没有模型时的占位符 {% endcomment %}
+    {% comment %} 没有模型时的兜底占位符 {% endcomment %}
     <div style="width: 100%; height: {{ block.settings.viewer_height }}px; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #f8f9fa; border: 2px dashed #ced4da; padding: 24px; text-align: center;">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px;">
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>

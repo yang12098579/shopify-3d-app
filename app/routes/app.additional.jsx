@@ -328,6 +328,7 @@ export const action = async ({ request }) => {
     return Response.json({ success: true, actionType });
   }
 
+  // 🚨 修复的删除元字段类型声明 (批量删除)
   if (actionType === "bulk_unbind") {
     const productIds = JSON.parse(formData.get("productIds"));
     const metafieldsToDelete = [];
@@ -338,7 +339,7 @@ export const action = async ({ request }) => {
     });
     await admin.graphql(
       `#graphql
-      mutation bulkMetafieldsDelete($metafields: [MetafieldsSetInput!]!) {
+      mutation bulkMetafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
         metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
       }`,
       { variables: { metafields: metafieldsToDelete } }
@@ -346,10 +347,11 @@ export const action = async ({ request }) => {
     return Response.json({ success: true, actionType });
   }
 
+  // 🚨 修复的删除元字段类型声明 (单个删除)
   if (actionType === "unbind") {
     await admin.graphql(
       `#graphql
-      mutation metafieldsDeleteSingle($metafields: [MetafieldsSetInput!]!) {
+      mutation metafieldsDeleteSingle($metafields: [MetafieldIdentifierInput!]!) {
         metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
       }`,
       { variables: { metafields: [
