@@ -24,18 +24,16 @@ description = "Stores the mapped or AI-generated .glb 3D asset link"
   admin = "merchant_read_write"
 
 # =================================================================
-# 4. Webhook 事件订阅 & GDPR 隐私合规 (🔥 终极修复：绝对路径击碎缓存)
+# 4. Webhook 事件订阅 & GDPR 隐私合规
 # =================================================================
 [webhooks]
 api_version = "2024-04"
 
-  # 🛡️ GDPR 隐私路由：使用最新域名的绝对路径
   [webhooks.privacy_compliance]
   customer_data_request_url = "https://shopify-3d-app-phi.vercel.app/webhooks"
   customer_deletion_url = "https://shopify-3d-app-phi.vercel.app/webhooks"
   shop_deletion_url = "https://shopify-3d-app-phi.vercel.app/webhooks"
 
-  # 🔧 普通订阅路由
   [[webhooks.subscriptions]]
   uri = "/webhooks"
   topics = [ "app/uninstalled" ]
@@ -45,7 +43,7 @@ api_version = "2024-04"
   topics = [ "app/scopes_update" ]
 
 # =================================================================
-# 5. 路由鉴权与构建行为 (已同步最新域名)
+# 5. 路由鉴权与构建行为
 # =================================================================
 [auth]
 redirect_urls = [ 
@@ -73,7 +71,7 @@ view_history = true
   pathname = "/app/additional"
 
 # =================================================================
-# 7. 应用代理配置 (已同步最新域名)
+# 7. 应用代理配置
 # =================================================================
 [app_proxy]
 url = "https://shopify-3d-app-phi.vercel.app/api"
