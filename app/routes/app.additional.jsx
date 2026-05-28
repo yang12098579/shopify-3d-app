@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-// 💡 优化：同样从 @remix-run/react 引入路由钩子
-import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "@remix-run/react"; 
+import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
   Popover, ActionList, Frame, Toast, InlineStack, Badge, TextField, Modal,
@@ -79,7 +78,7 @@ const translations = {
     limitModalProMsg: "您当前使用的是专业出海版，该套餐最多仅支持 10 款商品激活 AR 实景功能。当前您的所有可用名额已全部用满！",
     limitModalBtn: "去主页升级套餐",
     perfTitle: "⚡ 资产运行性能分析 (AI)",
-    perfGood: "文件状态健康 (建议保持在 10MB以内)",
+    perfGood: "文件状态健康 (建议保持在 10MB 以内)",
     perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
     overageTitle: "💎 开启额外 AR 扩展坑位",
     overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外开通 1 个高级 AR 扩展席位（本月计费启用），本月内该席位额度可任意替换商品，次月若保持勾选将自动续杯，是否立即开通？",
@@ -523,7 +522,7 @@ export default function ModelMappingDashboard() {
   const [products, setProducts] = useState(initialProducts);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); 
-  const [locale, setLocale] = useState("en");
+  const [locale, setLocale] = useState("en"); // 💡 默认英文
   const [popoverActive, setPopoverActive] = useState(false);
   const [toastMessage, setToastMessage] = useState(""); 
   const [showToast, setShowToast] = useState(false);

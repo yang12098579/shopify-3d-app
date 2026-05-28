@@ -1,7 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-// 💡 优化：Shopify 官方规范，必须从 @remix-run/react 引入路由钩子
-import { useLoaderData, useActionData, useSubmit, useLocation, useNavigate } from "@remix-run/react"; 
-import { json } from "@remix-run/node"; // 💡 优化：引入原生 json 序列化工具
+import { useLoaderData, useActionData, useSubmit, useLocation, useNavigate } from "react-router"; 
 import {
   Page, Layout, Text, Card, Button, BlockStack, Banner, Divider, Box, Badge,
   Icon, InlineGrid, InlineStack, Popover, ActionList, Toast, Frame,
@@ -12,6 +10,7 @@ import {
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server"; 
 
+// 💡 修复：将套餐名称抽离为全局常量，杜绝硬编码风险
 const PLAN_PRO = "Vision3D Professional Plan";
 const PLAN_ENT = "Vision3D Enterprise Plan";
 
@@ -167,7 +166,7 @@ export const action = async ({ request }) => {
       }`,
       { variables: { id: subscriptionId } }
     );
-    return json({ canceled: true });
+    return { canceled: true };
   } else {
     return null;
   }
@@ -194,6 +193,7 @@ export const action = async ({ request }) => {
     });
   }
 
+  // 💡 修复：自动判断测试模式，生产环境强制真实扣费！
   const isTestBilling = process.env.NODE_ENV === "development";
 
   const response = await admin.graphql(
@@ -212,7 +212,7 @@ export const action = async ({ request }) => {
     }
   );
   const responseJson = await response.json();
-  return json({ confirmationUrl: responseJson.data?.appSubscriptionCreate?.confirmationUrl });
+  return { confirmationUrl: responseJson.data?.appSubscriptionCreate?.confirmationUrl };
 };
 
 export const loader = async ({ request }) => {
@@ -350,8 +350,7 @@ export const loader = async ({ request }) => {
     console.error("获取真实看板数据失败", error);
   }
 
-  // 💡 优化：使用 json() 包装返回，确保序列化安全
-  return json({ shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount });
+  return { shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount };
 };
 
 export default function Index() {
@@ -361,6 +360,7 @@ export default function Index() {
   const location = useLocation(); 
   const navigate = useNavigate(); 
 
+  // 💡 修复：默认语言为英文
   const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [showToast, setShowToast] = useState(false);
