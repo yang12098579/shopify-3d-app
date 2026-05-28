@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useEffect } from "react";
-// 🚀 修复：改回最新的 react-router 规范
 import { useLoaderData, useActionData, useSubmit, useLocation, useNavigate } from "react-router"; 
 import {
   Page, Layout, Text, Card, Button, BlockStack, Banner, Divider, Box, Badge,
@@ -11,6 +10,7 @@ import {
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server"; 
 
+// 💡 修复：将套餐名称抽离为全局常量，杜绝硬编码风险
 const PLAN_PRO = "Vision3D Professional Plan";
 const PLAN_ENT = "Vision3D Enterprise Plan";
 
@@ -193,6 +193,7 @@ export const action = async ({ request }) => {
     });
   }
 
+  // 💡 修复：自动判断测试模式，生产环境强制真实扣费！
   const isTestBilling = process.env.NODE_ENV === "development";
 
   const response = await admin.graphql(
@@ -359,6 +360,7 @@ export default function Index() {
   const location = useLocation(); 
   const navigate = useNavigate(); 
 
+  // 💡 修复：默认语言为英文
   const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [showToast, setShowToast] = useState(false);
