@@ -140,7 +140,8 @@ const translations = {
 };
 
 export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+  // 🚨 已修复：精准解构 session，防止回跳时身份丢失
+  const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent"); 
   const appUrl = process.env.SHOPIFY_APP_URL || new URL(request.url).origin;
@@ -193,7 +194,6 @@ export const action = async ({ request }) => {
     });
   }
 
-  // 💡 修复：自动判断测试模式，生产环境强制真实扣费！
   const isTestBilling = process.env.NODE_ENV === "development";
 
   const response = await admin.graphql(
@@ -204,7 +204,8 @@ export const action = async ({ request }) => {
     {
       variables: {
         name: planName,
-        returnUrl: `${appUrl}/app`,
+        // 🚨 已修复：精准拼接店铺参数，让回跳门牌号丝毫不差
+        returnUrl: `${appUrl}/app?shop=${session.shop}`,
         trialDays: trialDaysConfig > 0 ? trialDaysConfig : null, 
         test: isTestBilling, 
         lineItems: lineItemsPayload
@@ -305,7 +306,8 @@ export const loader = async ({ request }) => {
             }
           }
         }
-      }`
+      }
+      `
     );
     const productsJson = await productsResponse.json();
     const edges = productsJson.data?.products?.edges || [];
@@ -360,7 +362,6 @@ export default function Index() {
   const location = useLocation(); 
   const navigate = useNavigate(); 
 
-  // 💡 修复：默认语言为英文
   const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [showToast, setShowToast] = useState(false);
