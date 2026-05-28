@@ -10,7 +10,7 @@ import {
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server"; 
 
-// 💡 修复：将套餐名称抽离为全局常量，杜绝硬编码风险
+// 💡 将套餐名称抽离为全局常量，杜绝硬编码风险
 const PLAN_PRO = "Vision3D Professional Plan";
 const PLAN_ENT = "Vision3D Enterprise Plan";
 
@@ -140,11 +140,13 @@ const translations = {
 };
 
 export const action = async ({ request }) => {
-  // 🚨 已修复：精准解构 session，防止回跳时身份丢失
+  // 🚨 修复核心：精准获取 session，拼接 Shopify 后台内部的专属入口
   const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent"); 
-  const appUrl = process.env.SHOPIFY_APP_URL || new URL(request.url).origin;
+  
+  const clientId = process.env.SHOPIFY_API_KEY || "27a6b6770a4af998e5601b052e0d0b53";
+  const shopAdminUrl = `https://${session.shop}/admin/apps/${clientId}/app`;
 
   let planName = "";
   let planPrice = 0.0;
@@ -204,8 +206,8 @@ export const action = async ({ request }) => {
     {
       variables: {
         name: planName,
-        // 🚨 已修复：精准拼接店铺参数，让回跳门牌号丝毫不差
-        returnUrl: `${appUrl}/app?shop=${session.shop}`,
+        // 🚨 终极修复：支付成功后，直接把商家硬塞回 Shopify 后台的画中画里！
+        returnUrl: shopAdminUrl,
         trialDays: trialDaysConfig > 0 ? trialDaysConfig : null, 
         test: isTestBilling, 
         lineItems: lineItemsPayload
@@ -273,7 +275,8 @@ export const loader = async ({ request }) => {
             metafields { id value }
             userErrors { field message }
           }
-        }`,
+        }
+        `,
         {
           variables: {
             metafields: [{
