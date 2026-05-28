@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "@remix-run/react"; 
-import { json } from "@remix-run/node"; 
+// 🚀 修复：全部改回 react-router
+import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
   Popover, ActionList, Frame, Toast, InlineStack, Badge, TextField, Modal,
@@ -164,7 +164,7 @@ export const action = async ({ request }) => {
   }
 
   if (actionType === "buy_slot") {
-    if (!usageLineItemId) return json({ success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅套餐激活按量通道后再试。" });
+    if (!usageLineItemId) return Response.json({ success: false, error: "BILLING_SETUP_ERROR", message: "由于套餐没有开通弹性授权，Shopify 拒绝了扣费。请前往主页重新点击订阅套餐激活按量通道后再试。" });
     try {
       const currentSlots = parseInt(formData.get("currentSlots") || "0", 10);
       const billingRes = await admin.graphql(
@@ -179,7 +179,7 @@ export const action = async ({ request }) => {
       );
       const billingJson = await billingRes.json();
       const userErrors = billingJson.data?.appUsageRecordCreate?.userErrors;
-      if (userErrors && userErrors.length > 0) return json({ success: false, error: "BILLING_REJECTED", message: userErrors[0].message }); 
+      if (userErrors && userErrors.length > 0) return Response.json({ success: false, error: "BILLING_REJECTED", message: userErrors[0].message }); 
       
       const newSlotsValue = (currentSlots + 1).toString();
       const currentMonthStr = new Date().toISOString().substring(0, 7); 
@@ -192,9 +192,9 @@ export const action = async ({ request }) => {
           { ownerId: appInstallationId, namespace: "custom", key: "last_charged_month", type: "single_line_text_field", value: currentMonthStr }
         ] } }
       );
-      return json({ success: true, actionType: "buy_slot", productId });
+      return Response.json({ success: true, actionType: "buy_slot", productId });
     } catch (err) {
-      return json({ success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 计费服务器通信失败。" });
+      return Response.json({ success: false, error: "BILLING_SYSTEM_ERROR", message: "与 Shopify 计费服务器通信失败。" });
     }
   }
 
@@ -209,7 +209,7 @@ export const action = async ({ request }) => {
       const currentProductJson = await currentProductResponse.json();
       const hasExistingModel = !!currentProductJson.data?.product?.modelUrlField?.value;
 
-      if (currentBoundCount >= 3 && !hasExistingModel) return json({ success: false, error: "FREE_MODEL_LIMIT_HIT", targetProductId: productId });
+      if (currentBoundCount >= 3 && !hasExistingModel) return Response.json({ success: false, error: "FREE_MODEL_LIMIT_HIT", targetProductId: productId });
     }
 
     const payloadResponse = await admin.graphql(
@@ -218,24 +218,24 @@ export const action = async ({ request }) => {
     );
     const saveMainModelJson = await payloadResponse.json();
     const userErrors = saveMainModelJson.data?.metafieldsSet?.userErrors || [];
-    if (userErrors.length > 0) return json({ success: false, error: "SHOPIFY_ERROR", message: userErrors[0].message });
+    if (userErrors.length > 0) return Response.json({ success: false, error: "SHOPIFY_ERROR", message: userErrors[0].message });
 
     if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
       triggerCloudConvertService(productId, modelUrl, shopDomain);
     }
-    return json({ success: true, actionType, productId, updatedUrl: modelUrl });
+    return Response.json({ success: true, actionType, productId, updatedUrl: modelUrl });
   }
 
   if (actionType === "toggle_ar") {
     const isEnabling = formData.get("arState") === "true";
     if (isEnabling) {
-      if (currentPlan === "free") return json({ success: false, error: "FREE_LIMIT_HIT", targetProductId: productId });
+      if (currentPlan === "free") return Response.json({ success: false, error: "FREE_LIMIT_HIT", targetProductId: productId });
       if (currentPlan === "pro") {
         const countArResponse = await admin.graphql(`{ products(first: 250) { edges { node { arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value } } } } }`);
         const countArJson = await countArResponse.json();
         const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
         const extraSlotsValue = parseInt((await admin.graphql(`{currentAppInstallation{extraSlotsField: metafield(namespace: "custom", key: "extra_slots") { value }}}`)).json()?.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
-        if (activeArCount >= (10 + extraSlotsValue)) return json({ success: false, error: "PRO_LIMIT_HIT", targetProductId: productId });
+        if (activeArCount >= (10 + extraSlotsValue)) return Response.json({ success: false, error: "PRO_LIMIT_HIT", targetProductId: productId });
       }
     }
     
@@ -243,7 +243,7 @@ export const action = async ({ request }) => {
       `mutation metafieldsSetAr($metafields: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $metafields) { metafields { id } } }`,
       { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ar_enabled", type: "boolean", value: isEnabling ? "true" : "false" }] } }
     );
-    return json({ success: true, actionType, productId });
+    return Response.json({ success: true, actionType, productId });
   }
 
   if (actionType === "bulk_toggle_ar") {
@@ -251,7 +251,7 @@ export const action = async ({ request }) => {
     const arState = formData.get("arState") === "true";
     const metafieldsInput = productIds.map(id => ({ ownerId: id, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false" }));
     await admin.graphql(`mutation bulkMetafieldsSet($metafields: [MetafieldsSetInput!]!) { metafieldsSet(metafields: $metafields) { metafields { id } } }`, { variables: { metafields: metafieldsInput } });
-    return json({ success: true, actionType });
+    return Response.json({ success: true, actionType });
   }
 
   if (actionType === "bulk_unbind") {
@@ -263,7 +263,7 @@ export const action = async ({ request }) => {
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ar_enabled" });
     });
     await admin.graphql(`mutation bulkMetafieldsDelete($metafields: [MetafieldsSetInput!]!) { metafieldsDelete(metafields: $metafields) { deletedMetafields { key } } }`, { variables: { metafields: metafieldsToDelete } });
-    return json({ success: true, actionType });
+    return Response.json({ success: true, actionType });
   }
 
   if (actionType === "unbind") {
@@ -271,10 +271,10 @@ export const action = async ({ request }) => {
       `mutation metafieldsDeleteSingle($metafields: [MetafieldsSetInput!]!) { metafieldsDelete(metafields: $metafields) { deletedMetafields { key } } }`,
       { variables: { metafields: [ { ownerId: productId, namespace: "custom", key: "product_3d_model" }, { ownerId: productId, namespace: "custom", key: "ios_3d_model" }, { ownerId: productId, namespace: "custom", key: "ar_enabled" } ] } }
     );
-    return json({ success: true, actionType, productId });
+    return Response.json({ success: true, actionType, productId });
   }
 
-  return json({ success: true });
+  return Response.json({ success: true });
 };
 
 export const loader = async ({ request }) => {
@@ -384,7 +384,7 @@ export const loader = async ({ request }) => {
     return 0;
   });
 
-  return json({ initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots });
+  return Response.json({ initialProducts, currentPlan, arActiveCount, modelActiveCount, extraSlots });
 };
 
 export default function ModelMappingDashboard() {

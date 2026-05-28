@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { useLoaderData, useActionData, useSubmit, useLocation, useNavigate } from "@remix-run/react"; 
-import { json } from "@remix-run/node"; 
+// 🚀 修复：改回最新的 react-router 规范
+import { useLoaderData, useActionData, useSubmit, useLocation, useNavigate } from "react-router"; 
 import {
   Page, Layout, Text, Card, Button, BlockStack, Banner, Divider, Box, Badge,
   Icon, InlineGrid, InlineStack, Popover, ActionList, Toast, Frame,
@@ -166,7 +166,7 @@ export const action = async ({ request }) => {
       }`,
       { variables: { id: subscriptionId } }
     );
-    return json({ canceled: true });
+    return { canceled: true };
   } else {
     return null;
   }
@@ -211,7 +211,7 @@ export const action = async ({ request }) => {
     }
   );
   const responseJson = await response.json();
-  return json({ confirmationUrl: responseJson.data?.appSubscriptionCreate?.confirmationUrl });
+  return { confirmationUrl: responseJson.data?.appSubscriptionCreate?.confirmationUrl };
 };
 
 export const loader = async ({ request }) => {
@@ -349,7 +349,7 @@ export const loader = async ({ request }) => {
     console.error("获取真实看板数据失败", error);
   }
 
-  return json({ shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount });
+  return { shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount };
 };
 
 export default function Index() {
