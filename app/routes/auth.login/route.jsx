@@ -15,11 +15,12 @@ export const action = async ({ request }) => {
 };
 
 export default function Auth() {
-  // 🚨 修复 1：100% 还原官方的变量声明方式，完美避开 Vercel 的 TS 类型检查报错
   const loaderData = useLoaderData();
   const actionData = useActionData();
   const [shop, setShop] = useState("");
-  const { errors } = actionData || loaderData;
+  
+  // 安全地获取错误信息，防止 Vercel 编译报错
+  const errors = (actionData && actionData.errors) ? actionData.errors : (loaderData && loaderData.errors ? loaderData.errors : {});
 
   const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
 
@@ -29,12 +30,10 @@ export default function Auth() {
     const urlParams = new URLSearchParams(window.location.search);
     const shopParam = urlParams.get("shop");
 
-    // 🚨 修复 2：只有在带有 shop 参数，且没有发起过错误请求 (actionData 为空) 时，才自动提交
-    // 这样既能无感刷新，又能防止遇到错误时无限死循环
+    // 检测到店铺名且没有发起过错误请求，立刻执行无感拦截刷新
     if (shopParam && !actionData) {
       setIsAutoLoggingIn(true);
 
-      // 用纯原生 DOM 强行创建表单并提交，彻底绕开 Remix 路由的 200 白屏陷阱
       const form = document.createElement("form");
       form.method = "POST";
       form.action = "/auth/login";
@@ -50,7 +49,7 @@ export default function Auth() {
     }
   }, [actionData]);
 
-  // 拦截成功：显示极致极简的“正在续签”状态，瞬间跳回 3D 控制台
+  // 拦截成功：显示极简加载动画，避免 200 白屏
   if (isAutoLoggingIn) {
     return (
       <AppProvider embedded={false}>
@@ -63,7 +62,7 @@ export default function Auth() {
     );
   }
 
-  // 兜底方案：老老实实显示官方的原生表单
+  // 兜底方案：显示官方默认表单
   return (
     <AppProvider embedded={false}>
       <s-page>
