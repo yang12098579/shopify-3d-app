@@ -1,4 +1,6 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from "react-router";
+// 🚨 修复关键：引入 useEffect
+import { useEffect } from "react";
 
 export default function App() {
   return (
@@ -23,13 +25,19 @@ export default function App() {
   );
 }
 
-// 🚨 终极防线：部署在项目最高层的拦截器
 export function ErrorBoundary() {
   const error = useRouteError();
 
-  // 1. 核心拦截逻辑：只要状态码是 200，立刻强制刷新页面
-  if (typeof window !== "undefined" && error?.status === 200) {
-    window.location.reload();
+  // 🚨 修复关键：把“强制刷新”放进 useEffect 里。
+  // 这样 React 就会先乖乖把画面画出来，然后再去执行刷新，绝不会再白屏崩溃了！
+  useEffect(() => {
+    if (error?.status === 200) {
+      window.location.reload();
+    }
+  }, [error]);
+
+  // 如果是 200 错误，安全地显示一个加载动画，等待 useEffect 触发刷新
+  if (error?.status === 200) {
     return (
       <html lang="en">
         <head>
@@ -48,7 +56,7 @@ export function ErrorBoundary() {
     );
   }
 
-  // 2. 如果遇到真正的系统错误（比如 404, 500），提供一个相对美观的兜底界面，代替那个瞎眼的巨大数字
+  // 其他真正的系统错误兜底界面
   return (
     <html lang="en">
       <head>
@@ -60,10 +68,7 @@ export function ErrorBoundary() {
         <div style={{ padding: "40px", fontFamily: "sans-serif", textAlign: "center", color: "#202223" }}>
           <h2>Oops! Something went wrong.</h2>
           <p style={{ color: "#6d7175", marginTop: "10px" }}>
-            Status: {error?.status || "Unknown"}
-          </p>
-          <p style={{ color: "#6d7175" }}>
-            {error?.data || error?.message || "Please refresh the page or try again later."}
+            Status: {error?.status || "Unknown Error"}
           </p>
           <button 
             onClick={() => window.location.reload()} 
