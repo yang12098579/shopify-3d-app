@@ -1,30 +1,4 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from "react-router";
-import { useEffect } from "react";
-
-export default function App() {
-  return (
-    <html lang="en">
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <link rel="preconnect" href="https://cdn.shopify.com/" />
-        <link
-          rel="stylesheet"
-          href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
-        />
-        <Meta />
-        <Links />
-      </head>
-      <body>
-        <Outlet />
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
-  );
-}
-
-// 🚨 终极防弹版 ErrorBoundary
+// 🚨 破壁防弹版 ErrorBoundary
 export function ErrorBoundary() {
   const error = useRouteError();
 
@@ -36,14 +10,20 @@ export function ErrorBoundary() {
     (error?.message && error.message.includes("Unexpected token")) ||
     (error?.message && error.message.includes("JSON"));
 
-  // 安全触发刷新，避免渲染中途阻断
+  // 2. 🚨 核心修复：打破 iframe 结界！
   useEffect(() => {
     if (isSessionExpired) {
-      window.location.reload();
+      // 以前是 window.location.reload()，只刷新了画中画，导致被 Shopify 拦截白屏。
+      // 现在加上 .top，强制刷新最顶层的浏览器父窗口！瞬间满血复活！
+      if (window.top) {
+        window.top.location.reload();
+      } else {
+        window.location.reload();
+      }
     }
   }, [isSessionExpired]);
 
-  // 如果判定为掉线，显示安全的加载动画，等待 useEffect 刷新页面
+  // 如果判定为掉线，显示安全的加载动画，等待顶级窗口刷新
   if (isSessionExpired) {
     return (
       <html lang="en">
@@ -54,7 +34,7 @@ export function ErrorBoundary() {
         <body>
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontFamily: "sans-serif", color: "#6d7175", flexDirection: "column", gap: "16px" }}>
              <div style={{ width: '32px', height: '32px', border: '3px solid #f4f6f8', borderTop: '3px solid #202223', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-             <p>Reconnecting securely...</p>
+             <p>Session expired. Reconnecting securely...</p>
              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
           <Scripts />
@@ -63,12 +43,11 @@ export function ErrorBoundary() {
     );
   }
 
-  // 2. 🚨 修复白屏死机：安全提取错误信息，坚决不让 React 直接渲染 Object
+  // 3. 安全提取未知错误信息，防止 React 渲染对象崩溃
   let safeErrorMessage = "Please refresh the page or try again later.";
   if (error?.message) {
     safeErrorMessage = error.message;
   } else if (error?.data) {
-    // 如果是对象，强行转成字符串，防止 React 崩溃白屏
     safeErrorMessage = typeof error.data === "string" ? error.data : JSON.stringify(error.data);
   }
 
@@ -90,7 +69,10 @@ export function ErrorBoundary() {
             {safeErrorMessage}
           </p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={() => {
+              if(window.top) window.top.location.reload();
+              else window.location.reload();
+            }} 
             style={{ marginTop: '20px', padding: '8px 16px', background: '#000', color: '#fff', borderRadius: '6px', cursor: 'pointer', border: 'none' }}
           >
             Refresh Page
