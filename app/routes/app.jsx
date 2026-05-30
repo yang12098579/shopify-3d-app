@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData, useRouteError } from "react-router";
+import { Outlet, useLoaderData, useRouteError, isRouteErrorResponse } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider as AppBridgeProvider } from "@shopify/shopify-app-react-router/react";
 import { AppProvider as PolarisProvider } from "@shopify/polaris";
@@ -18,25 +18,35 @@ export default function App() {
   return (
     <PolarisProvider i18n={enTranslations}>
       <AppBridgeProvider apiKey={apiKey}>
-        {/* 移除导致死循环和样式错乱的 ui-nav-menu */}
         <Outlet />
       </AppBridgeProvider>
     </PolarisProvider>
   );
 }
 
-// 🚨 终极防线：智能拦截 200 幽灵白屏
+// 🚨 终极暴力防线：天罗地网拦截 200
 export function ErrorBoundary() {
   const error = useRouteError();
 
-  // 1. 如果遇到 AJAX 拿错 HTML 导致的 200 崩溃，强制浏览器真实刷新
-  if (error?.status === 200) {
-    if (typeof window !== "undefined") {
+  if (typeof window !== "undefined") {
+    // 检查 1：Remix 官方结构验证 200
+    const isRemix200 = isRouteErrorResponse(error) && error.status === 200;
+    // 检查 2：原生对象拦截 200
+    const isRaw200 = error?.status === 200;
+    // 检查 3：拦截 AJAX 拿到 HTML 导致的 JSON 解析崩溃
+    const isJsonCrash = error instanceof Error && error.message.includes("Unexpected token");
+
+    // 只要满足任意一个条件，直接暴力切断并强制刷新！
+    if (isRemix200 || isRaw200 || isJsonCrash) {
       window.location.reload();
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#6d7175', fontFamily: 'sans-serif' }}>
+          <p>Reconnecting securely...</p>
+        </div>
+      );
     }
-    return null;
   }
 
-  // 2. 如果是其他正常的代码报错，依然使用 Shopify 官方美观的报错 UI
+  // 其他正常报错兜底
   return boundary.error(error);
 }
