@@ -1,5 +1,4 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from "react-router";
-// 🚨 修复关键：引入 useEffect
 import { useEffect } from "react";
 
 export default function App() {
@@ -25,19 +24,27 @@ export default function App() {
   );
 }
 
+// 🚨 终极防弹版 ErrorBoundary
 export function ErrorBoundary() {
   const error = useRouteError();
 
-  // 🚨 修复关键：把“强制刷新”放进 useEffect 里。
-  // 这样 React 就会先乖乖把画面画出来，然后再去执行刷新，绝不会再白屏崩溃了！
+  // 1. 扩大捕获网：只要是 200、401、403 或者 JSON 解析报错，统统视为“通行证过期掉线”
+  const isSessionExpired = 
+    error?.status === 200 || 
+    error?.status === 401 || 
+    error?.status === 403 || 
+    (error?.message && error.message.includes("Unexpected token")) ||
+    (error?.message && error.message.includes("JSON"));
+
+  // 安全触发刷新，避免渲染中途阻断
   useEffect(() => {
-    if (error?.status === 200) {
+    if (isSessionExpired) {
       window.location.reload();
     }
-  }, [error]);
+  }, [isSessionExpired]);
 
-  // 如果是 200 错误，安全地显示一个加载动画，等待 useEffect 触发刷新
-  if (error?.status === 200) {
+  // 如果判定为掉线，显示安全的加载动画，等待 useEffect 刷新页面
+  if (isSessionExpired) {
     return (
       <html lang="en">
         <head>
@@ -56,7 +63,16 @@ export function ErrorBoundary() {
     );
   }
 
-  // 其他真正的系统错误兜底界面
+  // 2. 🚨 修复白屏死机：安全提取错误信息，坚决不让 React 直接渲染 Object
+  let safeErrorMessage = "Please refresh the page or try again later.";
+  if (error?.message) {
+    safeErrorMessage = error.message;
+  } else if (error?.data) {
+    // 如果是对象，强行转成字符串，防止 React 崩溃白屏
+    safeErrorMessage = typeof error.data === "string" ? error.data : JSON.stringify(error.data);
+  }
+
+  // 其他真正的系统级错误兜底界面
   return (
     <html lang="en">
       <head>
@@ -68,7 +84,10 @@ export function ErrorBoundary() {
         <div style={{ padding: "40px", fontFamily: "sans-serif", textAlign: "center", color: "#202223" }}>
           <h2>Oops! Something went wrong.</h2>
           <p style={{ color: "#6d7175", marginTop: "10px" }}>
-            Status: {error?.status || "Unknown Error"}
+            Status: {error?.status || "Unknown"}
+          </p>
+          <p style={{ color: "#6d7175", maxWidth: "600px", margin: "10px auto", wordWrap: "break-word" }}>
+            {safeErrorMessage}
           </p>
           <button 
             onClick={() => window.location.reload()} 
