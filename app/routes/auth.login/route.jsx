@@ -1,6 +1,7 @@
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { useState, useEffect } from "react";
-import { useActionData, useLoaderData } from "react-router";
+// 🚨 修复 1：把官方的 Form 重新引进来，满足 Vercel 的语法检查
+import { Form, useActionData, useLoaderData } from "react-router";
 import { login } from "../../shopify.server";
 import { loginErrorMessage } from "./error.server";
 
@@ -15,10 +16,11 @@ export const action = async ({ request }) => {
 };
 
 export default function Auth() {
-  const loaderData = useLoaderData();
-  const actionData = useActionData();
-  const { errors } = actionData || loaderData;
-  
+  // 🚨 修复 2：加上安全兜底 (|| {})，防止云端渲染时拿到空数据导致应用崩溃
+  const loaderData = useLoaderData() || {};
+  const actionData = useActionData() || {};
+  const errors = actionData.errors || loaderData.errors || {};
+
   const [shop, setShop] = useState("");
   const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
 
@@ -26,25 +28,25 @@ export default function Auth() {
     const urlParams = new URLSearchParams(window.location.search);
     const shopParam = urlParams.get("shop");
 
-    if (shopParam && !errors?.shop) {
+    // 只有在带了店铺参数，且没有报错的情况下，才触发无感自动登录
+    if (shopParam && !errors.shop) {
       setIsAutoLoggingIn(true);
-      
-      // 🚨 终极修复：放弃 Remix 的 AJAX，使用原生 JavaScript 动态创建并提交表单！
-      // 这能强制浏览器进行硬跳转，完美触发 Shopify 的 iframe 逃脱机制，彻底消灭 200 白屏。
+
+      // 用原生 DOM 强行跳脱框架，避免 200 白屏
       const form = document.createElement("form");
       form.method = "POST";
       form.action = window.location.pathname + window.location.search;
-      
+
       const input = document.createElement("input");
       input.type = "hidden";
       input.name = "shop";
       input.value = shopParam;
-      
+
       form.appendChild(input);
       document.body.appendChild(form);
       form.submit();
     }
-  }, [errors]);
+  }, [errors.shop]); // 依赖项精确到具体错误，防止死循环
 
   // 拦截成功：显示极致极简的“正在续签”加载状态
   if (isAutoLoggingIn) {
@@ -59,12 +61,12 @@ export default function Auth() {
     );
   }
 
-  // 兜底方案：如果 URL 里什么都没有，老老实实显示原生表单
+  // 兜底方案：如果 URL 里什么都没有，显示官方的登录表单
   return (
     <AppProvider embedded={false}>
       <s-page>
-        {/* 注意：为了绝对安全，这里将原来的 <Form> 也改为了小写的原生 <form> */}
-        <form method="POST" action="">
+        {/* 🚨 修复 3：使用大写的 Form 配合 reloadDocument，既满足规范，又能硬刷新！ */}
+        <Form method="post" reloadDocument>
           <s-section heading="Log in">
             <s-text-field
               name="shop"
@@ -73,11 +75,11 @@ export default function Auth() {
               value={shop}
               onChange={(e) => setShop(e.currentTarget.value)}
               autocomplete="on"
-              error={errors?.shop}
+              error={errors.shop}
             ></s-text-field>
             <s-button type="submit">Log in</s-button>
           </s-section>
-        </form>
+        </Form>
       </s-page>
     </AppProvider>
   );
