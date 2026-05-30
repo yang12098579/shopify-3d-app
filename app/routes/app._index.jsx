@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { useLoaderData, useActionData, useSubmit, useLocation, useNavigate } from "react-router"; 
+// 🌟 1.移除了容易引发崩溃的 useActionData 和 useSubmit
+import { useLoaderData, useLocation, useNavigate } from "react-router"; 
 import {
   Page, Layout, Text, Card, Button, BlockStack, Banner, Divider, Box, Badge,
   Icon, InlineGrid, InlineStack, Popover, ActionList, Toast, Frame,
@@ -10,11 +11,11 @@ import {
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server"; 
 
-// 💡 将套餐名称抽离为全局常量，杜绝硬编码风险
 const PLAN_PRO = "Vision3D Professional Plan";
 const PLAN_ENT = "Vision3D Enterprise Plan";
 
 const translations = {
+  // ... （此处保留了你所有的中英文翻译，完全没动）
   zh: {
     langName: "简体中文",
     title: "Vision3D 控制台",
@@ -139,8 +140,8 @@ const translations = {
   }
 };
 
+// 后端代码未做任何改动
 export const action = async ({ request }) => {
-  // 🚨 修复核心：精准获取 session，拼接 Shopify 后台内部的专属入口
   const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
   const intent = formData.get("intent"); 
@@ -206,7 +207,6 @@ export const action = async ({ request }) => {
     {
       variables: {
         name: planName,
-        // 🚨 终极修复：支付成功后，直接把商家硬塞回 Shopify 后台的画中画里！
         returnUrl: shopAdminUrl,
         trialDays: trialDaysConfig > 0 ? trialDaysConfig : null, 
         test: isTestBilling, 
@@ -218,6 +218,7 @@ export const action = async ({ request }) => {
   return { confirmationUrl: responseJson.data?.appSubscriptionCreate?.confirmationUrl };
 };
 
+// 后端代码未做任何改动
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
 
@@ -360,23 +361,16 @@ export const loader = async ({ request }) => {
 
 export default function Index() {
   const { shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount } = useLoaderData(); 
-  const actionData = useActionData(); 
-  const submit = useSubmit(); 
   const location = useLocation(); 
   const navigate = useNavigate(); 
 
   const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // 🌟 新增：手动接管 loading 状态
 
   const togglePopoverActive = useCallback(() => setPopoverActive((a) => !a), []);
   const t = translations[locale];
-
-  useEffect(() => {
-    if (actionData?.confirmationUrl) {
-      window.top.location.href = actionData.confirmationUrl;
-    }
-  }, [actionData]);
 
   const getBannerConfig = () => {
     if (currentPlan === "pro") return { title: `${t.planPro} (${t.statusActive})`, tone: "success", msg: t.msgPro.replace("{date}", dateStr) };
@@ -393,14 +387,52 @@ export default function Index() {
     return t.limitLocked;
   };
 
-  const handleUpgrade = (tier) => {
+  // 🌟 核心改造：使用 window.shopify.fetch 替代 useSubmit，彻底解决掉线白屏
+  const handleUpgrade = async (tier) => {
     setShowToast(true); 
-    submit({ intent: tier }, { method: "post" }); 
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("intent", tier);
+      
+      const response = await window.shopify.fetch(window.location.pathname + window.location.search, {
+        method: "POST",
+        body: formData
+      });
+      const result = await response.json();
+      
+      if (result.confirmationUrl) {
+        window.top.location.href = result.confirmationUrl;
+      }
+    } catch (error) {
+      console.error("Upgrade failed:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (confirm(t.confirmCancel)) {
-      submit({ intent: "cancel", subscriptionId }, { method: "post" }); 
+      setIsSubmitting(true);
+      try {
+        const formData = new FormData();
+        formData.append("intent", "cancel");
+        formData.append("subscriptionId", subscriptionId);
+        
+        const response = await window.shopify.fetch(window.location.pathname + window.location.search, {
+          method: "POST",
+          body: formData
+        });
+        const result = await response.json();
+        
+        if (result.canceled) {
+          window.location.reload(); // 取消成功后刷新当前页面即可更新 UI
+        }
+      } catch (error) {
+        console.error("Cancel failed:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -555,7 +587,8 @@ export default function Index() {
                       size="large" 
                       variant="primary" 
                       onClick={() => handleUpgrade("upgrade_pro")} 
-                      disabled={currentPlan === "pro" || currentPlan.startsWith("enterprise")}
+                      disabled={currentPlan === "pro" || currentPlan.startsWith("enterprise") || isSubmitting}
+                      loading={isSubmitting && currentPlan !== "pro"}
                     >
                       {currentPlan === "pro" 
                         ? t.btnCurrent 
@@ -589,7 +622,8 @@ export default function Index() {
                       size="large" 
                       variant="primary" 
                       onClick={() => handleUpgrade("upgrade_enterprise")} 
-                      disabled={currentPlan === "enterprise"}
+                      disabled={currentPlan === "enterprise" || isSubmitting}
+                      loading={isSubmitting && currentPlan !== "enterprise"}
                     >
                       {currentPlan === "enterprise" ? t.btnCurrent : t.btnUpgradeEnt}
                     </Button>
@@ -604,7 +638,7 @@ export default function Index() {
             <Box padding="300" background="bg-surface-secondary" borderRadius="200">
               <InlineStack align="space-between" blockAlign="center">
                 <Text tone="subdued" variant="bodySm">{t.cancelHint}</Text>
-                <Button tone="critical" onClick={handleCancel}>{t.btnCancel}</Button>
+                <Button tone="critical" onClick={handleCancel} loading={isSubmitting}>{t.btnCancel}</Button>
               </InlineStack>
             </Box>
           )}
