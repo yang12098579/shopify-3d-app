@@ -25,6 +25,18 @@ export default function App() {
   );
 }
 
+// 🚨 终极防线：智能拦截 200 幽灵白屏
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+
+  // 1. 如果遇到 AJAX 拿错 HTML 导致的 200 崩溃，强制浏览器真实刷新
+  if (error?.status === 200) {
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+    return null;
+  }
+
+  // 2. 如果是其他正常的代码报错，依然使用 Shopify 官方美观的报错 UI
+  return boundary.error(error);
 }
