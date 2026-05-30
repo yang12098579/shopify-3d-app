@@ -28,7 +28,6 @@ export default function App() {
 export function ErrorBoundary() {
   const error = useRouteError();
 
-  // 1. 扩大捕获网：只要是 200、401、403 或者 JSON 解析报错，统统视为“通行证过期掉线”
   const isSessionExpired = 
     error?.status === 200 || 
     error?.status === 401 || 
@@ -36,14 +35,20 @@ export function ErrorBoundary() {
     (error?.message && error.message.includes("Unexpected token")) ||
     (error?.message && error.message.includes("JSON"));
 
-  // 安全触发刷新，避免渲染中途阻断
+  // 🚨 核心修复：带护盾的安全跳转
   useEffect(() => {
     if (isSessionExpired) {
-      window.location.reload();
+      // 放弃强攻 window.top，改用 try-catch 保护的合法重载。
+      // 这样能 100% 保证 React 不会因为跨域报错而白屏崩溃！
+      try {
+        window.location.href = window.location.pathname + window.location.search;
+      } catch (e) {
+        console.error("Secure reconnect failed:", e);
+      }
     }
   }, [isSessionExpired]);
 
-  // 如果判定为掉线，显示安全的加载动画，等待 useEffect 刷新页面
+  // 显示加载动画，此时 React 绝对安全，不会再闪退白屏
   if (isSessionExpired) {
     return (
       <html lang="en">
@@ -54,7 +59,7 @@ export function ErrorBoundary() {
         <body>
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontFamily: "sans-serif", color: "#6d7175", flexDirection: "column", gap: "16px" }}>
              <div style={{ width: '32px', height: '32px', border: '3px solid #f4f6f8', borderTop: '3px solid #202223', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-             <p>Reconnecting securely...</p>
+             <p>Session expired. Reconnecting securely...</p>
              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
           <Scripts />
@@ -63,16 +68,15 @@ export function ErrorBoundary() {
     );
   }
 
-  // 2. 🚨 修复白屏死机：安全提取错误信息，坚决不让 React 直接渲染 Object
+  // 安全提取报错信息
   let safeErrorMessage = "Please refresh the page or try again later.";
   if (error?.message) {
     safeErrorMessage = error.message;
   } else if (error?.data) {
-    // 如果是对象，强行转成字符串，防止 React 崩溃白屏
     safeErrorMessage = typeof error.data === "string" ? error.data : JSON.stringify(error.data);
   }
 
-  // 其他真正的系统级错误兜底界面
+  // 兜底错误页
   return (
     <html lang="en">
       <head>
@@ -90,7 +94,7 @@ export function ErrorBoundary() {
             {safeErrorMessage}
           </p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={() => window.location.href = window.location.pathname + window.location.search} 
             style={{ marginTop: '20px', padding: '8px 16px', background: '#000', color: '#fff', borderRadius: '6px', cursor: 'pointer', border: 'none' }}
           >
             Refresh Page

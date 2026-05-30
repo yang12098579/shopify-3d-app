@@ -93,7 +93,7 @@ const translations = {
     searchPlaceholder: "Search by title or SKU...",
     clearBtn: "Reset Changes",
     bound: "Linked 3D",
-    unbound: "Unlinked",
+    unbound: "unlinked",
     btnUnbind: "Unbind",
     btnModify: "Modify",
     btnBind: "Link Model",
