@@ -3,8 +3,11 @@
   "installCommand": "npm ci",
   "framework": null,
   "outputDirectory": "build/client",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
+  ],
   "functions": {
-    "build/server/index.js": {
+    "api/index.js": {
       "memory": 512,
       "maxDuration": 30
     }
