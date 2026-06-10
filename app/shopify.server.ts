@@ -1,16 +1,17 @@
-import "@shopify/shopify-app-react-router/adapters/node";
+﻿import "@shopify/shopify-app-react-router/adapters/node";
 import {
   ApiVersion,
   AppDistribution,
   shopifyApp,
   BillingInterval,
-  BillingReplacementBehavior,
+  BillingReplacementBehavior, DeliveryMethod,
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
+import { PLAN_PRO, PLAN_ENTERPRISE } from "./constants";
 
-export const PLAN_PRO = 'Vision3D Professional Plan';
-export const PLAN_ENTERPRISE = 'Vision3D Enterprise Plan';
+
+
 
 if (typeof process !== "undefined" && process.env) {
   process.env.NO_PROXY = "127.0.0.1,localhost";
@@ -29,13 +30,13 @@ const shopify = shopifyApp({
   billing: {
     [PLAN_PRO]: {
       lineItems: [
-        // 1. 固定月费项目
+        // 1. 鍥哄畾鏈堣垂椤圭洰
         {
           amount: 29.99,
           currencyCode: 'USD',
           interval: BillingInterval.Every30Days,
         },
-        // 2. 弹性按量计费项目
+        // 2. 寮规€ф寜閲忚璐归」鐩?
         {
           amount: 100.00, 
           currencyCode: 'USD',
@@ -60,17 +61,17 @@ const shopify = shopifyApp({
 
   webhooks: {
     APP_UNINSTALLED: {
-      deliveryMethod: "http",
+      deliveryMethod: DeliveryMethod.Http,
       callbackUrl: "/webhooks",
     },
     APP_SUBSCRIPTIONS_UPDATE: {
-      deliveryMethod: "http",
+      deliveryMethod: DeliveryMethod.Http,
       callbackUrl: "/webhooks",
     },
   },
 
   future: {
-    expiringOfflineAccessTokens: true, // 💡 已经完美修复，去掉了多余的错字
+    expiringOfflineAccessTokens: true, // 馃挕 宸茬粡瀹岀編淇锛屽幓鎺変簡澶氫綑鐨勯敊瀛?
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
@@ -85,3 +86,4 @@ export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
+

@@ -1,0 +1,26 @@
+﻿{
+  "buildCommand": "npx prisma generate && npx react-router build",
+  "installCommand": "npm ci",
+  "framework": null,
+  "outputDirectory": "build/client",
+  "functions": {
+    "build/server/index.js": {
+      "memory": 512,
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/build/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/favicon.ico",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    }
+  ]
+}

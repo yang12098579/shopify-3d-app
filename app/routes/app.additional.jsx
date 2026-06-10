@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLoaderData, useNavigate, useSubmit, useRevalidator, useActionData } from "react-router"; 
 import {
   Page, Card, Text, Button, BlockStack, Banner, Divider, Thumbnail, Box, Icon,
@@ -7,39 +7,11 @@ import {
 } from "@shopify/polaris";
 import {
   SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon,
-  AlertCircleIcon, LockIcon, InfoIcon,
+  AlertCircleIcon, LockIcon,
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
+import { triggerCloudConvert } from "../cloudconvert.server";
 
-// 💡 后端微服务异步发射器：将回调地址死死定向在 webhooks 路由上
-async function triggerCloudConvertService(productId, glbUrl, shopDomain) {
-  const apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNzA2ZmQzOTMzZThjYWFmOTM1YTVkNmMwYTAwZWQzZTNmODZjN2Y1MzQ1ZmI4NWU1ZDQwZWZhZjhjMzA5MTNhMTJlOGE5MzE1ODQ1MGExMzIiLCJpYXQiOjE3NzkwOTI5MTUuMDM3NzQ5LCJuYmYiOjE3NzkwOTI5MTUuMDM3NzUxLCJleHAiOjQ5MzQ3NjY1MTUuMDMyMDQxLCJzdWIiOiI3NTYwMTU0NiIsInNjb3BlcyI6WyJ1c2VyLnJlYWQiLCJ1c2VyLndyaXRlIiwidGFzay5yZWFkIiwidGFzay53cml0ZSIsIndlYmhvb2sud3JpdGUiLCJ3ZWJob29rLnJlYWQiLCJwcmVzZXQucmVhZCIsInByZXNldC53cml0ZSJdfQ.W_KGUDbfKEhM_Q1eTB9DsSviq4cRkDwUBIoEwBj9KsSoWrz52AX6JrgYjD7dGtJAGbNz314uAC7RV9bK5MdlLYYgMgEr9pqpsu5YkXNs1BDUv93mOQHLxUsJwnL5xxjnNuKci3VJpxRXbCCw2kKomV_T6nkvur9Z82KfWoSFYoIvnLDJ2o8TbIpkdqH6NysMPAb9HmJ9agzArvAUQo_XaxH6CPMbMv8bdVvuSUrs0T7I6VzdFPsMgmTpjPJvVU8hh3F_lXSow-bT-yPySivbfs5bf3vWcRXNQ0s0kkbZc3sJwJDC_TM-gRT9qhor_7Mh4eWnjhCzc9-Zd6iFhwzL-TmygKJjpBsTaD7pqoy41L2KlctRtk_yLT3HJ6fCG41o-Vj8_T4gilg7YVsYQZUCqnkXHlRoeweOlNuU0rgr9CJxGNquwac4bqAk55u2bnv_kWx479b_R5TBjOgGL-S6_eeDYlsdZzQtnX9Mx2KScaryJVlemqUMdKFyYcHnytPd5CTK3QpKstT8CzBOoAdW7gH-nTGb6TkyAq9v_mXFy07dFjPJPZvnuNNKvBOlhFTCn01pQKMZP8593UBVuBYXNv5rxBYCR8o3gOp6A2G0c5ek29oJVOOCW_bm1LgqUrCyrgIsAdnm6V6CakBmsxb31ORiVStebY5H8uoE0gKFieA";
-  if (!apiKey || !glbUrl) return;
-
-  try {
-    const appBaseUrl = `https://${shopDomain}`;
-    
-    await fetch("https://api.cloudconvert.com/v2/jobs", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tasks: {
-          "import-1": { operation: "import/url", url: glbUrl },
-          "convert-1": { operation: "convert", input: "import-1", output_format: "usdz" },
-          "export-1": { 
-            operation: "export/url", 
-            input: "convert-1",
-            // 🎯 精准制导：将回调打入 webhooks 专用防线，并带上关键的脱机参数
-            webhook: `${appBaseUrl}/webhooks?productId=${encodeURIComponent(productId)}&shop=${encodeURIComponent(shopDomain)}`
-          }
-        }
-      })
-    });
-    console.log(`📡 [雷达成功发射] 异步追踪商品: ${productId}`);
-  } catch (err) {
-    console.error("❌ 异步转码调度发生系统级异常:", err);
-  }
-}
 
 const translations = {
   zh: {
@@ -227,6 +199,34 @@ export const action = async ({ request }) => {
 
   if (actionType === "bind") {
     const modelUrl = String(formData.get("modelUrl") || "").trim();
+    // Validate model URL
+    if (modelUrl) {
+      try {
+        var parsedUrl = new URL(modelUrl);
+        if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
+          return Response.json({ success: false, error: "INVALID_URL", message: "URL must use https://" });
+        }
+        if (!/.(glb|gltf)(\?.*)?$/i.test(parsedUrl.pathname)) {
+          return Response.json({ success: false, error: "INVALID_URL", message: "Only .glb and .gltf files are supported" });
+        }
+      } catch (_e) {
+        return Response.json({ success: false, error: "INVALID_URL", message: "Please enter a valid URL" });
+      }
+    }
+    // Validate model URL is safe
+    if (modelUrl) {
+      try {
+        var parsedUrl = new URL(modelUrl);
+        if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
+          return Response.json({ success: false, error: "INVALID_URL", message: "URL must use https://" });
+        }
+        if (!/\.(glb|gltf)(\?.*)?$/i.test(parsedUrl.pathname)) {
+          return Response.json({ success: false, error: "INVALID_URL", message: "Only .glb and .gltf files are supported" });
+        }
+      } catch (_e) {
+        return Response.json({ success: false, error: "INVALID_URL", message: "Please enter a valid URL" });
+      }
+    }
     if (currentPlan === "free" && modelUrl !== "") {
       const countResponse = await admin.graphql(
         `#graphql
@@ -271,7 +271,7 @@ export const action = async ({ request }) => {
     }
 
     if (modelUrl && modelUrl.toLowerCase().includes(".glb")) {
-      triggerCloudConvertService(productId, modelUrl, shopDomain);
+      triggerCloudConvert(productId, modelUrl, shopDomain);
     }
 
     return Response.json({ success: true, actionType, productId, updatedUrl: modelUrl });
