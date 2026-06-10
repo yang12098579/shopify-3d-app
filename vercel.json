@@ -1,4 +1,4 @@
-﻿{
+{
   "buildCommand": "npx prisma generate && npx react-router build",
   "installCommand": "npm ci",
   "framework": null,
