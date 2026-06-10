@@ -1,12 +1,10 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "postgresql" // 🛡️ 商业级修复：从本地 sqlite 切换为商用级 postgresql 云数据库
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -35,7 +33,7 @@ model AppAnalytics {
   shop            String   @unique
   views           Int      @default(0)
   arUses          Int      @default(0)
-  totalStayTimeMs BigInt   @default(0) // 采集真实 C 端买家累计停留时间
-  addCartCount    Int      @default(0) // 采集真实加购转化率数据
+  totalStayTimeMs BigInt   @default(0)
+  addCartCount    Int      @default(0)
   updatedAt       DateTime @updatedAt
 }
