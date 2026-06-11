@@ -1,6 +1,16 @@
 import { prisma } from "../db.server";
 
-export async function loader() {
+// Simple token-based protection (set MIGRATE_TOKEN in env vars)
+const MIGRATE_TOKEN = process.env.MIGRATE_TOKEN || "vision3d-migrate-2026";
+
+export async function loader({ request }) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token");
+
+  if (token !== MIGRATE_TOKEN) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Session" (
@@ -24,7 +34,19 @@ export async function loader() {
       )
     `);
 
-    return Response.json({ success: true, message: "Session table created" });
+    // Create error log table for monitoring
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ErrorLog" (
+        "id" SERIAL NOT NULL PRIMARY KEY,
+        "message" TEXT NOT NULL,
+        "stack" TEXT,
+        "shop" TEXT,
+        "route" TEXT,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    return Response.json({ success: true, message: "All tables created" });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }

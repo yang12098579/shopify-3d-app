@@ -234,12 +234,16 @@ export const loader = async ({ request }) => {
   return { shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount };
 };
 
+import SetupGuide from "../components/dashboard/SetupGuide";
+import StatsOverview from "../components/dashboard/StatsOverview";
+import PlanSelector from "../components/dashboard/PlanSelector";
+
 export default function Index() {
-  const { shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount } = useLoaderData(); 
-  const actionData = useActionData(); 
-  const submit = useSubmit(); 
-  const location = useLocation(); 
-  const navigate = useNavigate(); 
+  const { shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount } = useLoaderData();
+  const actionData = useActionData();
+  const submit = useSubmit();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
@@ -265,18 +269,18 @@ export default function Index() {
 
   const getLimitDisplay = () => {
     if (currentPlan.startsWith("pro")) return `${arActiveCount} / 10`;
-    if (currentPlan.startsWith("enterprise")) return `${arActiveCount} / ∞`;
+    if (currentPlan.startsWith("enterprise")) return `${arActiveCount} / \u221e`;
     return t.limitLocked;
   };
 
   const handleUpgrade = (tier) => {
-    setShowToast(true); 
-    submit({ intent: tier }, { method: "post" }); 
+    setShowToast(true);
+    submit({ intent: tier }, { method: "post" });
   };
 
   const handleCancel = () => {
     if (confirm(t.confirmCancel)) {
-      submit({ intent: "cancel", subscriptionId }, { method: "post" }); 
+      submit({ intent: "cancel", subscriptionId }, { method: "post" });
     }
   };
 
@@ -305,186 +309,17 @@ export default function Index() {
             <Layout.Section>
               <BlockStack gap="400">
                 <Card>
-                  <BlockStack gap="400">
-                    <Box>
-                      <BlockStack gap="300">
-                        <InlineStack align="space-between" blockAlign="center">
-                          <Text variant="headingMd" as="h2">🚀 {t.setupTitle}</Text>
-                          <Badge tone={currentPlan !== "free" ? "success" : "attention"}>
-                            {currentPlan !== "free" ? t.setupBadgeReady : t.setupBadgePending}
-                          </Badge>
-                        </InlineStack>
-
-                        <InlineGrid columns={{ xs: 1, sm: 3 }} gap="200">
-                          {[
-                            { title: t.step1, desc: t.step1Desc, icon: DatabaseIcon },
-                            { title: t.step2, desc: t.step2Desc, icon: AutomationIcon },
-                            { title: t.step3, desc: t.step3Desc, icon: MagicIcon }
-                          ].map((step, idx) => (
-                            <Box key={idx} background="bg-surface-secondary" padding="300" borderRadius="200">
-                              <BlockStack gap="050">
-                                <InlineStack gap="100" align="start" blockAlign="center">
-                                  <Box width="20px"><Icon source={step.icon} tone="base" /></Box>
-                                  <Text variant="headingSm" as="h3">{step.title}</Text>
-                                </InlineStack>
-                                <Text variant="bodySm" tone="subdued">{step.desc}</Text>
-                              </BlockStack>
-                            </Box>
-                          ))}
-                        </InlineGrid>
-                      </BlockStack>
-                    </Box>
-
-                    <Divider />
-                    <InlineStack gap="300">
-                      <Button variant="primary" size="large" icon={MagicIcon} url={`https://${shop}/admin/themes/current/editor?template=product`} target="_blank">{t.btnEditor}</Button>
-                      <Button size="large" icon={DatabaseIcon} url={`https://${shop}/admin/settings/files`} target="_blank">{t.btnFiles}</Button>
-                      <Button size="large" variant="secondary" onClick={() => navigate(`/app/additional${location.search}`)}>
-                        {t.btnGoManage} →
-                      </Button>
-                    </InlineStack>
-                  </BlockStack>
+                  <SetupGuide shop={shop} currentPlan={currentPlan} t={t} />
                 </Card>
 
                 <Card>
-                  <BlockStack gap="400">
-                    <Text variant="headingMd" as="h2">📊 {t.insightTitle}</Text>
-                    <InlineGrid columns={{ xs: 2, md: 4 }} gap="400">
-                      <Box background="bg-surface-secondary" padding="400" borderRadius="300">
-                        <BlockStack gap="100">
-                          <Text variant="bodyXs" tone="subdued">{t.statViews}</Text>
-                          <Text variant="headingLg" tone="base">{statsData.views}</Text>
-                        </BlockStack>
-                      </Box>
-                      <Box background="bg-surface-secondary" padding="400" borderRadius="300">
-                        <BlockStack gap="100">
-                          <Text variant="bodyXs" tone="subdued">{t.statAR}</Text>
-                          <Text variant="headingLg" tone="base">{statsData.arUses}</Text>
-                        </BlockStack>
-                      </Box>
-                      <Box background="bg-surface-secondary" padding="400" borderRadius="300">
-                        <BlockStack gap="100">
-                          <Text variant="bodyXs" tone="subdued">{t.statTime}</Text>
-                          <Text variant="headingLg" tone="success">{statsData.stayTime}</Text>
-                        </BlockStack>
-                      </Box>
-                      <Box background={currentPlan === "free" ? "bg-surface-critical-subdued" : "bg-surface-info-subdued"} padding="400" borderRadius="300">
-                        <BlockStack gap="100">
-                          <InlineStack gap="050" blockAlign="center">
-                            <Box width="14px"><Icon source={AlertBubbleIcon} tone={currentPlan === "free" ? "critical" : "info"} /></Box>
-                            <Text variant="bodyXs" tone={currentPlan === "free" ? "critical" : "info"}>{t.statSub}</Text>
-                          </InlineStack>
-                          <Text variant="headingLg" fontWeight="bold">{getLimitDisplay()}</Text>
-                        </BlockStack>
-                      </Box>
-                    </InlineGrid>
-                  </BlockStack>
+                  <StatsOverview statsData={statsData} currentPlan={currentPlan} arActiveCount={arActiveCount} t={t} getLimitDisplay={getLimitDisplay} />
                 </Card>
               </BlockStack>
             </Layout.Section>
           </Layout>
 
-          <Page title="">
-            <Text variant="headingLg" as="h2" fontWeight="bold">{t.planSelectTitle}</Text>
-            <Box marginTop="400">
-              <InlineGrid columns={{ xs: 1, md: 3 }} gap="500">
-                
-                <Card background={currentPlan === "free" ? "bg-surface-info-subdued" : "bg-surface"}>
-                  <BlockStack gap="400">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <Text variant="headingLg" fontWeight="bold">{t.tierFreeName}</Text>
-                      {currentPlan === "free" && <Badge tone="info">{t.statusActive}</Badge>}
-                    </InlineStack>
-                    <BlockStack gap="150">
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="info" /></Box><Text>{t.tierFreeF1}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="info" /></Box><Text>{t.tierFreeF2}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="critical" /></Box><Text tone="subdued">{t.tierFreeF3}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="critical" /></Box><Text tone="critical">{t.tierFreeF4}</Text></InlineGrid>
-                    </BlockStack>
-                    <Divider />
-                    <Text variant="heading2xl" fontWeight="bold">$0 <Text variant="bodySm" tone="subdued" as="span">{t.tierFreePrice}</Text></Text>
-                    <Button fullWidth disabled size="large">{currentPlan === "free" ? t.btnCurrent : t.btnNA}</Button>
-                  </BlockStack>
-                </Card>
-
-                <Card background={currentPlan.startsWith("pro") ? "bg-surface-success-subdued" : "bg-surface"}>
-                  <BlockStack gap="400">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <Text variant="headingLg" fontWeight="bold" tone="success">{t.tierProName}</Text>
-                      {currentPlan === "pro" && <Badge tone="success">{t.statusActive}</Badge>}
-                    </InlineStack>
-                    <BlockStack gap="150">
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="success" /></Box><Text fontWeight="bold">{t.tierProF1}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="success" /></Box><Text fontWeight="bold">{t.tierProF2}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="success" /></Box><Text>{t.tierProF3}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="success" /></Box><Text>{t.tierProF4}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="success" /></Box><Text>{t.tierProF5}</Text></InlineGrid>
-                    </BlockStack>
-                    <Divider />
-                    <BlockStack gap="050">
-                      <Text variant="heading2xl" fontWeight="bold" tone="success">$29.99 <Text variant="bodySm" tone="subdued" as="span">{t.tierProPrice}</Text></Text>
-                      <Text variant="bodyXs" tone="success">{t.trialText}</Text>
-                    </BlockStack>
-                    
-                    <Button 
-                      fullWidth 
-                      size="large" 
-                      variant="primary" 
-                      onClick={() => handleUpgrade("upgrade_pro")} 
-                      disabled={currentPlan === "pro" || currentPlan.startsWith("enterprise")}
-                    >
-                      {currentPlan === "pro" 
-                        ? t.btnCurrent 
-                        : (currentPlan.startsWith("enterprise") ? t.btnNA : t.btnUpgrade)
-                      }
-                    </Button>
-                  </BlockStack>
-                </Card>
-
-                <Card background={currentPlan.startsWith("enterprise") ? "bg-surface-info-subdued" : "bg-surface"}>
-                  <BlockStack gap="400">
-                    <InlineStack align="space-between" blockAlign="center">
-                      <Text variant="headingLg" fontWeight="bold" tone="info">{t.tierEntName}</Text>
-                      {currentPlan === "enterprise" && <Badge tone="info">{t.statusActive}</Badge>}
-                    </InlineStack>
-                    <BlockStack gap="150">
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="info" /></Box><Text fontWeight="bold">{t.tierEntF1}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="info" /></Box><Text fontWeight="bold">{t.tierEntF2}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="info" /></Box><Text>{t.tierEntF3}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="info" /></Box><Text>{t.tierEntF4}</Text></InlineGrid>
-                      <InlineGrid columns="auto 1fr" gap="150"><Box width="16px" paddingBlockStart="050"><Icon source={CheckCircleIcon} tone="info" /></Box><Text>{t.tierEntF5}</Text></InlineGrid>
-                    </BlockStack>
-                    <Divider />
-                    <BlockStack gap="050">
-                      <Text variant="heading2xl" fontWeight="bold" tone="info">$49.99 <Text variant="bodySm" tone="subdued" as="span">{t.tierProPrice}</Text></Text>
-                      <Text variant="bodyXs" tone="info">{t.entNoTrial}</Text>
-                    </BlockStack>
-                    
-                    <Button 
-                      fullWidth 
-                      size="large" 
-                      variant="primary" 
-                      onClick={() => handleUpgrade("upgrade_enterprise")} 
-                      disabled={currentPlan === "enterprise"}
-                    >
-                      {currentPlan === "enterprise" ? t.btnCurrent : t.btnUpgradeEnt}
-                    </Button>
-                  </BlockStack>
-                </Card>
-
-              </InlineGrid>
-            </Box>
-          </Page>
-
-          {["pro", "enterprise"].includes(currentPlan) && (
-            <Box padding="300" background="bg-surface-secondary" borderRadius="200">
-              <InlineStack align="space-between" blockAlign="center">
-                <Text tone="subdued" variant="bodySm">{t.cancelHint}</Text>
-                <Button tone="critical" onClick={handleCancel}>{t.btnCancel}</Button>
-              </InlineStack>
-            </Box>
-          )}
-
+          <PlanSelector currentPlan={currentPlan} t={t} onUpgrade={handleUpgrade} onCancel={handleCancel} />
         </BlockStack>
         {showToast && <Toast content={t.toastMsg} onDismiss={() => setShowToast(false)} />}
       </Page>
