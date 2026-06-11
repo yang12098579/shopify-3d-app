@@ -531,6 +531,8 @@ export default function ModelMappingDashboard() {
   const [isSyncing, setIsSyncing] = useState(false); 
 
   const [activeModal, setActiveModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveToast, setSaveToast] = useState(null);
   const [limitModal, setLimitModal] = useState(false); 
   const [overageModal, setOverageModal] = useState(false); 
   const [limitModalType, setLimitModalType] = useState("AR"); 
@@ -766,6 +768,7 @@ export default function ModelMappingDashboard() {
 
   return (
     <Frame>
+      {saveToast && <Toast content={saveToast.content} tone={saveToast.tone} onDismiss={() => setSaveToast(null)} duration={4000} />}
       <Page
         backAction={{ content: t.backBtn, onAction: () => navigate("/app" + window.location.search) }} 
         title={t.pageTitle}
