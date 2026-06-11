@@ -1,6 +1,5 @@
 import { prisma } from "../db.server";
 
-// Simple token-based protection (set MIGRATE_TOKEN in env vars)
 const MIGRATE_TOKEN = process.env.MIGRATE_TOKEN || "vision3d-migrate-2026";
 
 export async function loader({ request }) {
@@ -12,6 +11,7 @@ export async function loader({ request }) {
   }
 
   try {
+    // Session table (Shopify auth)
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Session" (
         "id" TEXT NOT NULL PRIMARY KEY,
@@ -34,7 +34,24 @@ export async function loader({ request }) {
       )
     `);
 
-    // Create error log table for monitoring
+    // Analytics table (usage tracking)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "AppAnalytics" (
+        "id" SERIAL NOT NULL PRIMARY KEY,
+        "shop" TEXT NOT NULL,
+        "views" INTEGER NOT NULL DEFAULT 0,
+        "arUses" INTEGER NOT NULL DEFAULT 0,
+        "totalStayTimeMs" BIGINT NOT NULL DEFAULT 0,
+        "addCartCount" INTEGER NOT NULL DEFAULT 0,
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "AppAnalytics_shop_key" ON "AppAnalytics"("shop")
+    `);
+
+    // Error log table (error monitoring)
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "ErrorLog" (
         "id" SERIAL NOT NULL PRIMARY KEY,
@@ -46,7 +63,7 @@ export async function loader({ request }) {
       )
     `);
 
-    return Response.json({ success: true, message: "All tables created" });
+    return Response.json({ success: true, message: "All tables created (Session, AppAnalytics, ErrorLog)" });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
