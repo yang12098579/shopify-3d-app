@@ -1,6 +1,7 @@
 import { logError } from "./error-logger.server";
 
 const CLOUDCONVERT_API_KEY = process.env.CLOUDCONVERT_API_KEY;
+const CLOUDCONVERT_SIGNING_SECRET = process.env.CLOUDCONVERT_SIGNING_SECRET;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
 
@@ -47,6 +48,7 @@ export async function triggerCloudConvert(
             "export-1": {
               operation: "export/url",
               input: "convert-1",
+              ...(CLOUDCONVERT_SIGNING_SECRET ? { signing_secret: CLOUDCONVERT_SIGNING_SECRET } : {}),
               webhook: `${appBaseUrl}/webhooks?productId=${encodeURIComponent(String(productId))}&shop=${encodeURIComponent(shopDomain)}`,
             },
           },

@@ -1,21 +1,38 @@
-﻿import prisma from "../db.server";
+﻿import { Prisma } from "@prisma/client";
+import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 
-// Simple in-memory rate limiter (per shop, 60 req/min)
-const rateLimitMap = new Map();
+// Persistent rate limiter (per shop, 60 req/min) via Prisma
 const RATE_LIMIT = 60;
 const RATE_WINDOW_MS = 60_000;
 
-function isRateLimited(shop) {
+async function isRateLimited(shop) {
   const now = Date.now();
-  const entry = rateLimitMap.get(shop);
-  if (!entry || now - entry.windowStart > RATE_WINDOW_MS) {
-    rateLimitMap.set(shop, { count: 1, windowStart: now });
-    return false;
+  const windowStart = String(Math.floor(now / RATE_WINDOW_MS) * RATE_WINDOW_MS);
+
+  // Ensure rate limit record exists for this window
+  await prisma.rateLimit.upsert({
+    where: { shop_windowStart: { shop, windowStart } },
+    update: {},
+    create: { shop, windowStart, count: 0 },
+  });
+
+  // Atomic conditional increment: fails if count >= RATE_LIMIT
+  try {
+    await prisma.rateLimit.update({
+      where: {
+        shop_windowStart: { shop, windowStart },
+        count: { lt: RATE_LIMIT },
+      },
+      data: { count: { increment: 1 } },
+    });
+    return false; // Under limit
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+      return true; // Rate limited
+    }
+    throw err;
   }
-  entry.count++;
-  if (entry.count > RATE_LIMIT) return true;
-  return false;
 }
 
 const VALID_EVENTS = new Set(["view", "ar_click"]);
@@ -33,7 +50,7 @@ export const action = async ({ request }) => {
   const shop = session.shop;
 
   // Rate limiting
-  if (isRateLimited(shop)) {
+  if (await isRateLimited(shop)) {
     return new Response(JSON.stringify({ error: "Too many requests" }), {
       status: 429,
       headers: { "Content-Type": "application/json" },

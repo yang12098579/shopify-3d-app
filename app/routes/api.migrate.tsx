@@ -63,7 +63,18 @@ export async function loader({ request }) {
       )
     `);
 
-    return Response.json({ success: true, message: "All tables created (Session, AppAnalytics, ErrorLog)" });
+
+    // RateLimit table (persistent rate limiting)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "RateLimit" (
+        "shop" TEXT NOT NULL,
+        "windowStart" TEXT NOT NULL,
+        "count" INTEGER NOT NULL DEFAULT 1,
+        CONSTRAINT "RateLimit_pkey" PRIMARY KEY ("shop", "windowStart")
+      )
+    `);
+
+    return Response.json({ success: true, message: "All tables created (Session, AppAnalytics, ErrorLog, RateLimit)" });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
