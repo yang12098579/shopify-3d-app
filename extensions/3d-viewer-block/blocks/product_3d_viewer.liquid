@@ -2,7 +2,7 @@
   商用高级版 3D 商品展示器 App Block (完美对齐 0 / 29.99 / 49.99 商业限制)
 {% endcomment %}
 
-<script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js" defer></script>
+<script type="module" src="https://unpkg.com/@google/model-viewer@4.0.0/dist/model-viewer.min.js" defer></script>
 
 {% comment %} 1. 获取店铺当前的计划等级 {% endcomment %}
 {% assign app_plan = shop.metafields.product_3d_app.plan_level.value | default: shop.metafields.product_3d_app.plan_level %}

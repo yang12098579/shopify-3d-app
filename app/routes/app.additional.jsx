@@ -625,7 +625,7 @@ export default function ModelMappingDashboard() {
     if (!window.customElements.get('model-viewer')) {
       const script = document.createElement("script");
       script.type = "module";
-      script.src = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js";
+      script.src = "https://unpkg.com/@google/model-viewer@4.0.0/dist/model-viewer.min.js";
       document.head.appendChild(script);
     }
   }, []);

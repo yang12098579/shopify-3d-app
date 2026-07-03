@@ -22,7 +22,11 @@ export async function triggerCloudConvert(
   }
   if (!glbUrl) return { success: false, error: "No GLB URL provided" };
 
-  const appBaseUrl = process.env.SHOPIFY_APP_URL || `https://${shopDomain}`;
+  const appBaseUrl = process.env.SHOPIFY_APP_URL;
+  if (!appBaseUrl) {
+    console.error("[CloudConvert] SHOPIFY_APP_URL not set — webhook callback disabled");
+    return { success: false, error: "SHOPIFY_APP_URL not configured" };
+  }
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
