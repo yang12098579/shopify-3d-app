@@ -5,7 +5,7 @@
   "outputDirectory": "build/client",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!privacy).*)",
       "destination": "/api/index"
     }
   ],
@@ -33,12 +33,6 @@
           "value": "public, max-age=86400"
         }
       ]
-    }
-  ],
-  "routes": [
-    {
-      "src": "/privacy",
-      "dest": "/privacy.html"
     }
   ]
 }
