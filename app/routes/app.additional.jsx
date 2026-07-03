@@ -206,20 +206,6 @@ export const action = async ({ request }) => {
         if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
           return Response.json({ success: false, error: "INVALID_URL", message: "URL must use https://" });
         }
-        if (!/.(glb|gltf)(\?.*)?$/i.test(parsedUrl.pathname)) {
-          return Response.json({ success: false, error: "INVALID_URL", message: "Only .glb and .gltf files are supported" });
-        }
-      } catch (_e) {
-        return Response.json({ success: false, error: "INVALID_URL", message: "Please enter a valid URL" });
-      }
-    }
-    // Validate model URL is safe
-    if (modelUrl) {
-      try {
-        var parsedUrl = new URL(modelUrl);
-        if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
-          return Response.json({ success: false, error: "INVALID_URL", message: "URL must use https://" });
-        }
         if (!/\.(glb|gltf)(\?.*)?$/i.test(parsedUrl.pathname)) {
           return Response.json({ success: false, error: "INVALID_URL", message: "Only .glb and .gltf files are supported" });
         }
