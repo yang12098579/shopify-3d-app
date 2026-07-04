@@ -6,7 +6,7 @@ export async function loader({ request }) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
 
-  if (token !== MIGRATE_TOKEN) {
+  if (!MIGRATE_TOKEN || token !== MIGRATE_TOKEN) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

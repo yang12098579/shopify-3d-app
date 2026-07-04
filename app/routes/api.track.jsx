@@ -57,8 +57,8 @@ export const action = async ({ request }) => {
   const shop = session.shop;
 
   // Validate shop is a real myshopify domain
-  if (!shop || !shop.includes("myshopify.com")) {
-    return new Response(JSON.stringify({ error: "Invalid shop" }), {
+  if (!shop || !shop.endsWith(".myshopify.com")) {
+    return new Response(JSON.stringify({ error: "Invalid shop domain" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });

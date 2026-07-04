@@ -91,7 +91,6 @@ const translations = {
     statTime: "Avg. Engage Time",
     statAddCart: "Add-to-Cart Rate",
     statLimit: "AR Quota Usage",
-    statLimit: "AR Quota Usage",
     limitLocked: "0 / 0 (AR Locked)",
     planSelectTitle: "💎 Select a High-Conversion Plan for Your Store",
     tierFreeName: "Basic Free Plan",

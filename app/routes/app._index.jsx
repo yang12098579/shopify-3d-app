@@ -247,9 +247,7 @@ export default function Index() {
   const { shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount } = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
-  const location = useLocation();
-  const navigate = useNavigate();
-
+  
   const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [showToast, setShowToast] = useState(false);
