@@ -333,9 +333,11 @@ export default function Index() {
                   <StatsOverview statsData={statsData} currentPlan={currentPlan} arActiveCount={arActiveCount} t={t} getLimitDisplay={getLimitDisplay} />
                 </Card>
 
-                <Card>
-                  <TrendChart dailyData={dailyData || []} />
-                </Card>
+                {currentPlan !== "free" && !currentPlan.endsWith("_cancelled") && (
+                  <Card>
+                    <TrendChart dailyData={dailyData || []} />
+                  </Card>
+                )}
               </BlockStack>
             </Layout.Section>
           </Layout>
