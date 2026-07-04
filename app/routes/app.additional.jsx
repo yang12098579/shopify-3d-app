@@ -176,10 +176,10 @@ export const action = async ({ request }) => {
       const newSlotsValue = (currentSlots + 1).toString();
       const currentMonthStr = new Date().toISOString().substring(0, 7); 
 
-      await admin.graphql(
+      const slotWriteRes = await admin.graphql(
         `#graphql
         mutation setExtraSlotsAndMonth($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) { metafields { id } }
+          metafieldsSet(metafields: $metafields) { metafields { id } userErrors { field message } }
         }`,
         {
           variables: {
@@ -190,6 +190,11 @@ export const action = async ({ request }) => {
           }
         }
       );
+      const slotWriteJson = await slotWriteRes.json();
+      const slotWriteErrors = slotWriteJson.data?.metafieldsSet?.userErrors || [];
+      if (slotWriteErrors.length > 0) {
+        return Response.json({ success: false, error: "SHOPIFY_ERROR", message: "Billing succeeded but slot update failed: " + slotWriteErrors[0].message });
+      }
       
       return Response.json({ success: true, actionType: "buy_slot", productId });
     } catch (err) {
@@ -318,13 +323,18 @@ export const action = async ({ request }) => {
     const metafieldsInput = productIds.map(id => ({
       ownerId: id, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false"
     }));
-    await admin.graphql(
+    const bulkArRes = await admin.graphql(
       `#graphql
       mutation bulkMetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-        metafieldsSet(metafields: $metafields) { metafields { id } }
+        metafieldsSet(metafields: $metafields) { metafields { id } userErrors { field message } }
       }`,
       { variables: { metafields: metafieldsInput } }
     );
+    const bulkArJson = await bulkArRes.json();
+    const bulkArErrors = bulkArJson.data?.metafieldsSet?.userErrors || [];
+    if (bulkArErrors.length > 0) {
+      return Response.json({ success: false, error: "SHOPIFY_ERROR", message: bulkArErrors[0].message });
+    }
     return Response.json({ success: true, actionType });
   }
 
@@ -337,22 +347,27 @@ export const action = async ({ request }) => {
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ios_3d_model" }); 
       metafieldsToDelete.push({ ownerId: id, namespace: "custom", key: "ar_enabled" });
     });
-    await admin.graphql(
+    const bulkDelRes = await admin.graphql(
       `#graphql
       mutation bulkMetafieldsDelete($metafields: [MetafieldIdentifierInput!]!) {
-        metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
+        metafieldsDelete(metafields: $metafields) { deletedMetafields { key } userErrors { field message } }
       }`,
       { variables: { metafields: metafieldsToDelete } }
     );
+    const bulkDelJson = await bulkDelRes.json();
+    const bulkDelErrors = bulkDelJson.data?.metafieldsDelete?.userErrors || [];
+    if (bulkDelErrors.length > 0) {
+      return Response.json({ success: false, error: "SHOPIFY_ERROR", message: bulkDelErrors[0].message });
+    }
     return Response.json({ success: true, actionType });
   }
 
   // 🚨 修复的删除元字段类型声明 (单个删除)
   if (actionType === "unbind") {
-    await admin.graphql(
+    const delRes = await admin.graphql(
       `#graphql
       mutation metafieldsDeleteSingle($metafields: [MetafieldIdentifierInput!]!) {
-        metafieldsDelete(metafields: $metafields) { deletedMetafields { key } }
+        metafieldsDelete(metafields: $metafields) { deletedMetafields { key } userErrors { field message } }
       }`,
       { variables: { metafields: [
         { ownerId: productId, namespace: "custom", key: "product_3d_model" }, 
@@ -360,6 +375,11 @@ export const action = async ({ request }) => {
         { ownerId: productId, namespace: "custom", key: "ar_enabled" }
       ] } }
     );
+    const delJson = await delRes.json();
+    const delErrors = delJson.data?.metafieldsDelete?.userErrors || [];
+    if (delErrors.length > 0) {
+      return Response.json({ success: false, error: "SHOPIFY_ERROR", message: delErrors[0].message });
+    }
     return Response.json({ success: true, actionType, productId });
   }
 
@@ -410,6 +430,7 @@ export const loader = async ({ request }) => {
             id
             title
             featuredImage { url }
+            variants(first: 1) { edges { node { sku } } }
             modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value }
             arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value }
           }

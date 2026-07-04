@@ -37,13 +37,18 @@ export const action = async ({ request }) => {
     trialDaysConfig = 0; 
   } else if (intent === "cancel") {
     const subscriptionId = formData.get("subscriptionId"); 
-    await admin.graphql(
+    const cancelRes = await admin.graphql(
       `#graphql
       mutation appSubscriptionCancel($id: ID!) {
-        appSubscriptionCancel(id: $id) { appSubscription { id status } }
+        appSubscriptionCancel(id: $id) { appSubscription { id status } userErrors { field message } }
       }`,
       { variables: { id: subscriptionId } }
     );
+    const cancelJson = await cancelRes.json();
+    const cancelErrors = cancelJson.data?.appSubscriptionCancel?.userErrors || [];
+    if (cancelErrors.length > 0) {
+      return { canceled: false, error: cancelErrors[0].message };
+    }
     return { canceled: true };
   } else {
     return null;

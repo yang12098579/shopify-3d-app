@@ -112,11 +112,12 @@ export const action = async ({ request }) => {
             const shopId = shopJson.data?.shop?.id;
 
             if (shopId) {
-              await admin.graphql(
+              const syncRes = await admin.graphql(
                 `#graphql
                 mutation syncShopPlanWebhook($metafields: [MetafieldsSetInput!]!) {
                   metafieldsSet(metafields: $metafields) {
                     metafields { id value }
+                    userErrors { field message }
                   }
                 }`,
                 {
@@ -191,8 +192,19 @@ export const action = async ({ request }) => {
               }
             }
           );
+          await prisma.conversionJob.updateMany({
+            where: { productId: targetProductId, status: "processing" },
+            data: { status: "completed", usdzUrl: iosModelUrl },
+          }).catch(() => {});
           console.log(`💎 [AR引擎同步] USDZ 元字段注入完成。`);
         }
+      } else if (eventType === "job.failed") {
+        const errorMsg = jobData?.message || "CloudConvert job failed";
+        console.error("[CloudConvert] Conversion failed:", targetProductId, errorMsg);
+        await prisma.conversionJob.updateMany({
+          where: { productId: targetProductId, status: "processing" },
+          data: { status: "failed", error: errorMsg },
+        }).catch(() => {});
       }
       return new Response("CloudConvert Handled", { status: 200, headers: { "Access-Control-Allow-Origin": "*" } });
     } catch (err) {
