@@ -207,7 +207,7 @@ export const action = async ({ request }) => {
     // Validate model URL (Security: HTTPS only + domain whitelist)
     if (modelUrl) {
       try {
-        var parsedUrl = new URL(modelUrl);
+        const parsedUrl = new URL(modelUrl);
         if (parsedUrl.protocol !== "https:") {
           return Response.json({ success: false, error: "INVALID_URL", message: "URL must use https://" });
         }

@@ -43,6 +43,9 @@ export const action = async ({ request }) => {
           // 🛡️ 商业合规与防冗余：商家卸载插件后，彻底清除该店铺的追踪数据
           await prisma.session.deleteMany({ where: { shop } });
           await prisma.appAnalytics.deleteMany({ where: { shop } });
+          await prisma.rateLimit.deleteMany({ where: { shop } });
+          await prisma.conversionJob.deleteMany({ where: { shop } });
+          await prisma.errorLog.deleteMany({ where: { shop } });
           console.log(`[Webhook 卸载清场] 店铺 ${shop} 已安全移除所有授权与统计数据。`);
         }
         return new Response("Uninstalled Success", { status: 200 });
@@ -62,6 +65,9 @@ export const action = async ({ request }) => {
         console.log(`[GDPR] 收到店铺数据最终擦除请求: ${shop}`);
         await prisma.session.deleteMany({ where: { shop } });
         await prisma.appAnalytics.deleteMany({ where: { shop } });
+        await prisma.rateLimit.deleteMany({ where: { shop } });
+        await prisma.conversionJob.deleteMany({ where: { shop } });
+        await prisma.errorLog.deleteMany({ where: { shop } });
         return new Response("GDPR handled", { status: 200 });
 
       case "APP_SUBSCRIPTIONS_UPDATE":

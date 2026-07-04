@@ -74,7 +74,22 @@ export async function loader({ request }) {
       )
     `);
 
-    return Response.json({ success: true, message: "All tables created (Session, AppAnalytics, ErrorLog, RateLimit)" });
+    // ConversionJob table (CloudConvert tracking)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ConversionJob" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "productId" TEXT NOT NULL,
+        "shop" TEXT NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'pending',
+        "glbUrl" TEXT NOT NULL,
+        "usdzUrl" TEXT,
+        "error" TEXT,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    return Response.json({ success: true, message: "All tables created (Session, AppAnalytics, ErrorLog, RateLimit, ConversionJob)" });
   } catch (error) {
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }

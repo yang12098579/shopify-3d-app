@@ -216,19 +216,20 @@ export const loader = async ({ request }) => {
     dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  let statsData = { views: 0, arUses: 0, stayTime: "0.0s", conversion: "0%" };
+  let statsData = { views: 0, arUses: 0, addCartCount: 0, stayTime: "0.0s", conversion: "0%" };
   try {
     const dbStats = await prisma.appAnalytics.findUnique({ where: { shop: session.shop } });
     if (dbStats) {
       statsData.views = dbStats.views || 0;
       statsData.arUses = dbStats.arUses || 0;
+      statsData.addCartCount = Number(dbStats.addCartCount) || 0;
       
       if (statsData.views > 0 && dbStats.totalStayTimeMs) {
         const avgMs = Number(dbStats.totalStayTimeMs) / statsData.views;
         statsData.stayTime = (avgMs / 1000).toFixed(1) + "s";
       }
-      if (statsData.views > 0 && dbStats.addCartCount) {
-        statsData.conversion = ((dbStats.addCartCount / statsData.views) * 100).toFixed(1) + "%";
+      if (statsData.views > 0 && statsData.addCartCount > 0) {
+        statsData.conversion = ((statsData.addCartCount / statsData.views) * 100).toFixed(1) + "%";
       }
     }
   } catch (error) {
