@@ -44,6 +44,10 @@ api_version = "2026-07"
   uri = "/webhooks"
   topics = [ "app/scopes_update" ]
 
+  [[webhooks.subscriptions]]
+  uri = "/webhooks"
+  topics = [ "app_subscriptions/update" ]
+
 # =================================================================
 # 5. 路由鉴权与构建行为 (已同步新域名的 Remix 授权回调)
 # =================================================================

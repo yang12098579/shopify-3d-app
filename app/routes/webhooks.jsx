@@ -158,14 +158,16 @@ export const action = async ({ request }) => {
   if (targetProductId && targetShop) {
     // HMAC signature verification for CloudConvert callbacks
     const ccSigningSecret = process.env.CLOUDCONVERT_SIGNING_SECRET;
-    if (ccSigningSecret) {
-      const ccRawBody = await request.clone().text();
-      const ccSignature = request.headers.get("cloudconvert-signature");
-      const expectedSig = createHmac("sha256", ccSigningSecret).update(ccRawBody).digest("hex");
-      if (!ccSignature || ccSignature !== expectedSig) {
-        console.error("CloudConvert signature verification failed");
-        return new Response("Unauthorized", { status: 401 });
-      }
+    if (!ccSigningSecret) {
+      console.error("[Security] CLOUDCONVERT_SIGNING_SECRET not configured — rejecting callback");
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const ccRawBody = await request.clone().text();
+    const ccSignature = request.headers.get("cloudconvert-signature");
+    const expectedSig = createHmac("sha256", ccSigningSecret).update(ccRawBody).digest("hex");
+    if (!ccSignature || ccSignature !== expectedSig) {
+      console.error("CloudConvert signature verification failed");
+      return new Response("Unauthorized", { status: 401 });
     }
 
     try {

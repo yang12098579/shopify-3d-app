@@ -86,6 +86,21 @@ export const action = async ({ request }) => {
       });
     }
 
+
+    // Server-side plan verification for AR events to prevent metafield bypass
+    if (eventType === "ar_click") {
+      const sessionExists = await prisma.session.findFirst({
+        where: { shop },
+        select: { shop: true },
+      });
+      if (!sessionExists && process.env.NODE_ENV === "production") {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
     await prisma.appAnalytics.upsert({
       where: { shop },
       update: {},

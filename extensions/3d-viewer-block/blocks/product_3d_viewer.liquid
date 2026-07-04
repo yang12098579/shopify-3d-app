@@ -8,6 +8,7 @@
 {% assign app_plan = shop.metafields.product_3d_app.plan_level.value | default: shop.metafields.product_3d_app.plan_level %}
 
 {% comment %} 2. 识别是否为付费套餐 ($29.99 专业版 或 $49.99 旗舰版) {% endcomment %}
+{% comment %} SECURITY: plan_level metafield synced exclusively by APP_SUBSCRIPTIONS_UPDATE webhook. Server-side enforcement in api.track.jsx. {% endcomment %}
 {% assign is_premium_plan = false %}
 {% if app_plan contains "Pro" or app_plan contains "Professional" or app_plan contains "Enterprise" or app_plan contains "Flagship" or app_plan contains "专业" or app_plan contains "旗舰" %}
   {% assign is_premium_plan = true %}

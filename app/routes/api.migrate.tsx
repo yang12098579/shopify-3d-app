@@ -1,6 +1,6 @@
 import { prisma } from "../db.server";
 
-const MIGRATE_TOKEN = process.env.MIGRATE_TOKEN || "vision3d-migrate-2026";
+const MIGRATE_TOKEN = process.env.MIGRATE_TOKEN;
 
 export async function loader({ request }) {
   const url = new URL(request.url);

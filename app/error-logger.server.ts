@@ -6,13 +6,14 @@ import { prisma } from "./db.server";
  */
 export async function logError(error: Error, context?: { shop?: string; route?: string }) {
   try {
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "ErrorLog" ("message", "stack", "shop", "route") VALUES ($1, $2, $3, $4)`,
-      error.message,
-      error.stack?.substring(0, 2000) || "",
-      context?.shop || "",
-      context?.route || ""
-    );
+    await prisma.errorLog.create({
+      data: {
+        message: error.message,
+        stack: error.stack?.substring(0, 2000) || "",
+        shop: context?.shop || "",
+        route: context?.route || "",
+      },
+    });
   } catch {
     // Silently fail — don't break the app if error logging fails
   }

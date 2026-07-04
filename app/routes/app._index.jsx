@@ -20,7 +20,7 @@ export const action = async ({ request }) => {
   const formData = await request.formData();
   const intent = formData.get("intent"); 
   
-  const clientId = process.env.SHOPIFY_API_KEY || "27a6b6770a4af998e5601b052e0d0b53";
+  const clientId = process.env.SHOPIFY_API_KEY;
   const shopAdminUrl = `https://${session.shop}/admin/apps/${clientId}/app`;
 
   let planName = "";
