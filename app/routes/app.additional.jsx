@@ -410,7 +410,6 @@ export const loader = async ({ request }) => {
             id
             title
             featuredImage { url }
-            variants(first: 1) { edges { node { sku } } }
             modelUrlField: metafield(namespace: "custom", key: "product_3d_model") { value }
             arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value }
           }
