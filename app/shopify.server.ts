@@ -19,7 +19,7 @@ if (typeof process !== "undefined" && process.env) {
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || (() => { throw new Error("SHOPIFY_API_SECRET is required"); })(),
+  apiSecretKey: process.env.SHOPIFY_API_SECRET || (console.warn("[Vision3D] SHOPIFY_API_SECRET not set"), ""),
   apiVersion: ApiVersion.July26,
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL || "",

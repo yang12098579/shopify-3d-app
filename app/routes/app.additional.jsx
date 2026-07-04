@@ -942,7 +942,7 @@ export default function ModelMappingDashboard() {
             </BlockStack>
           </Modal.Section>
         </Modal>
-        <Modal open={csvModalOpen} onClose={() => { setCsvModalOpen(false); setCsvResult(null); }} title="CSV Batch Import" primaryAction={{ content: csvProcessing ? "Importing..." : "Import", onAction: handleCsvImport, disabled: csvProcessing || !csvText.trim() }} secondaryActions={[{ content: "Cancel", onAction: () => { setCsvModalOpen(false); setCsvResult(null); } }]}>
+        <Modal open={csvModalOpen} onClose={() => { setCsvModalOpen(false); setCsvResult(null); }} title="CSV Batch Import" primaryAction={{ content: "Import", onAction: handleCsvImport, disabled: csvProcessing }} secondaryActions={[{ content: "Cancel", onAction: () => { setCsvModalOpen(false); setCsvResult(null); } }]}>
           <Modal.Section>
             <BlockStack gap="300">
               <Text as="p" variant="bodyMd">Paste CSV with columns: <b>handle,glb_url</b></Text>
