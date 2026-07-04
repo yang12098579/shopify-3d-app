@@ -1,4 +1,6 @@
 import { logError } from "./error-logger.server";
+import prisma from "./db.server";
+import crypto from "crypto";
 
 const CLOUDCONVERT_API_KEY = process.env.CLOUDCONVERT_API_KEY;
 const CLOUDCONVERT_SIGNING_SECRET = process.env.CLOUDCONVERT_SIGNING_SECRET;
@@ -16,7 +18,7 @@ export async function triggerCloudConvert(
   productId: string,
   glbUrl: string,
   shopDomain: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; jobId?: string }> {
   if (!CLOUDCONVERT_API_KEY) {
     console.error("[CloudConvert] Missing CLOUDCONVERT_API_KEY");
     return { success: false, error: "Missing API key" };
@@ -27,6 +29,16 @@ export async function triggerCloudConvert(
   if (!appBaseUrl) {
     console.error("[CloudConvert] SHOPIFY_APP_URL not set — webhook callback disabled");
     return { success: false, error: "SHOPIFY_APP_URL not configured" };
+  }
+
+  // Create conversion job record in database
+  const jobId = crypto.randomUUID();
+  try {
+    await prisma.conversionJob.create({
+      data: { id: jobId, productId, shop: shopDomain, glbUrl, status: "pending" },
+    });
+  } catch (dbErr) {
+    console.error("[CloudConvert] Failed to create DB record:", dbErr);
   }
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -57,7 +69,11 @@ export async function triggerCloudConvert(
 
       if (response.ok) {
         console.log(`[CloudConvert] Job dispatched for product ${productId} (attempt ${attempt})`);
-        return { success: true };
+        await prisma.conversionJob.update({
+          where: { id: jobId },
+          data: { status: "processing" },
+        }).catch(() => {});
+        return { success: true, jobId };
       }
 
       const errorBody = await response.text();
@@ -77,11 +93,19 @@ export async function triggerCloudConvert(
           route: `/api/cloudconvert/${productId}`,
           shop: shopDomain,
         }).catch(() => {});
+        await prisma.conversionJob.update({
+          where: { id: jobId },
+          data: { status: "failed", error: errorMsg },
+        }).catch(() => {});
         return { success: false, error: errorMsg };
       }
     }
   }
 
+  await prisma.conversionJob.update({
+    where: { id: jobId },
+    data: { status: "failed", error: "Max retries exceeded" },
+  }).catch(() => {});
   return { success: false, error: "Max retries exceeded" };
 }
 /**
