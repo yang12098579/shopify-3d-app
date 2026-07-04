@@ -5,6 +5,10 @@
   "outputDirectory": "build/client",
   "rewrites": [
     {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
       "source": "/((?!privacy).*)",
       "destination": "/api/index"
     }
