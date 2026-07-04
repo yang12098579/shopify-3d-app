@@ -42,12 +42,7 @@
       id="vision3d-model-viewer"
       src="{{ target_model_url }}"
       {% comment %} Variant-specific 3D model override {% endcomment %}
-      {% if product.selected_or_first_available_variant %}
-        {% assign variant_model = product.selected_or_first_available_variant.metafields.custom.variant_3d_model.value %}
-        {% if variant_model != blank %}
-          src="{{ variant_model }}"
-        {% endif %}
-      {% endif %}
+{% comment %} Variant models preloaded above via variantModels JS object {% endcomment %}
       {% if ios_model_url != blank %}
         ios-src="{{ ios_model_url }}"
       {% endif %}
@@ -109,13 +104,35 @@
         const viewer = document.getElementById('vision3d-model-viewer');
         if (!viewer) return;
 
-        // Multi-variant model switching
-        if (typeof Shopify !== 'undefined' && Shopify.onVariantSelected) {
-          Shopify.onVariantSelected(function(variant) {
-            if (variant && variant.metafields && variant.metafields.variant_3d_model) {
-              viewer.src = variant.metafields.variant_3d_model;
-            }
-          });
+        // Multi-variant model switching via variant metafield
+        var variantModels = {};
+        {% for variant in product.variants %}
+          {% assign vm = variant.metafields.custom.variant_3d_model.value %}
+          {% if vm != blank %}
+            variantModels["{{ variant.id }}"] = "{{ vm }}";
+          {% endif %}
+        {% endfor %}
+
+        function switchVariantModel() {
+          var variantInput = document.querySelector('input[name="id"]');
+          if (variantInput && variantModels[variantInput.value]) {
+            viewer.src = variantModels[variantInput.value];
+            console.log("[Vision3D] Switched to variant-specific 3D model");
+          }
+        }
+
+        // Listen for variant changes via DOM mutation
+        var variantObserver = new MutationObserver(function() {
+          switchVariantModel();
+        });
+        var variantInputEl = document.querySelector('input[name="id"]');
+        if (variantInputEl) {
+          variantObserver.observe(variantInputEl, { attributes: true, attributeFilter: ["value"] });
+        }
+        // Also try observing the entire product form for variant picker changes
+        var productForm = document.querySelector('form[action*="/cart/add"]');
+        if (productForm) {
+          variantObserver.observe(productForm, { childList: true, subtree: true });
         }
 
         const startTime = Date.now();

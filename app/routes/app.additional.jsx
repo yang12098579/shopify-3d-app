@@ -904,6 +904,13 @@ export default function ModelMappingDashboard() {
             <BlockStack gap="400">
               <TextField label={t.modalLabel} value={inputModelUrl} onChange={setInputModelUrl} autoComplete="off" placeholder="粘贴您的官方商品 .glb 链接" />
               
+              {currentPlan === "enterprise" && (
+                <BlockStack gap="200">
+                  <Text variant="headingSm">Variant-Specific 3D Models (Business Plan)</Text>
+                  <Text variant="bodySm" tone="subdued">Each product variant can have its own 3D model. Set via metafields in Shopify Admin.</Text>
+                </BlockStack>
+              )}
+
               {inputModelUrl && inputModelUrl.toLowerCase().endsWith(".glb") && (
                 <BlockStack gap="300">
                   <InlineStack gap="100" blockAlign="center"><Icon source={ViewIcon} tone="info" /><Text variant="headingSm">{t.modalPreview}</Text></InlineStack>
