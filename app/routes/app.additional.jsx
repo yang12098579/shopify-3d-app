@@ -199,12 +199,21 @@ export const action = async ({ request }) => {
 
   if (actionType === "bind") {
     const modelUrl = String(formData.get("modelUrl") || "").trim();
-    // Validate model URL
+    // Validate model URL (Security: HTTPS only + domain whitelist)
     if (modelUrl) {
       try {
         var parsedUrl = new URL(modelUrl);
-        if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
+        if (parsedUrl.protocol !== "https:") {
           return Response.json({ success: false, error: "INVALID_URL", message: "URL must use https://" });
+        }
+        // Only allow trusted domains (Shopify CDN, common 3D asset hosts)
+        const allowedHosts = [
+          "cdn.shopify.com", "shopify.com", "myshopify.com",
+          "unpkg.com", "cdn.jsdelivr.net",
+        ];
+        const isAllowed = allowedHosts.some(h => parsedUrl.hostname === h || parsedUrl.hostname.endsWith("." + h));
+        if (!isAllowed) {
+          return Response.json({ success: false, error: "INVALID_URL", message: "URL must be from a trusted domain (Shopify CDN, unpkg, jsDelivr)" });
         }
         if (!/\.(glb|gltf)(\?.*)?$/i.test(parsedUrl.pathname)) {
           return Response.json({ success: false, error: "INVALID_URL", message: "Only .glb and .gltf files are supported" });

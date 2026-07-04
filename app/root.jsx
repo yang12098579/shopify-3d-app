@@ -92,12 +92,9 @@ export function ErrorBoundary() {
   }
 
   // 其他真正的代码报错兜底
-  let safeErrorMessage = "An unexpected error occurred.";
-  if (error?.message) {
-    safeErrorMessage = error.message;
-  } else if (error?.data) {
-    safeErrorMessage = typeof error.data === "string" ? error.data : JSON.stringify(error.data);
-  }
+  let safeErrorMessage = "Something went wrong. Please try again later.";
+  // Internal error details are logged server-side, never shown to users
+  console.error("Route error:", error?.status, error?.message);
 
   return (
     <html lang="en">
@@ -109,7 +106,7 @@ export function ErrorBoundary() {
       <body>
         <div style={{ padding: "40px", fontFamily: "sans-serif", textAlign: "center", color: "#202223" }}>
           <h2>Oops! Something went wrong.</h2>
-          <p style={{ color: "#6d7175", marginTop: "10px" }}>Status: {error?.status || "Unknown"}</p>
+          <p style={{ color: "#6d7175", marginTop: "10px" }}>If the problem persists, please contact support.</p>
           <p style={{ color: "#6d7175", maxWidth: "600px", margin: "10px auto", wordWrap: "break-word" }}>{safeErrorMessage}</p>
         </div>
         <Scripts />
