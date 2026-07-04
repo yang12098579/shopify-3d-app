@@ -56,6 +56,14 @@ export const action = async ({ request }) => {
 
   const shop = session.shop;
 
+  // Validate shop is a real myshopify domain
+  if (!shop || !shop.includes("myshopify.com")) {
+    return new Response(JSON.stringify({ error: "Invalid shop" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   // Rate limiting
   if (await isRateLimited(shop)) {
     return new Response(JSON.stringify({ error: "Too many requests" }), {

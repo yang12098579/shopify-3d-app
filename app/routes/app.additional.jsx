@@ -320,6 +320,32 @@ export const action = async ({ request }) => {
   if (actionType === "bulk_toggle_ar") {
     const productIds = JSON.parse(formData.get("productIds"));
     const arState = formData.get("arState") === "true";
+
+    // Quota enforcement (same as toggle_ar)
+    if (arState) {
+      if (currentPlan === "free") {
+        return Response.json({ success: false, error: "FREE_LIMIT_HIT", message: "Free plan cannot enable AR" });
+      }
+      if (currentPlan === "pro") {
+        const countArResponse = await admin.graphql(
+          `#graphql
+          query getArActiveCountBulk {
+            products(first: 250) { edges { node { arEnabledField: metafield(namespace: "custom", key: "ar_enabled") { value } } } }
+          }`
+        );
+        const countArJson = await countArResponse.json();
+        const activeArCount = (countArJson.data?.products?.edges || []).filter(e => e.node.arEnabledField?.value === "true").length;
+        const extraSlotsRaw = await admin.graphql(
+          `#graphql query getExtraSlotsBulk { currentAppInstallation { extraSlotsField: metafield(namespace: "custom", key: "extra_slots") { value } } }`
+        );
+        const extraSlotsJson = await extraSlotsRaw.json();
+        const extraSlotsValue = parseInt(extraSlotsJson.data?.currentAppInstallation?.extraSlotsField?.value || "0", 10);
+        if ((activeArCount + productIds.length) > (10 + extraSlotsValue)) {
+          return Response.json({ success: false, error: "PRO_LIMIT_HIT", message: "Pro plan AR limit exceeded" });
+        }
+      }
+    }
+
     const metafieldsInput = productIds.map(id => ({
       ownerId: id, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false"
     }));
