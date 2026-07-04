@@ -27,7 +27,7 @@ description = "Stores the mapped or AI-generated .glb 3D asset link"
 # 4. Webhook 事件订阅 & GDPR 隐私合规 (🔥 终极修复：使用绝对路径击碎缓存)
 # =================================================================
 [webhooks]
-api_version = "2024-04"
+api_version = "2026-07"
 
   # 🛡️ GDPR 隐私路由：这里已经全部改成带新域名的【绝对路径】，强行洗掉 Shopify 的旧域名记忆！
   [webhooks.privacy_compliance]

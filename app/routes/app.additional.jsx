@@ -297,13 +297,18 @@ export const action = async ({ request }) => {
     }
     
     const arState = formData.get("arState") === "true";
-    await admin.graphql(
+    const arToggleRes = await admin.graphql(
       `#graphql
       mutation metafieldsSetAr($metafields: [MetafieldsSetInput!]!) {
-        metafieldsSet(metafields: $metafields) { metafields { id value } }
+        metafieldsSet(metafields: $metafields) { metafields { id value } userErrors { field message } }
       }`,
       { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "ar_enabled", type: "boolean", value: arState ? "true" : "false" }] } }
     );
+    const arToggleJson = await arToggleRes.json();
+    const arToggleErrors = arToggleJson.data?.metafieldsSet?.userErrors || [];
+    if (arToggleErrors.length > 0) {
+      return Response.json({ success: false, error: "SHOPIFY_ERROR", message: arToggleErrors[0].message });
+    }
     return Response.json({ success: true, actionType, productId });
   }
 

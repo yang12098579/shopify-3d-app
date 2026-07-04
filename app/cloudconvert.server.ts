@@ -6,6 +6,7 @@ const CLOUDCONVERT_API_KEY = process.env.CLOUDCONVERT_API_KEY;
 const CLOUDCONVERT_SIGNING_SECRET = process.env.CLOUDCONVERT_SIGNING_SECRET;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 2000;
+const REQUEST_TIMEOUT_MS = 25000;
 
 async function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -43,8 +44,11 @@ export async function triggerCloudConvert(
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       const response = await fetch("https://api.cloudconvert.com/v2/jobs", {
         method: "POST",
+        signal: controller.signal,
         headers: {
           Authorization: `Bearer ${CLOUDCONVERT_API_KEY}`,
           "Content-Type": "application/json",
@@ -67,6 +71,7 @@ export async function triggerCloudConvert(
         }),
       });
 
+      clearTimeout(timeoutId);
       if (response.ok) {
         console.log(`[CloudConvert] Job dispatched for product ${productId} (attempt ${attempt})`);
         await prisma.conversionJob.update({
