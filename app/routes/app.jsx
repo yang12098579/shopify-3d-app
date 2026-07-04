@@ -29,24 +29,22 @@ export function ErrorBoundary() {
   const error = useRouteError();
 
   if (typeof window !== "undefined") {
-    // 检查 1：Remix 官方结构验证 200
     const isRemix200 = isRouteErrorResponse(error) && error.status === 200;
-    // 检查 2：原生对象拦截 200
     const isRaw200 = error?.status === 200;
-    // 检查 3：拦截 AJAX 拿到 HTML 导致的 JSON 解析崩溃
     const isJsonCrash = error instanceof Error && error.message.includes("Unexpected token");
 
-    // 只要满足任意一个条件，直接暴力切断并强制刷新！
     if (isRemix200 || isRaw200 || isJsonCrash) {
-      window.location.reload();
+      const retryUrl = window.location.href;
       return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#6d7175', fontFamily: 'sans-serif' }}>
-          <p>Reconnecting securely...</p>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "#6d7175", fontFamily: "sans-serif", flexDirection: "column", gap: "16px" }}>
+          <p>Session expired. Please reconnect to continue.</p>
+          <a href={retryUrl} style={{ padding: "10px 20px", background: "#000", color: "#fff", borderRadius: "6px", textDecoration: "none", fontWeight: "bold" }}>
+            Retry
+          </a>
         </div>
       );
     }
   }
 
-  // 其他正常报错兜底
   return boundary.error(error);
 }
