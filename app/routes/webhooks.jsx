@@ -5,12 +5,16 @@ import prisma from "../db.server";
 export const action = async ({ request }) => {
   // 1. 🌐 跨域预检：为第三方转码云接口 (CloudConvert) 铺设 CORS 绿灯
   if (request.method === "OPTIONS") {
+    const ccUrl = new URL(request.url);
+    if (!ccUrl.searchParams.get("productId")) {
+      return new Response("Not Found", { status: 404 });
+    }
     return new Response(null, {
       status: 204,
       headers: {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "https://api.cloudconvert.com",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Headers": "Content-Type, cloudconvert-signature",
       }
     });
   }

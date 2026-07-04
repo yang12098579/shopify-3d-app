@@ -16,6 +16,14 @@ async function isRateLimited(shop) {
     create: { shop, windowStart, count: 0 },
   });
 
+  // Opportunistic cleanup: delete rows older than 2 windows back (~1% of requests)
+  if (Math.random() < 0.01) {
+    const staleWindow = String(Math.floor((Date.now() - RATE_WINDOW_MS * 2) / RATE_WINDOW_MS) * RATE_WINDOW_MS);
+    await prisma.rateLimit.deleteMany({
+      where: { windowStart: { lte: staleWindow } },
+    }).catch(() => {});
+  }
+
   // Atomic conditional increment: fails if count >= RATE_LIMIT
   try {
     await prisma.rateLimit.update({
