@@ -1,4 +1,4 @@
-﻿import "@shopify/shopify-app-react-router/adapters/node";
+import "@shopify/shopify-app-react-router/adapters/node";
 import {
   ApiVersion,
   AppDistribution,
@@ -20,7 +20,7 @@ if (typeof process !== "undefined" && process.env) {
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || (console.warn("[Vision3D] SHOPIFY_API_SECRET not set"), ""),
-  apiVersion: ApiVersion.July26,
+  apiVersion: ApiVersion.April26,
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
@@ -30,13 +30,13 @@ const shopify = shopifyApp({
   billing: {
     [PLAN_PRO]: {
       lineItems: [
-        // 1. 鍥哄畾鏈堣垂椤圭洰
+        // 1. 固定月费项目
         {
           amount: 89.99,
           currencyCode: 'USD',
           interval: BillingInterval.Every30Days,
         },
-        // 2. 寮规€ф寜閲忚璐归」鐩?
+        // 2. 弹性按量计费项�?
         {
           amount: 150.00, 
           currencyCode: 'USD',
@@ -71,7 +71,7 @@ const shopify = shopifyApp({
   },
 
   future: {
-    expiringOfflineAccessTokens: true, // 馃挕 宸茬粡瀹岀編淇锛屽幓鎺変簡澶氫綑鐨勯敊瀛?
+    expiringOfflineAccessTokens: true, // 💡 已经完美修复，去掉了多余的错�?
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
@@ -79,7 +79,7 @@ const shopify = shopifyApp({
 });
 
 export default shopify;
-export const apiVersion = ApiVersion.July26;
+export const apiVersion = ApiVersion.April26;
 export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
