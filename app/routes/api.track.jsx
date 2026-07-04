@@ -1,5 +1,4 @@
-﻿import { Prisma } from "@prisma/client";
-import prisma from "../db.server";
+﻿import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 
 // Persistent rate limiter (per shop, 60 req/min) via Prisma
@@ -28,7 +27,7 @@ async function isRateLimited(shop) {
     });
     return false; // Under limit
   } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+    if (err?.code === "P2025") {
       return true; // Rate limited
     }
     throw err;

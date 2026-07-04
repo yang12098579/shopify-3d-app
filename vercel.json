@@ -1,7 +1,7 @@
 {
   "buildCommand": "npx prisma generate && npx react-router build",
   "installCommand": "npm ci",
-  "framework": null,
+  "framework": "react-router",
   "outputDirectory": "build/client",
   "rewrites": [
     {
@@ -9,12 +9,6 @@
       "destination": "/api/index"
     }
   ],
-  "functions": {
-    "api/index.js": {
-      "memory": 512,
-      "maxDuration": 30
-    }
-  },
   "headers": [
     {
       "source": "/build/(.*)",
