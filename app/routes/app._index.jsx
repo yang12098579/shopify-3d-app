@@ -13,7 +13,6 @@ import { PLAN_PRO, PLAN_ENTERPRISE } from "../constants";
 
 import translations from "../locales/dashboard";
 
-;
 
 export const action = async ({ request }) => {
   // 🚨 修复核心：精准获取 session，拼接 Shopify 后台内部的专属入口

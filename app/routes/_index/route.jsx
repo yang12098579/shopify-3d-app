@@ -18,9 +18,9 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>Vision3D - 3D Product Viewer</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Bring your products to life with interactive 3D and AR previews.
         </p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
@@ -36,15 +36,15 @@ export default function App() {
         )}
         <ul className={styles.list}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
+            <strong>3D Model Viewer</strong>. Some detail about your feature and
             its benefit to your customer.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
+            <strong>3D Model Viewer</strong>. Some detail about your feature and
             its benefit to your customer.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
+            <strong>3D Model Viewer</strong>. Some detail about your feature and
             its benefit to your customer.
           </li>
         </ul>

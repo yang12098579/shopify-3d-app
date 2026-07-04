@@ -1,4 +1,5 @@
 import { authenticate, unauthenticated } from "../shopify.server";
+import { createHmac } from "crypto";
 import prisma from "../db.server";
 
 export const action = async ({ request }) => {
@@ -153,7 +154,6 @@ export const action = async ({ request }) => {
     if (ccSigningSecret) {
       const ccRawBody = await request.clone().text();
       const ccSignature = request.headers.get("cloudconvert-signature");
-      const { createHmac } = await import("crypto");
       const expectedSig = createHmac("sha256", ccSigningSecret).update(ccRawBody).digest("hex");
       if (!ccSignature || ccSignature !== expectedSig) {
         console.error("CloudConvert signature verification failed");
