@@ -49,7 +49,7 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
                 : t.btnUpgrade
             }
             buttonVariant="primary"
-            disabled={isActive("pro") || currentPlan.startsWith("enterprise")}
+            disabled={isActive("pro") }
             onClick={() => onUpgrade("upgrade_pro")}
           />
 
@@ -77,7 +77,7 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
         </InlineGrid>
       </Box>
 
-      {(currentPlan === "pro" || currentPlan.startsWith("enterprise")) && (
+      {(currentPlan === "pro" ) && (
         <Box padding="300" background="bg-surface-secondary" borderRadius="200" marginTop="300">
           <InlineStack align="space-between" blockAlign="center">
             <Text tone="subdued" variant="bodySm">{t.cancelHint}</Text>

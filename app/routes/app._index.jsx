@@ -27,11 +27,11 @@ export const action = async ({ request }) => {
   let planPrice = 0.0;
   let trialDaysConfig = 0; 
 
-  if (intent === "upgrade_pro") {
+  if (intent === "upgrade_growth") {
     planName = PLAN_PRO; 
     planPrice = 89.99;
     trialDaysConfig = 0; 
-  } else if (intent === "upgrade_enterprise") {
+  } else if (intent === "upgrade_business") {
     planName = PLAN_ENTERPRISE; 
     planPrice = 89.99;
     trialDaysConfig = 0; 
@@ -65,7 +65,7 @@ export const action = async ({ request }) => {
     }
   ];
 
-  if (intent === "upgrade_pro") {
+  if (intent === "upgrade_growth") {
     lineItemsPayload.push({
       plan: {
         appUsagePricingDetails: {

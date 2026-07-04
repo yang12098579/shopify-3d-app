@@ -1,5 +1,5 @@
 ﻿export const PLAN_PRO = "Vision3D Growth Plan" as const;
-export const PLAN_ENTERPRISE = "Vision3D Business Plan" as const;
+export const PLAN_ENTERPRISE = "Vision3D Business Plan" as const; // Reserved for future
 export const PLAN_FREE_LABEL = "free" as const;
 
 export const QUOTA = {
