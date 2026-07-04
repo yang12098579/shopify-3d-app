@@ -1,11 +1,11 @@
-﻿export const PLAN_PRO = "Vision3D Professional Plan" as const;
-export const PLAN_ENTERPRISE = "Vision3D Enterprise Plan" as const;
+﻿export const PLAN_PRO = "Vision3D Growth Plan" as const;
+export const PLAN_ENTERPRISE = "Vision3D Business Plan" as const;
 export const PLAN_FREE_LABEL = "free" as const;
 
 export const QUOTA = {
-  FREE_MAX_PRODUCTS: 3,
-  PRO_AR_SLOTS: 10,
-  PRO_OVERAGE_PRICE: 1.99,
+  FREE_MAX_PRODUCTS: 1,
+  PRO_AR_SLOTS: 15,
+  PRO_OVERAGE_PRICE: 2.99,
 } as const;
 
 

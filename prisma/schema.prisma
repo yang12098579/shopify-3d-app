@@ -67,3 +67,27 @@ model ErrorLog {
   createdAt DateTime @default(now())
 }
 
+model DailyStats {
+  id        Int      @id @default(autoincrement())
+  shop      String
+  date      String
+  views     Int      @default(0)
+  arUses    Int      @default(0)
+  addCartCount Int   @default(0)
+  stayTimeMs BigInt  @default(0)
+
+  @@unique([shop, date])
+}
+
+model VariantModel {
+  id        String   @id @default(uuid())
+  shop      String
+  productId String
+  variantId String
+  glbUrl    String
+  usdzUrl   String?
+  createdAt DateTime @default(now())
+
+  @@unique([productId, variantId])
+}
+

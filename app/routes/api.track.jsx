@@ -123,6 +123,14 @@ export const action = async ({ request }) => {
       create: { shop },
     });
 
+    // Daily stats for trend charts
+    const today = new Date().toISOString().substring(0, 10);
+    await prisma.dailyStats.upsert({
+      where: { shop_date: { shop, date: today } },
+      update: {},
+      create: { shop, date: today },
+    }).catch(() => {});
+
     if (eventType === "view") {
       await prisma.appAnalytics.update({
         where: { shop },
@@ -131,16 +139,28 @@ export const action = async ({ request }) => {
           totalStayTimeMs: { increment: parsedTime },
         },
       });
+      await prisma.dailyStats.update({
+        where: { shop_date: { shop, date: today } },
+        data: { views: { increment: 1 }, stayTimeMs: { increment: parsedTime } },
+      }).catch(() => {});
     } else if (eventType === "ar_click") {
       await prisma.appAnalytics.update({
         where: { shop },
         data: { arUses: { increment: 1 } },
       });
+      await prisma.dailyStats.update({
+        where: { shop_date: { shop, date: today } },
+        data: { arUses: { increment: 1 } },
+      }).catch(() => {});
     } else if (eventType === "add_cart") {
       await prisma.appAnalytics.update({
         where: { shop },
         data: { addCartCount: { increment: 1 } },
       });
+      await prisma.dailyStats.update({
+        where: { shop_date: { shop, date: today } },
+        data: { addCartCount: { increment: 1 } },
+      }).catch(() => {});
     }
 
     return new Response(JSON.stringify({ success: true }), {

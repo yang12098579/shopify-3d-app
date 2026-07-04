@@ -32,25 +32,25 @@ const shopify = shopifyApp({
       lineItems: [
         // 1. 鍥哄畾鏈堣垂椤圭洰
         {
-          amount: 29.99,
+          amount: 89.99,
           currencyCode: 'USD',
           interval: BillingInterval.Every30Days,
         },
         // 2. 寮规€ф寜閲忚璐归」鐩?
         {
-          amount: 100.00, 
+          amount: 150.00, 
           currencyCode: 'USD',
           interval: BillingInterval.Usage,
           terms: "Vision3D Extra AR product preview ($1.99 per extra active model overage)",
         }
       ],
-      trialDays: 3, 
+      trialDays: 0, 
       replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
     },
     [PLAN_ENTERPRISE]: {
       lineItems: [
         {
-          amount: 49.99,
+          amount: 89.99,
           currencyCode: 'USD',
           interval: BillingInterval.Every30Days,
         },

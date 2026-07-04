@@ -29,11 +29,11 @@ export const action = async ({ request }) => {
 
   if (intent === "upgrade_pro") {
     planName = PLAN_PRO; 
-    planPrice = 29.99;
-    trialDaysConfig = 3; 
+    planPrice = 89.99;
+    trialDaysConfig = 0; 
   } else if (intent === "upgrade_enterprise") {
     planName = PLAN_ENTERPRISE; 
-    planPrice = 49.99;
+    planPrice = 89.99;
     trialDaysConfig = 0; 
   } else if (intent === "cancel") {
     const subscriptionId = formData.get("subscriptionId"); 
@@ -69,7 +69,7 @@ export const action = async ({ request }) => {
     lineItemsPayload.push({
       plan: {
         appUsagePricingDetails: {
-          terms: "Vision3D Extra AR product preview ($1.99 per extra active model overage)",
+          terms: "Vision3D Extra AR product preview ($2.99 per extra active model overage)",
           cappedAmount: { amount: 100.00, currencyCode: "USD" }
         }
       }
@@ -236,15 +236,29 @@ export const loader = async ({ request }) => {
     console.error("获取真实看板数据失败", error);
   }
 
-  return { shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount };
+  // Fetch 30-day trend data
+  let dailyData = [];
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const startDate = thirtyDaysAgo.toISOString().substring(0, 10);
+    dailyData = await prisma.dailyStats.findMany({
+      where: { shop: session.shop, date: { gte: startDate } },
+      orderBy: { date: "asc" },
+      select: { date: true, views: true, arUses: true, addCartCount: true },
+    });
+  } catch { /* table may not exist yet */ }
+
+  return { shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount, dailyData };
 };
 
 import SetupGuide from "../components/dashboard/SetupGuide";
 import StatsOverview from "../components/dashboard/StatsOverview";
 import PlanSelector from "../components/dashboard/PlanSelector";
+import TrendChart from "../components/dashboard/TrendChart";
 
 export default function Index() {
-  const { shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount } = useLoaderData();
+  const { shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount, dailyData } = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
   
@@ -317,6 +331,10 @@ export default function Index() {
 
                 <Card>
                   <StatsOverview statsData={statsData} currentPlan={currentPlan} arActiveCount={arActiveCount} t={t} getLimitDisplay={getLimitDisplay} />
+                </Card>
+
+                <Card>
+                  <TrendChart dailyData={dailyData || []} />
                 </Card>
               </BlockStack>
             </Layout.Section>

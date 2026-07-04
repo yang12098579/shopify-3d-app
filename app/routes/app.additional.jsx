@@ -53,7 +53,7 @@ const translations = {
     perfGood: "文件状态健康 (建议保持在 10MB 以内)",
     perfWarn: "🚨 警告：检测到该 3D 模型文件可能未经过 Draco 骨骼压缩或贴图过大，可能会严重拖慢消费者的移动端网页加载速度，建议优化！",
     overageTitle: "💎 开启额外 AR 扩展坑位",
-    overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $1.99 额外开通 1 个高级 AR 扩展席位（本月计费启用），本月内该席位额度可任意替换商品，次月若保持勾选将自动续杯，是否立即开通？",
+    overageMsg: "您当前专业版自带的 10 个免费 AR 额度已全部用满。点击确认将花费 $2.99 额外开通 1 个高级 AR 扩展席位（本月计费启用），本月内该席位额度可任意替换商品，次月若保持勾选将自动续杯，是否立即开通？",
     overageBtn: "确认开通扩展坑位"
   },
   en: {
@@ -95,7 +95,7 @@ const translations = {
     perfGood: "Healthy file size (Recommended under 10MB for fast loading)",
     perfWarn: "🚨 Warning: This 3D asset appears uncompressed or high-poly. It may slow down mobile variant loading speeds. Draco optimization recommended.",
     overageTitle: "Unlock Extra AR Product Slot",
-    overageMsg: "You have utilized all 10 complimentary AR slots. Confirm to spend $1.99 to unlock 1 extra product slot (renews monthly if kept active). You can freely swap items within this quota.",
+    overageMsg: "You have utilized all 10 complimentary AR slots. Confirm to spend $2.99 to unlock 1 extra product slot (renews monthly if kept active). You can freely swap items within this quota.",
     overageBtn: "Unlock Extra Slot"
   }
 };
@@ -162,7 +162,7 @@ export const action = async ({ request }) => {
         {
           variables: {
             description: `Vision3D extra AR active overage slot expansion tier charge (monthly billing)`,
-            price: { amount: 1.99, currencyCode: "USD" },
+            price: { amount: 2.99, currencyCode: "USD" },
             subscriptionLineItemId: usageLineItemId
           }
         }
@@ -580,7 +580,11 @@ export default function ModelMappingDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveToast, setSaveToast] = useState(null);
   const [limitModal, setLimitModal] = useState(false); 
-  const [overageModal, setOverageModal] = useState(false); 
+  const [overageModal, setOverageModal] = useState(false);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [csvResult, setCsvResult] = useState(null);
+  const [csvProcessing, setCsvProcessing] = useState(false); 
   const [limitModalType, setLimitModalType] = useState("AR"); 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [inputModelUrl, setInputModelUrl] = useState("");
@@ -700,6 +704,25 @@ export default function ModelMappingDashboard() {
   const handleConfirmOverage = () => {
     setOverageModal(false);
     submit({ actionType: "buy_slot", currentSlots: extraSlots.toString(), productId: selectedProduct.id }, { method: "POST" });
+  };
+
+  const handleCsvImport = async () => {
+    if (!csvText.trim()) return;
+    setCsvProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append("csv", csvText);
+      formData.append("intent", "csv_import");
+      const res = await fetch("/api/import", {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+      setCsvResult(json);
+    } catch (err) {
+      setCsvResult({ success: false, error: "Network error" });
+    }
+    setCsvProcessing(false);
   };
 
   const handleBulkToggleAr = (enable) => {
@@ -912,6 +935,27 @@ export default function ModelMappingDashboard() {
             </BlockStack>
           </Modal.Section>
         </Modal>
+        <Modal open={csvModalOpen} onClose={() => { setCsvModalOpen(false); setCsvResult(null); }} title="CSV Batch Import" primaryAction={{ content: csvProcessing ? "Processing..." : "Import", onAction: handleCsvImport, disabled: csvProcessing || !csvText.trim() }} secondaryActions={[{ content: "Cancel", onAction: () => { setCsvModalOpen(false); setCsvResult(null); } }]}>
+          <Modal.Section>
+            <BlockStack gap="300">
+              <Text as="p" variant="bodyMd">Paste CSV with columns: <b>handle,glb_url</b></Text>
+              <Text as="p" variant="bodySm" tone="subdued">Example: my-product,https://cdn.example.com/model.glb</Text>
+              <textarea
+                value={csvText}
+                onChange={(e) => setCsvText(e.target.value)}
+                rows={10}
+                style={{ width: "100%", fontFamily: "monospace", fontSize: "13px", padding: "12px", border: "1px solid #ccc", borderRadius: "8px" }}
+                placeholder="handle,glb_url&#10;red-shoes,https://cdn.example.com/shoes.glb&#10;blue-hat,https://cdn.example.com/hat.glb"
+              />
+              {csvResult && (
+                <Banner tone={csvResult.success ? "success" : "critical"}>
+                  <p>{csvResult.success ? `Imported ${csvResult.successCount}/${csvResult.total} products` : csvResult.error}</p>
+                </Banner>
+              )}
+            </BlockStack>
+          </Modal.Section>
+        </Modal>
+
         {showToast && <Toast content={toastMessage} onDismiss={() => setShowToast(false)} />}
       </Page>
     </Frame>
