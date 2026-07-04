@@ -942,23 +942,13 @@ export default function ModelMappingDashboard() {
             </BlockStack>
           </Modal.Section>
         </Modal>
-        <Modal open={csvModalOpen} onClose={() => { setCsvModalOpen(false); setCsvResult(null); }} title="CSV Batch Import" primaryAction={{ content: csvProcessing ? "Processing..." : "Import", onAction: handleCsvImport, disabled: csvProcessing || !csvText.trim() }} secondaryActions={[{ content: "Cancel", onAction: () => { setCsvModalOpen(false); setCsvResult(null); } }]}>
+        <Modal open={csvModalOpen} onClose={() => { setCsvModalOpen(false); setCsvResult(null); }} title="CSV Batch Import" primaryAction={{ content: csvProcessing ? "Importing..." : "Import", onAction: handleCsvImport, disabled: csvProcessing || !csvText.trim() }} secondaryActions={[{ content: "Cancel", onAction: () => { setCsvModalOpen(false); setCsvResult(null); } }]}>
           <Modal.Section>
             <BlockStack gap="300">
               <Text as="p" variant="bodyMd">Paste CSV with columns: <b>handle,glb_url</b></Text>
               <Text as="p" variant="bodySm" tone="subdued">Example: my-product,https://cdn.example.com/model.glb</Text>
-              <textarea
-                value={csvText}
-                onChange={(e) => setCsvText(e.target.value)}
-                rows={10}
-                style={{ width: "100%", fontFamily: "monospace", fontSize: "13px", padding: "12px", border: "1px solid #ccc", borderRadius: "8px" }}
-                placeholder="handle,glb_url&#10;red-shoes,https://cdn.example.com/shoes.glb&#10;blue-hat,https://cdn.example.com/hat.glb"
-              />
-              {csvResult && (
-                <Banner tone={csvResult.success ? "success" : "critical"}>
-                  <p>{csvResult.success ? `Imported ${csvResult.successCount}/${csvResult.total} products` : csvResult.error}</p>
-                </Banner>
-              )}
+              <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} rows={10} style={{ width: "100%", fontFamily: "monospace", fontSize: "13px", padding: "12px", border: "1px solid #ccc", borderRadius: "8px" }} placeholder={"handle,glb_url"} />
+              {csvResult && <Banner tone={csvResult.success ? "success" : "critical"}><p>{csvResult.success ? "Imported " + csvResult.successCount + "/" + csvResult.total + " products" : csvResult.error}</p></Banner>}
             </BlockStack>
           </Modal.Section>
         </Modal>

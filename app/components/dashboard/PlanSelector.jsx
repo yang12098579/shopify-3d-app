@@ -50,7 +50,7 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
             }
             buttonVariant="primary"
             disabled={isActive("pro") }
-            onClick={() => onUpgrade("upgrade_pro")}
+            onClick={() => onUpgrade("upgrade_growth")}
           />
 
           {/* Enterprise Tier */}
@@ -72,7 +72,7 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
             buttonLabel={isActive("enterprise") ? t.btnCurrent : t.btnUpgradeEnt}
             buttonVariant="primary"
             disabled={isActive("enterprise")}
-            onClick={() => onUpgrade("upgrade_enterprise")}
+            onClick={() => onUpgrade("upgrade_business")}
           />
         </InlineGrid>
       </Box>
