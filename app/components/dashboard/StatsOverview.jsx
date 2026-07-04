@@ -24,6 +24,24 @@ export default function StatsOverview({ statsData, currentPlan, arActiveCount, t
             <Text variant="headingLg" tone="base">{statsData.addCartCount || 0}</Text>
           </BlockStack>
         </Box>
+        <Box background="bg-surface-secondary" padding="400" borderRadius="300">
+          <BlockStack gap="100">
+            <Text variant="bodyXs" tone="subdued">{t.statTime}</Text>
+            <Text variant="headingLg" tone="base">{statsData.stayTime}</Text>
+          </BlockStack>
+        </Box>
+        <Box background="bg-surface-secondary" padding="400" borderRadius="300">
+          <BlockStack gap="100">
+            <Text variant="bodyXs" tone="subdued">{t.statLimit}</Text>
+            <Text variant="headingLg" tone="base">{getLimitDisplay()}</Text>
+          </BlockStack>
+        </Box>
+        <Box background="bg-surface-secondary" padding="400" borderRadius="300">
+          <BlockStack gap="100">
+            <Text variant="bodyXs" tone="subdued">Conversion</Text>
+            <Text variant="headingLg" tone="base">{statsData.conversion || "0%"}</Text>
+          </BlockStack>
+        </Box>
         <Box background={currentPlan === "free" ? "bg-surface-critical-subdued" : "bg-surface-info-subdued"} padding="400" borderRadius="300">
           <BlockStack gap="100">
             <InlineStack gap="050" blockAlign="center">

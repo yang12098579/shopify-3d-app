@@ -36,16 +36,13 @@ export default function App() {
         )}
         <ul className={styles.list}>
           <li>
-            <strong>3D Model Viewer</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Interactive 3D Previews.</strong> Let customers rotate, zoom, and inspect products from every angle before purchase.
           </li>
           <li>
-            <strong>3D Model Viewer</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Mobile AR Projection.</strong> Place products in real-world spaces via smartphone AR for confident buying decisions.
           </li>
           <li>
-            <strong>3D Model Viewer</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Seamless Shopify Integration.</strong> One-click theme block install. No coding required.
           </li>
         </ul>
       </div>

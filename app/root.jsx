@@ -19,6 +19,9 @@ export default function App() {
         <Outlet />
         <ScrollRestoration />
         <Scripts />
+        <footer style="text-align:center;padding:16px;font-size:12px;color:#6d7175;font-family:sans-serif;">
+          <a href="/privacy" target="_blank" style="color:#6d7175;">Privacy Policy</a>
+        </footer>
       </body>
     </html>
   );

@@ -42,7 +42,7 @@ async function isRateLimited(shop) {
   }
 }
 
-const VALID_EVENTS = new Set(["view", "ar_click"]);
+const VALID_EVENTS = new Set(["view", "ar_click", "add_cart"]);
 
 export const action = async ({ request }) => {
   const { session } = await authenticate.public.appProxy(request);
@@ -135,6 +135,11 @@ export const action = async ({ request }) => {
       await prisma.appAnalytics.update({
         where: { shop },
         data: { arUses: { increment: 1 } },
+      });
+    } else if (eventType === "add_cart") {
+      await prisma.appAnalytics.update({
+        where: { shop },
+        data: { addCartCount: { increment: 1 } },
       });
     }
 

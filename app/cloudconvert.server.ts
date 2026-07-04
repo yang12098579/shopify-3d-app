@@ -65,7 +65,7 @@ export async function triggerCloudConvert(
               operation: "export/url",
               input: "convert-1",
               ...(CLOUDCONVERT_SIGNING_SECRET ? { signing_secret: CLOUDCONVERT_SIGNING_SECRET } : {}),
-              webhook: `${appBaseUrl}/webhooks?productId=${encodeURIComponent(String(productId))}&shop=${encodeURIComponent(shopDomain)}`,
+              webhook: `${appBaseUrl.replace(/\/+$/, "")}/webhooks?productId=${encodeURIComponent(String(productId))}&shop=${encodeURIComponent(shopDomain)}`,
             },
           },
         }),

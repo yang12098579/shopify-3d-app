@@ -5,8 +5,13 @@ import { createReadableStreamFromReadable } from "@react-router/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
 import { logError } from "./error-logger.server";
+import * as Sentry from "@sentry/react-router";
 
-export const streamTimeout = 5000;
+if (process.env.SENTRY_DSN) {
+  Sentry.init({ dsn: process.env.SENTRY_DSN });
+}
+
+export const streamTimeout = 15000;
 
 export default async function handleRequest(
   request,

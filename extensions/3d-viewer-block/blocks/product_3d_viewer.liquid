@@ -126,6 +126,18 @@
             sendTrackingData('ar_click', 0);
           }
         });
+
+        // Add-to-cart tracking
+        document.addEventListener('submit', function(e) {
+          var form = e.target.closest('form[action*="/cart/add"]');
+          if (form) {
+            fetch(PROXY_TRACK_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ eventType: 'add_cart', timeMs: 0 })
+            }).catch(function() {});
+          }
+        });
       });
     </script>
 

@@ -8,7 +8,6 @@ export const QUOTA = {
   PRO_OVERAGE_PRICE: 1.99,
 } as const;
 
-export const API_VERSION = "2024-04" as const;
 
 export const METAFIELD_NAMESPACE = "product_3d_app" as const;
 export const METAFIELD_KEY_PLAN = "plan_level" as const;
