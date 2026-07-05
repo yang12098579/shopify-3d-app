@@ -76,8 +76,8 @@ export const action = async ({ request }) => {
     lineItemsPayload.push({
       plan: {
         appUsagePricingDetails: {
-          terms: "Vision3D Extra AR product preview ($2.99 per extra active model overage)",
-          cappedAmount: { amount: 100.00, currencyCode: "USD" }
+          terms: "Vision3D Extra AR product preview ($3.99 per extra active model overage)",
+          cappedAmount: { amount: 150.00, currencyCode: "USD" }
         }
       }
     });

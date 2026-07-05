@@ -76,7 +76,7 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
           <PricingCard
             name={t.tierEntName}
             tone="info"
-            price={isAnnual ? "$863.89" : "$79.99"}
+            price={isAnnual ? "$1079.89" : "$99.99"}
             period={isAnnual ? t.tierAnnualPrice : t.tierProPrice}
             subtext={isAnnual ? t.annualSavings : t.entNoTrial}
             features={[

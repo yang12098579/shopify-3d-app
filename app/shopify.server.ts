@@ -36,7 +36,7 @@ const shopify = shopifyApp({
           amount: 150.00,
           currencyCode: 'USD',
           interval: BillingInterval.Usage,
-          terms: "Vision3D Extra AR product preview ($2.99 per extra active model overage)",
+          terms: "Vision3D Extra AR product preview ($3.99 per extra active model overage)",
         }
       ],
       replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
@@ -52,7 +52,7 @@ const shopify = shopifyApp({
           amount: 150.00,
           currencyCode: 'USD',
           interval: BillingInterval.Usage,
-          terms: "Vision3D Extra AR product preview ($2.99 per extra active model overage)",
+          terms: "Vision3D Extra AR product preview ($3.99 per extra active model overage)",
         }
       ],
       replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
