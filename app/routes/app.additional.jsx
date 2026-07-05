@@ -6,8 +6,8 @@ import {
   Select, Checkbox, IndexTable, useIndexResourceState, Pagination,
 } from "@shopify/polaris";
 import {
-  SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon, StarIcon,
-  AlertCircleIcon, LockIcon, DiamondIcon, ChartLineIcon,
+  SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon,
+  AlertCircleIcon, LockIcon,
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { triggerCloudConvert } from "../cloudconvert.server";
@@ -100,54 +100,7 @@ const translations = {
   }
 };
 
-  if (actionType === "fetch_variants") {
-    const variantRes = await admin.graphql(
-      `#graphql
-      query getProductVariantsForColorMap($id: ID!) {
-        product(id: $id) {
-          variants(first: 100) {
-            edges {
-              node {
-                id
-                title
-                displayName
-                selectedOptions { name value }
-                variantColorField: metafield(namespace: "custom", key: "variant_color") { value }
-              }
-            }
-          }
-          colorMapField: metafield(namespace: "custom", key: "variant_color_map") { value }
-        }
-      }`,
-      { variables: { id: productId } }
-    );
-    const vJson = await variantRes.json();
-    const edges = vJson.data?.product?.variants?.edges || [];
-    // Try to parse existing color map
-    let colorMap = {};
-    try {
-      const raw = vJson.data?.product?.colorMapField?.value;
-      if (raw) colorMap = JSON.parse(raw);
-    } catch(e) {}
-    
-    // Build variants list - group by option value (e.g., "Red", "Blue")
-    const seenOptions = new Set();
-    const variants = [];
-    edges.forEach(e => {
-      const opt = e.node.selectedOptions?.find(o => o.name?.toLowerCase() === "color" || o.name?.toLowerCase().includes("color") || o.name?.toLowerCase().includes("colour"));
-      const key = opt?.value || e.node.displayName || e.node.title;
-      if (!seenOptions.has(key)) {
-        seenOptions.add(key);
-        variants.push({
-          id: e.node.id,
-          title: e.node.displayName || e.node.title,
-          optionValue: key,
-          colorHex: colorMap[key] || "",
-        });
-      }
-    });
-    return Response.json({ variants });
-  }
+  
 
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -251,6 +204,54 @@ export const action = async ({ request }) => {
     }
   }
 
+  if (actionType === "fetch_variants") {
+    const variantRes = await admin.graphql(
+      `#graphql
+      query getProductVariantsForColorMap($id: ID!) {
+        product(id: $id) {
+          variants(first: 100) {
+            edges {
+              node {
+                id
+                title
+                displayName
+                selectedOptions { name value }
+                variantColorField: metafield(namespace: "custom", key: "variant_color") { value }
+              }
+            }
+          }
+          colorMapField: metafield(namespace: "custom", key: "variant_color_map") { value }
+        }
+      }`,
+      { variables: { id: productId } }
+    );
+    const vJson = await variantRes.json();
+    const edges = vJson.data?.product?.variants?.edges || [];
+    // Try to parse existing color map
+    let colorMap = {};
+    try {
+      const raw = vJson.data?.product?.colorMapField?.value;
+      if (raw) colorMap = JSON.parse(raw);
+    } catch(e) {}
+    
+    // Build variants list - group by option value (e.g., "Red", "Blue")
+    const seenOptions = new Set();
+    const variants = [];
+    edges.forEach(e => {
+      const opt = e.node.selectedOptions?.find(o => o.name?.toLowerCase() === "color" || o.name?.toLowerCase().includes("color") || o.name?.toLowerCase().includes("colour"));
+      const key = opt?.value || e.node.displayName || e.node.title;
+      if (!seenOptions.has(key)) {
+        seenOptions.add(key);
+        variants.push({
+          id: e.node.id,
+          title: e.node.displayName || e.node.title,
+          optionValue: key,
+          colorHex: colorMap[key] || "",
+        });
+      }
+    });
+    return Response.json({ variants });
+  }
   if (actionType === "bind") {
     const modelUrl = String(formData.get("modelUrl") || "").trim();
     // Validate model URL (Security: HTTPS only + domain whitelist)

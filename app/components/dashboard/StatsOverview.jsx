@@ -1,5 +1,5 @@
 import { Box, BlockStack, InlineStack, Text, Icon, InlineGrid } from "@shopify/polaris";
-import { AlertBubbleIcon, ViewIcon, ChartLineIcon, CartAbandonedIcon, ClockIcon, TargetIcon, MobileIcon } from "@shopify/polaris-icons";
+import { AlertBubbleIcon, ViewIcon, CartAbandonedIcon, ClockIcon, TargetIcon, MobileIcon } from "@shopify/polaris-icons";
 
 const cardStyle = {
   padding: "24px",
