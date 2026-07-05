@@ -19,7 +19,7 @@ if (typeof process !== "undefined" && process.env) {
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || (console.warn("[Vision3D] SHOPIFY_API_SECRET not set"), ""),
+  apiSecretKey: (process.env.SHOPIFY_API_SECRET || (() => { throw new Error("[Vision3D] CRITICAL: SHOPIFY_API_SECRET is not set. App cannot initialize Shopify API."); })()),
   apiVersion: ApiVersion.April26,
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL || "",
@@ -36,7 +36,7 @@ const shopify = shopifyApp({
           currencyCode: 'USD',
           interval: BillingInterval.Every30Days,
         },
-        // 2. 弹性按量计费项�?
+        // 2. 弹性按量计费项�?
         {
           amount: 150.00, 
           currencyCode: 'USD',
@@ -71,7 +71,7 @@ const shopify = shopifyApp({
   },
 
   future: {
-    expiringOfflineAccessTokens: true, // 💡 已经完美修复，去掉了多余的错�?
+    expiringOfflineAccessTokens: true, // 💡 已经完美修复，去掉了多余的错�?
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }

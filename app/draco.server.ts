@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { writeFileSync, unlinkSync, existsSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -43,6 +43,6 @@ export async function compressWithDraco(inputUrl: string): Promise<string | null
   } finally {
     // Cleanup
     try { if (existsSync(inputPath)) unlinkSync(inputPath); } catch {}
-    try { if (existsSync(outputPath)) unlinkSync(outputPath); } catch {}
+    // outputPath intentionally preserved - caller needs the file
   }
 }

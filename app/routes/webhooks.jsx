@@ -218,7 +218,7 @@ export const action = async ({ request }) => {
           data: { status: "failed", error: errorMsg },
         }).catch(() => {});
       }
-      return new Response("CloudConvert Handled", { status: 200, headers: { "Access-Control-Allow-Origin": "*" } });
+      return new Response("CloudConvert Handled", { status: 200, headers: { "Access-Control-Allow-Origin": "https://api.cloudconvert.com" } });
     } catch (err) {
       console.error("❌ CloudConvert 回调处理崩溃:", err);
       return new Response("Internal Error", { status: 500 });
