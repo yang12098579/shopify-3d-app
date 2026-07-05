@@ -151,7 +151,59 @@
           .catch(err => console.error(`[Vision3D 统计引擎] 上报失败:`, err));
         }
 
-        viewer.addEventListener('camera-change', (event) => {
+        
+        // ===== VARIANT COLOR MAPPING (Business Plan) =====
+        var colorMap = {};
+        try {
+          var colorMapRaw = {{ product.metafields.custom.variant_color_map.value | json }};
+          if (colorMapRaw) colorMap = colorMapRaw;
+        } catch(e) { colorMap = {}; }
+        
+        function applyVariantColor() {
+          if (Object.keys(colorMap).length === 0) return;
+          var optionSelectors = document.querySelectorAll('select[data-option-index], .product-form__input select, variant-selects select, variant-radios input:checked');
+          var selectedColor = "";
+          optionSelectors.forEach(function(sel) {
+            var label = sel.closest('fieldset, .product-form__input')?.querySelector('legend, .form__label');
+            if (label && (label.textContent.toLowerCase().includes('color') || label.textContent.toLowerCase().includes('colour'))) {
+              selectedColor = sel.value || sel.nextElementSibling?.textContent?.trim() || "";
+            }
+          });
+          if (!selectedColor) return;
+          var hex = colorMap[selectedColor];
+          if (!hex) return;
+          // Apply color to all materials
+          viewer.model.materials.forEach(function(mat) {
+            try {
+              mat.pbrMetallicRoughness.setBaseColorFactor(hexToRgb(hex));
+            } catch(e) {}
+          });
+        }
+        
+        function hexToRgb(hex) {
+          var h = hex.replace('#', '');
+          return [
+            parseInt(h.substring(0,2), 16) / 255,
+            parseInt(h.substring(2,4), 16) / 255,
+            parseInt(h.substring(4,6), 16) / 255,
+            1
+          ];
+        }
+        
+        // Apply color after model loads
+        viewer.addEventListener('load', function() {
+          setTimeout(applyVariantColor, 500);
+        });
+        
+        // Apply color when variant changes
+        var colorObserver = new MutationObserver(function() {
+          setTimeout(applyVariantColor, 300);
+        });
+        var productForm2 = document.querySelector('form[action*="/cart/add"]');
+        if (productForm2) {
+          colorObserver.observe(productForm2, { childList: true, subtree: true, attributes: true, attributeFilter: ['checked', 'selected', 'value'] });
+        }
+viewer.addEventListener('camera-change', (event) => {
           if (!viewTracked && event.detail.source === 'user-interaction') {
             viewTracked = true;
             const timeMs = Date.now() - startTime;

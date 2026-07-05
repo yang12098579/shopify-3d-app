@@ -100,6 +100,55 @@ const translations = {
   }
 };
 
+  if (actionType === "fetch_variants") {
+    const variantRes = await admin.graphql(
+      `#graphql
+      query getProductVariantsForColorMap($id: ID!) {
+        product(id: $id) {
+          variants(first: 100) {
+            edges {
+              node {
+                id
+                title
+                displayName
+                selectedOptions { name value }
+                variantColorField: metafield(namespace: "custom", key: "variant_color") { value }
+              }
+            }
+          }
+          colorMapField: metafield(namespace: "custom", key: "variant_color_map") { value }
+        }
+      }`,
+      { variables: { id: productId } }
+    );
+    const vJson = await variantRes.json();
+    const edges = vJson.data?.product?.variants?.edges || [];
+    // Try to parse existing color map
+    let colorMap = {};
+    try {
+      const raw = vJson.data?.product?.colorMapField?.value;
+      if (raw) colorMap = JSON.parse(raw);
+    } catch(e) {}
+    
+    // Build variants list - group by option value (e.g., "Red", "Blue")
+    const seenOptions = new Set();
+    const variants = [];
+    edges.forEach(e => {
+      const opt = e.node.selectedOptions?.find(o => o.name?.toLowerCase() === "color" || o.name?.toLowerCase().includes("color") || o.name?.toLowerCase().includes("colour"));
+      const key = opt?.value || e.node.displayName || e.node.title;
+      if (!seenOptions.has(key)) {
+        seenOptions.add(key);
+        variants.push({
+          id: e.node.id,
+          title: e.node.displayName || e.node.title,
+          optionValue: key,
+          colorHex: colorMap[key] || "",
+        });
+      }
+    });
+    return Response.json({ variants });
+  }
+
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const formData = await request.formData();
@@ -261,7 +310,21 @@ export const action = async ({ request }) => {
           userErrors { field message }
         }
       }`,
-      { variables: { metafields: [{ ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl }] } }
+      { variables: { 
+      metafields: (() => {
+        const fields = [{ ownerId: productId, namespace: "custom", key: "product_3d_model", type: "single_line_text_field", value: modelUrl }];
+        const colorsRaw = formData.get("variantColors");
+        if (colorsRaw) {
+          try {
+            const colors = JSON.parse(colorsRaw);
+            if (Object.keys(colors).length > 0) {
+              fields.push({ ownerId: productId, namespace: "custom", key: "variant_color_map", type: "single_line_text_field", value: JSON.stringify(colors) });
+            }
+          } catch(e) {}
+        }
+        return fields;
+      })()
+    } }
     );
 
     const saveMainModelJson = await payloadResponse.json();
@@ -583,6 +646,9 @@ export default function ModelMappingDashboard() {
   const [overageModal, setOverageModal] = useState(false);
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
+  const [variantColors, setVariantColors] = useState({});
+  const [productVariants, setProductVariants] = useState([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
   const [csvResult, setCsvResult] = useState(null);
   const [csvProcessing, setCsvProcessing] = useState(false); 
   const [limitModalType, setLimitModalType] = useState("AR"); 
@@ -856,7 +922,7 @@ export default function ModelMappingDashboard() {
               <InlineStack align="space-between" blockAlign="center">
                 <InlineStack gap="300" blockAlign="center">
                   <Box minWidth="320px"><TextField prefix={<Icon source={SearchIcon} />} placeholder={t.searchPlaceholder} value={searchQuery} onChange={setSearchQuery} autoComplete="off" clearButton onClearButtonClick={() => setSearchQuery("")} /></Box>
-                  <Box minWidth="160px"><Select label="statusFilter" labelHidden options={filterOptions} value={statusFilter} onChange={setStatusFilter} /></Box>
+                  <Box minWidth="160px"><Select label="statusFilter"  options={filterOptions} value={statusFilter} onChange={setStatusFilter} /></Box>
                 </InlineStack>
                 <Button variant="plain" tone="critical" onClick={() => { setSearchQuery(""); setStatusFilter("all"); }} disabled={searchQuery === "" && statusFilter === "all"}>{t.clearBtn}</Button>
               </InlineStack>
@@ -905,9 +971,44 @@ export default function ModelMappingDashboard() {
               <TextField label={t.modalLabel} value={inputModelUrl} onChange={setInputModelUrl} autoComplete="off" placeholder="粘贴您的官方商品 .glb 链接" />
               
               {currentPlan === "enterprise" && (
-                <BlockStack gap="200">
-                  <Text variant="headingSm">Variant-Specific 3D Models (Business Plan)</Text>
-                  <Text variant="bodySm" tone="subdued">Each product variant can have its own 3D model. Set via metafields in Shopify Admin.</Text>
+                <BlockStack gap="300">
+                  <Divider />
+                  <BlockStack gap="100">
+                    <Text variant="headingSm">Variant Color Mapping (Business Plan)</Text>
+                    <Text variant="bodySm" tone="subdued">Map variant option values to colors. The 3D model automatically changes color when customers select different options. Only one 3D model needed!</Text>
+                  </BlockStack>
+                  {loadingVariants ? (
+                    <Text variant="bodySm" tone="subdued">Loading variants...</Text>
+                  ) : productVariants.length > 0 ? (
+                    <BlockStack gap="200">
+                      {productVariants.map((v, i) => (
+                        <Box key={i} background="bg-surface-secondary" padding="300" borderRadius="200">
+                          <InlineStack align="space-between" blockAlign="center" gap="300">
+                            <Text variant="bodySm" fontWeight="semibold">{v.optionValue || v.title}</Text>
+                            <InlineStack gap="200" blockAlign="center">
+                              <div style={{
+                                width: 24, height: 24, borderRadius: 6,
+                                background: variantColors[v.optionValue] || "#ccc",
+                                border: "1px solid #ddd",
+                                flexShrink: 0,
+                              }} />
+                              <TextField
+                                label=""
+                                
+                                value={variantColors[v.optionValue] || ""}
+                                onChange={(val) => setVariantColors(prev => ({ ...prev, [v.optionValue]: val }))}
+                                autoComplete="off"
+                                placeholder="#FF0000"
+                                type="text"
+                              />
+                            </InlineStack>
+                          </InlineStack>
+                        </Box>
+                      ))}
+                    </BlockStack>
+                  ) : (
+                    <Text variant="bodySm" tone="subdued">No color variants detected. Color mapping works with options like Color, Finish, etc.</Text>
+                  )}
                 </BlockStack>
               )}
 
