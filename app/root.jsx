@@ -19,15 +19,15 @@ export default function App() {
         <Outlet />
         <ScrollRestoration />
         <Scripts />
-        <footer style="text-align:center;padding:16px;font-size:12px;color:#6d7175;font-family:sans-serif;">
-          <a href="/privacy" target="_blank" style="color:#6d7175;">Privacy Policy</a>
+        <footer style={{ textAlign: "center", padding: "16px", fontSize: "12px", color: "#6d7175", fontFamily: "sans-serif" }}>
+          <a href="/privacy" target="_blank" style={{ color: "#6d7175" }}>Privacy Policy</a>
         </footer>
       </body>
     </html>
   );
 }
 
-// 🚨 终极防弹版 ErrorBoundary：打破 iframe 结界
+// 🚨 终极防弹�?ErrorBoundary：打�?iframe 结界
 export function ErrorBoundary() {
   const error = useRouteError();
   const [shop, setShop] = useState("");
@@ -40,11 +40,11 @@ export function ErrorBoundary() {
     (error?.message && error.message.includes("Unexpected token")) ||
     (error?.message && error.message.includes("JSON"));
 
-  // 2. 🚨 核心修复：获取店铺信息，并执行 "_top" 顶级逃逸！
+  // 2. 🚨 核心修复：获取店铺信息，并执�?"_top" 顶级逃逸！
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 尝试从 URL 或者 Shopify 全局对象获取 shop 域名
+    // 尝试�?URL 或�?Shopify 全局对象获取 shop 域名
     const urlParams = new URLSearchParams(window.location.search);
     let currentShop = urlParams.get("shop");
     if (!currentShop && window.shopify?.config?.shop) {
@@ -64,7 +64,7 @@ export function ErrorBoundary() {
     }
   }, [isSessionExpired]);
 
-  // 如果判断为掉线，提供带 loading 的界面，并加上终极手动的 "_top" 逃逸按钮
+  // 如果判断为掉线，提供�?loading 的界面，并加上终极手动的 "_top" 逃逸按�?
   if (isSessionExpired) {
     const fallbackUrl = shop ? `/auth/login?shop=${shop}` : `/auth/login`;
     return (
@@ -79,7 +79,7 @@ export function ErrorBoundary() {
              <p>Session expired. Securing connection...</p>
              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
              
-             {/* 终极兜底：如果代码逃逸被浏览器插件拦截，用户只需点这个按钮，target="_top" 绝对生效！ */}
+             {/* 终极兜底：如果代码逃逸被浏览器插件拦截，用户只需点这个按钮，target="_top" 绝对生效�?*/}
              <a 
                href={fallbackUrl} 
                target="_top" 
@@ -94,7 +94,7 @@ export function ErrorBoundary() {
     );
   }
 
-  // 其他真正的代码报错兜底
+  // 其他真正的代码报错兜�?
   let safeErrorMessage = "Something went wrong. Please try again later.";
   // Internal error details are logged server-side, never shown to users
   console.error("Route error:", error?.status, error?.message);
