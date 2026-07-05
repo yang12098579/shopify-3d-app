@@ -13,8 +13,8 @@ export const PRICING = {
 } as const;
 
 export const QUOTA = {
-  FREE_MAX_PRODUCTS: 1,
-  PRO_AR_SLOTS: 15,
+  FREE_MAX_PRODUCTS: 3,
+  PRO_AR_SLOTS: 10,
   PRO_OVERAGE_PRICE: 3.99,
 } as const;
 

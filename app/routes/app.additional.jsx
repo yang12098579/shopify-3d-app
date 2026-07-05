@@ -914,7 +914,7 @@ export default function ModelMappingDashboard() {
               {inputModelUrl && inputModelUrl.toLowerCase().endsWith(".glb") && (
                 <BlockStack gap="300">
                   <InlineStack gap="100" blockAlign="center"><Icon source={ViewIcon} tone="info" /><Text variant="headingSm">{t.modalPreview}</Text></InlineStack>
-                  <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid rgba(0,0,0,.08)', overflow: 'hidden', animation: 'scaleIn .4s ease-out' }}><model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }} /></Box>
+                  <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid rgba(0,0,0,.08)', overflow: 'hidden', animation: 'scaleIn .4s ease-out' }}><model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }}>{currentPlan === "free" && <div style={{position:"absolute",bottom:12,left:14,fontSize:10,color:"#9ca3af",opacity:.6,pointerEvents:"none",fontFamily:"sans-serif",letterSpacing:".5px",zIndex:5}}>Powered by Vision3D Free</div>}</model-viewer></Box>
                 </BlockStack>
               )}
             </BlockStack>
