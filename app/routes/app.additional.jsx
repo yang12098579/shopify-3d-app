@@ -79,7 +79,7 @@ const translations = {
     previewWarn: "Enter a valid .glb link for preview.",
     filterAll: "All Status",
     filterBound: "Linked 3D",
-    filterUnlinked: "Unlinked",
+    filterUnbound: "Unlinked",
     filterArActive: "AR Activated", 
     arToggleLabel: "Enable Mobile AR View",
     quotaBannerFree: "💡 Basic Free Plan: 3D Models mapped {modelCount} / 3. Mobile AR features are locked, upgrade to activate!",
