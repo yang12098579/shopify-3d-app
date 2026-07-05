@@ -4,33 +4,11 @@
   "framework": "react-router",
   "outputDirectory": "build/client",
   "rewrites": [
-    {
-      "source": "/privacy",
-      "destination": "/privacy.html"
-    },
-    {
-      "source": "/((?!privacy).*)",
-      "destination": "/api/index"
-    }
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/((?!privacy).*)", "destination": "/api/index" }
   ],
   "headers": [
-    {
-      "source": "/build/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/favicon.ico",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        }
-      ]
-    }
+    { "source": "/build/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
+    { "source": "/favicon.ico", "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }] }
   ]
 }
