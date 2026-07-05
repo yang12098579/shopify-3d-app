@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, BlockStack, InlineStack, Text, Card, Badge, Button, Divider, Icon, InlineGrid, SegmentedControl } from "@shopify/polaris";
+import { Box, BlockStack, InlineStack, Text, Card, Badge, Button, Divider, Icon, InlineGrid, ButtonGroup } from "@shopify/polaris";
 import { CheckCircleIcon } from "@shopify/polaris-icons";
 
 export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
@@ -12,15 +12,18 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
       <InlineStack align="space-between" blockAlign="center">
         <Text variant="headingLg" as="h2" fontWeight="bold">{t.planSelectTitle}</Text>
         <Box maxWidth="220px">
-          <SegmentedControl
-            label="Billing cycle"
-            options={[
-              { label: t.billingMonthly, value: "monthly" },
-              { label: t.billingAnnual, value: "annual" },
-            ]}
-            selected={billingInterval}
-            onChange={(value) => setBillingInterval(value)}
-          />
+          <ButtonGroup>
+            <Button
+              pressed={billingInterval === "monthly"}
+              onClick={() => setBillingInterval("monthly")}
+              size="slim"
+            >{t.billingMonthly}</Button>
+            <Button
+              pressed={billingInterval === "annual"}
+              onClick={() => setBillingInterval("annual")}
+              size="slim"
+            >{t.billingAnnual}</Button>
+          </ButtonGroup>
         </Box>
       </InlineStack>
       <Box marginTop="400">
