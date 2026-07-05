@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useLoaderData, useActionData, useSubmit } from "react-router"; 
+import { useLoaderData, useActionData, useSubmit, useNavigate, useLocation } from "react-router"; 
 import {
   Page, Layout, Text, Card, Button, BlockStack, Banner, Divider, Box, Badge,
   Icon, InlineGrid, InlineStack, Popover, ActionList, Toast, Frame,
@@ -10,8 +10,6 @@ import {
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server";
 import { PLAN_GROWTH_MONTHLY, PLAN_GROWTH_ANNUAL, PLAN_BUSINESS_MONTHLY, PLAN_BUSINESS_ANNUAL, PRICING, QUOTA } from "../constants"; 
-
-import translations from "../locales/dashboard";
 
 
 export const action = async ({ request }) => {
@@ -265,6 +263,8 @@ export const loader = async ({ request }) => {
   return { shop: session.shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount, dailyData };
 };
 
+
+
 import SetupGuide from "../components/dashboard/SetupGuide";
 import StatsOverview from "../components/dashboard/StatsOverview";
 import PlanSelector from "../components/dashboard/PlanSelector";
@@ -274,12 +274,15 @@ export default function Index() {
   const { shop, currentPlan, subscriptionId, dateStr, statsData, arActiveCount, dailyData } = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
-  
+
   const [locale, setLocale] = useState("en");
   const [popoverActive, setPopoverActive] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [heroVisible, setHeroVisible] = useState(false);
 
   const togglePopoverActive = useCallback(() => setPopoverActive((a) => !a), []);
+  const navigate = useNavigate();
+  const location = useLocation();
   const t = translations[locale];
 
   useEffect(() => {
@@ -287,6 +290,10 @@ export default function Index() {
       window.top.location.href = actionData.confirmationUrl;
     }
   }, [actionData]);
+
+  useEffect(() => {
+    setHeroVisible(true);
+  }, []);
 
   const getBannerConfig = () => {
     if (currentPlan === "pro") return { title: `${t.planPro} (${t.statusActive})`, tone: "success", msg: t.msgPro.replace("{date}", dateStr) };
@@ -323,39 +330,149 @@ export default function Index() {
             <ActionList
               actionRole="menuitem"
               items={[
-                { content: "简体中文", active: locale === "zh", onAction: () => { setLocale("zh"); togglePopoverActive(); } },
+                { content: "\u7b80\u4f53\u4e2d\u6587", active: locale === "zh", onAction: () => { setLocale("zh"); togglePopoverActive(); } },
                 { content: "English", active: locale === "en", onAction: () => { setLocale("en"); togglePopoverActive(); } },
               ]}
             />
           </Popover>
         }
       >
-        <BlockStack gap="500">
-          <Banner title={bannerConfig.title} tone={bannerConfig.tone}>
-            <p>{bannerConfig.msg}</p>
-          </Banner>
+        <BlockStack gap="600">
+          {/* ===== 3D HERO SECTION ===== */}
+          <Box
+            background="bg-surface"
+            borderRadius="300"
+            padding="0"
+            overflowX="hidden"
+            style={{
+              opacity: heroVisible ? 1 : 0,
+              transform: heroVisible ? "translateY(0)" : "translateY(20px)",
+              transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+              position: "relative",
+              background: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)",
+              minHeight: "220px",
+            }}
+          >
+            {/* Animated gradient overlay */}
+            <div style={{
+              position: "absolute", inset: 0, opacity: 0.4,
+              background: "radial-gradient(circle at 30% 50%, rgba(120,119,198,0.3) 0%, transparent 50%), radial-gradient(circle at 70% 50%, rgba(0,212,255,0.15) 0%, transparent 50%)",
+              animation: "gradient-spin 8s ease infinite",
+              backgroundSize: "300% 300%",
+            }} />
+            {/* Floating particles */}
+            <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+              {[...Array(6)].map((_, i) => (
+                <div key={i} style={{
+                  position: "absolute",
+                  width: `${4 + Math.random() * 6}px`,
+                  height: `${4 + Math.random() * 6}px`,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,0.15)",
+                  left: `${10 + Math.random() * 80}%`,
+                  top: `${10 + Math.random() * 80}%`,
+                  animation: `float ${3 + Math.random() * 3}s ease-in-out infinite`,
+                  animationDelay: `${Math.random() * 2}s`,
+                }} />
+              ))}
+            </div>
+            <InlineGrid columns={{ xs: 1, md: 2 }} gap="0">
+              <Box padding="600">
+                <BlockStack gap="300">
+                  <Box>
+                    <div style={{
+                      display: "inline-block", padding: "4px 12px", borderRadius: "20px",
+                      background: "rgba(255,255,255,0.1)", backdropFilter: "blur(10px)",
+                      marginBottom: "8px",
+                    }}>
+                      <Text tone="text-inverse" variant="bodySm" fontWeight="medium">
+                        {"\u2728"} Vision3D v2.0
+                      </Text>
+                    </div>
+                  </Box>
+                  <Text variant="heading2xl" fontWeight="bold" tone="text-inverse" as="h1">
+                    {locale === "zh" ? "\u667a\u80fd 3D \u4e0e AR \u589e\u5f3a\u5546\u57ce" : "Smart 3D & AR Commerce"}
+                  </Text>
+                  <Text variant="bodyLg" tone="text-inverse" as="p">
+                    {locale === "zh"
+                      ? "\u4e3a\u6bcf\u4e00\u4ef6\u5546\u54c1\u6ce8\u5165\u6c89\u6d78\u5f0f 3D \u4f53\u9a8c\uff0c\u63d0\u5347\u8f6c\u5316\u7387\u8fbe 22%"
+                      : "Immersive 3D experiences for every product, boost conversion up to 22%"}
+                  </Text>
+                  <InlineStack gap="300" wrap={false}>
+                    <Button primary size="large" icon={MagicIcon} onClick={() => navigate("/app/additional" + location.search)}>
+                      {locale === "zh" ? "\u7acb\u5373\u5f00\u59cb" : "Get Started"}
+                    </Button>
+                    <Button size="large" tone="text-inverse" url={`https://${shop}/admin/themes/current/editor?template=product`} target="_blank">
+                      {locale === "zh" ? "\u4e3b\u9898\u7f16\u8f91" : "Theme Editor"}
+                    </Button>
+                  </InlineStack>
+                </BlockStack>
+              </Box>
+              <Box padding="0" display={{ xs: "none", md: "block" }}>
+                <div style={{
+                  width: "100%", height: "100%", minHeight: "220px",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {/* 3D Icon animation */}
+                  <div style={{
+                    width: "120px", height: "120px", borderRadius: "50%",
+                    background: "linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))",
+                    backdropFilter: "blur(20px)",
+                    border: "2px solid rgba(255,255,255,0.15)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    animation: "float 4s ease-in-out infinite, pulse-glow 3s ease-in-out infinite",
+                  }}>
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                      <path d="M2 17l10 5 10-5" />
+                      <path d="M2 12l10 5 10-5" />
+                    </svg>
+                  </div>
+                </div>
+              </Box>
+            </InlineGrid>
+          </Box>
+
+          {/* ===== STATUS BANNER ===== */}
+          <div style={{ animation: "fadeInUp 0.6s ease-out" }}>
+            <Banner title={bannerConfig.title} tone={bannerConfig.tone}>
+              <p>{bannerConfig.msg}</p>
+            </Banner>
+          </div>
 
           <Layout>
             <Layout.Section>
-              <BlockStack gap="400">
-                <Card>
-                  <SetupGuide shop={shop} currentPlan={currentPlan} t={t} />
-                </Card>
-
-                <Card>
-                  <StatsOverview statsData={statsData} currentPlan={currentPlan} arActiveCount={arActiveCount} t={t} getLimitDisplay={getLimitDisplay} />
-                </Card>
-
-                {currentPlan !== "free" && !currentPlan.endsWith("_cancelled") && (
+              <BlockStack gap="500">
+                {/* ===== SETUP GUIDE ===== */}
+                <div className="card-hover" style={{ animation: "fadeInUp 0.7s ease-out" }}>
                   <Card>
-                    <TrendChart dailyData={dailyData || []} />
+                    <SetupGuide shop={shop} currentPlan={currentPlan} t={t} />
                   </Card>
+                </div>
+
+                {/* ===== STATS OVERVIEW ===== */}
+                <div style={{ animation: "fadeInUp 0.8s ease-out" }}>
+                  <Card>
+                    <StatsOverview statsData={statsData} currentPlan={currentPlan} arActiveCount={arActiveCount} t={t} getLimitDisplay={getLimitDisplay} />
+                  </Card>
+                </div>
+
+                {/* ===== TREND CHART ===== */}
+                {currentPlan !== "free" && !currentPlan.endsWith("_cancelled") && (
+                  <div className="card-hover" style={{ animation: "fadeInUp 0.9s ease-out" }}>
+                    <Card>
+                      <TrendChart dailyData={dailyData || []} />
+                    </Card>
+                  </div>
                 )}
               </BlockStack>
             </Layout.Section>
           </Layout>
 
-          <PlanSelector currentPlan={currentPlan} t={t} onUpgrade={handleUpgrade} onCancel={handleCancel} />
+          {/* ===== PLAN SELECTOR ===== */}
+          <div style={{ animation: "scaleIn 1s ease-out" }}>
+            <PlanSelector currentPlan={currentPlan} t={t} onUpgrade={handleUpgrade} onCancel={handleCancel} />
+          </div>
         </BlockStack>
         {showToast && <Toast content={t.toastMsg} onDismiss={() => setShowToast(false)} />}
       </Page>

@@ -6,8 +6,8 @@ import {
   Select, Checkbox, IndexTable, useIndexResourceState, Pagination,
 } from "@shopify/polaris";
 import {
-  SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon,
-  AlertCircleIcon, LockIcon,
+  SearchIcon, LanguageIcon, DeleteIcon, ViewIcon, PlusIcon, CheckCircleIcon, StarIcon,
+  AlertCircleIcon, LockIcon, DiamondIcon, ChartLineIcon,
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { triggerCloudConvert } from "../cloudconvert.server";
@@ -841,7 +841,7 @@ export default function ModelMappingDashboard() {
       <Page
         backAction={{ content: t.backBtn, onAction: () => navigate("/app" + window.location.search) }} 
         title={t.pageTitle}
-        subtitle={t.pageSubtitle}
+        subtitle=""
         primaryAction={{ content: t.syncBtn, icon: PlusIcon, onAction: handleSyncProducts, loading: isSyncing }}
         secondaryActions={
           <Popover active={popoverActive} activator={<Button onClick={() => setPopoverActive(!popoverActive)} icon={LanguageIcon} disclosure>{t.langName}</Button>} onClose={() => setPopoverActive(false)}>
@@ -914,7 +914,7 @@ export default function ModelMappingDashboard() {
               {inputModelUrl && inputModelUrl.toLowerCase().endsWith(".glb") && (
                 <BlockStack gap="300">
                   <InlineStack gap="100" blockAlign="center"><Icon source={ViewIcon} tone="info" /><Text variant="headingSm">{t.modalPreview}</Text></InlineStack>
-                  <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid #ddd', overflow: 'hidden' }}><model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }} /></Box>
+                  <Box background="bg-surface-secondary-active" borderRadius="300" minHeight="300px" style={{ border: '1px solid rgba(0,0,0,.08)', overflow: 'hidden', animation: 'scaleIn .4s ease-out' }}><model-viewer src={inputModelUrl} camera-controls auto-rotate ar shadow-intensity="1" environment-image="neutral" style={{ width: '100%', height: '300px', '--poster-color': 'transparent' }} /></Box>
                 </BlockStack>
               )}
             </BlockStack>

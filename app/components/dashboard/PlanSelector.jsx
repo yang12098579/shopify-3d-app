@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Box, BlockStack, InlineStack, Text, Card, Badge, Button, Divider, Icon, InlineGrid, ButtonGroup } from "@shopify/polaris";
-import { CheckCircleIcon } from "@shopify/polaris-icons";
+import { CheckCircleIcon, StarIcon } from "@shopify/polaris-icons";
 
 export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
   const [billingInterval, setBillingInterval] = useState("monthly");
@@ -10,7 +10,10 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
   return (
     <Box>
       <InlineStack align="space-between" blockAlign="center">
-        <Text variant="headingLg" as="h2" fontWeight="bold">{t.planSelectTitle}</Text>
+        <InlineStack gap="200" blockAlign="center">
+          <div style={{width:4,height:20,borderRadius:2,background:"linear-gradient(180deg,#f59e0b,#ef4444)"}} />
+          <Text variant="headingLg" as="h2" fontWeight="bold">{t.planSelectTitle}</Text>
+        </InlineStack>
         <Box maxWidth="220px">
           <ButtonGroup>
             <Button
@@ -44,6 +47,7 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
             activeLabel={t.statusActive}
             buttonLabel={isActive("free") ? t.btnCurrent : t.btnNA}
             disabled
+            delay={0}
           />
 
           {/* Growth Tier */}
@@ -62,6 +66,7 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
             ]}
             isActive={isActive("growth")}
             activeLabel={t.statusActive}
+            highlight
             buttonLabel={
               isActive("growth") ? t.btnCurrent
                 : currentPlan.startsWith("business") ? t.btnNA
@@ -70,6 +75,7 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
             buttonVariant="primary"
             disabled={isActive("growth")}
             onClick={() => onUpgrade(isAnnual ? "upgrade_growth_annual" : "upgrade_growth_monthly")}
+            delay={0.1}
           />
 
           {/* Business Tier */}
@@ -92,6 +98,7 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
             buttonVariant="primary"
             disabled={isActive("business")}
             onClick={() => onUpgrade(isAnnual ? "upgrade_business_annual" : "upgrade_business_monthly")}
+            delay={0.2}
           />
         </InlineGrid>
       </Box>
@@ -108,39 +115,53 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
   );
 }
 
-function PricingCard({ name, tone, price, period, trial, subtext, features, isActive, activeLabel, buttonLabel, buttonVariant, disabled, onClick }) {
-  const bg = isActive ? `bg-surface-${tone}-subdued` : "bg-surface";
+function PricingCard({ name, tone, price, period, trial, subtext, features, isActive, activeLabel, buttonLabel, buttonVariant, disabled, onClick, highlight, delay }) {
+  const bg = isActive ? "bg-surface-" + tone + "-subdued" : "bg-surface";
   return (
     <Card background={bg}>
-      <BlockStack gap="400">
-        <InlineStack align="space-between" blockAlign="center">
-          <Text variant="headingLg" fontWeight="bold" tone={tone}>{name}</Text>
-          {isActive && <Badge tone={tone}>{activeLabel}</Badge>}
-        </InlineStack>
-        <BlockStack gap="150">
-          {features.map((f, i) => (
-            <InlineGrid key={i} columns="auto 1fr" gap="150">
-              <Box width="16px" paddingBlockStart="050">
-                <Icon source={CheckCircleIcon} tone={f.ok ? tone : "critical"} />
-              </Box>
-              <Text fontWeight={f.bold ? "bold" : undefined} tone={f.ok ? undefined : "subdued"}>
-                {f.text}
-              </Text>
-            </InlineGrid>
-          ))}
+      <div style={{ animation: "scaleIn .5s ease-out " + (delay||0) + "s both" }}>
+        <BlockStack gap="400">
+          {highlight && (
+            <div style={{
+              position: "absolute", top: 0, left: 0, right: 0, height: 4,
+              background: "linear-gradient(90deg,#10b981,#3b82f6,#8b5cf6)",
+              borderRadius: "8px 8px 0 0",
+            }} />
+          )}
+          <InlineStack align="space-between" blockAlign="center">
+            <InlineStack gap="100" blockAlign="center">
+              {highlight && <Icon source={StarIcon} tone="success" />}
+              <Text variant="headingLg" fontWeight="bold" tone={tone}>{name}</Text>
+            </InlineStack>
+            {isActive && <Badge tone={tone} size="large">{activeLabel}</Badge>}
+          </InlineStack>
+          <BlockStack gap="150">
+            {features.map((f, i) => (
+              <InlineGrid key={i} columns="auto 1fr" gap="150">
+                <Box width="16px" paddingBlockStart="050">
+                  <Icon source={CheckCircleIcon} tone={f.ok ? tone : "critical"} />
+                </Box>
+                <Text fontWeight={f.bold ? "bold" : undefined} tone={f.ok ? undefined : "subdued"}>
+                  {f.text}
+                </Text>
+              </InlineGrid>
+            ))}
+          </BlockStack>
+          <Divider />
+          <BlockStack gap="050">
+            <Text variant="heading2xl" fontWeight="bold" tone={tone}>
+              {price} <Text variant="bodySm" tone="subdued" as="span">{period}</Text>
+            </Text>
+            {trial && <Text variant="bodyXs" tone="success">{trial}</Text>}
+            {subtext && <Text variant="bodyXs" tone="info">{subtext}</Text>}
+          </BlockStack>
+          <div style={{ animation: highlight ? "pulse-glow 2s ease-in-out infinite" : "none", borderRadius: 8 }}>
+            <Button fullWidth size="large" variant={buttonVariant || (highlight ? "primary" : undefined)} onClick={onClick} disabled={disabled}>
+              {buttonLabel}
+            </Button>
+          </div>
         </BlockStack>
-        <Divider />
-        <BlockStack gap="050">
-          <Text variant="heading2xl" fontWeight="bold" tone={tone}>
-            {price} <Text variant="bodySm" tone="subdued" as="span">{period}</Text>
-          </Text>
-          {trial && <Text variant="bodyXs" tone="success">{trial}</Text>}
-          {subtext && <Text variant="bodyXs" tone="info">{subtext}</Text>}
-        </BlockStack>
-        <Button fullWidth size="large" variant={buttonVariant} onClick={onClick} disabled={disabled}>
-          {buttonLabel}
-        </Button>
-      </BlockStack>
+      </div>
     </Card>
   );
 }
