@@ -8,10 +8,7 @@ import {
 } from "@shopify/shopify-app-react-router/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
-import { PLAN_PRO, PLAN_ENTERPRISE } from "./constants";
-
-
-
+import { PLAN_GROWTH_MONTHLY, PLAN_GROWTH_ANNUAL, PLAN_BUSINESS_MONTHLY, PLAN_BUSINESS_ANNUAL, PRICING } from "./constants";
 
 if (typeof process !== "undefined" && process.env) {
   process.env.NO_PROXY = "127.0.0.1,localhost";
@@ -28,31 +25,54 @@ const shopify = shopifyApp({
   distribution: AppDistribution.AppStore,
   
   billing: {
-    [PLAN_PRO]: {
+    [PLAN_GROWTH_MONTHLY]: {
       lineItems: [
-        // 1. 固定月费项目
         {
-          amount: 89.99,
+          amount: PRICING.GROWTH_MONTHLY,
           currencyCode: 'USD',
           interval: BillingInterval.Every30Days,
         },
-        // 2. 弹性按量计费项�?
         {
-          amount: 150.00, 
+          amount: 150.00,
           currencyCode: 'USD',
           interval: BillingInterval.Usage,
-          terms: "Vision3D Extra AR product preview ($1.99 per extra active model overage)",
+          terms: "Vision3D Extra AR product preview ($2.99 per extra active model overage)",
         }
       ],
-      trialDays: 0, 
       replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
     },
-    [PLAN_ENTERPRISE]: {
+    [PLAN_GROWTH_ANNUAL]: {
       lineItems: [
         {
-          amount: 89.99,
+          amount: PRICING.GROWTH_ANNUAL,
+          currencyCode: 'USD',
+          interval: BillingInterval.Annual,
+        },
+        {
+          amount: 150.00,
+          currencyCode: 'USD',
+          interval: BillingInterval.Usage,
+          terms: "Vision3D Extra AR product preview ($2.99 per extra active model overage)",
+        }
+      ],
+      replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
+    },
+    [PLAN_BUSINESS_MONTHLY]: {
+      lineItems: [
+        {
+          amount: PRICING.BUSINESS_MONTHLY,
           currencyCode: 'USD',
           interval: BillingInterval.Every30Days,
+        },
+      ],
+      replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
+    },
+    [PLAN_BUSINESS_ANNUAL]: {
+      lineItems: [
+        {
+          amount: PRICING.BUSINESS_ANNUAL,
+          currencyCode: 'USD',
+          interval: BillingInterval.Annual,
         },
       ],
       replacementBehavior: BillingReplacementBehavior.ApplyImmediately,
@@ -71,7 +91,7 @@ const shopify = shopifyApp({
   },
 
   future: {
-    expiringOfflineAccessTokens: true, // 💡 已经完美修复，去掉了多余的错�?
+    expiringOfflineAccessTokens: true,
   },
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
@@ -86,4 +106,3 @@ export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
 export const registerWebhooks = shopify.registerWebhooks;
 export const sessionStorage = shopify.sessionStorage;
-

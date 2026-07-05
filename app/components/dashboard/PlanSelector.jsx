@@ -1,12 +1,28 @@
-﻿import { Box, BlockStack, InlineStack, Text, Card, Badge, Button, Divider, Icon, InlineGrid } from "@shopify/polaris";
+import { useState } from "react";
+import { Box, BlockStack, InlineStack, Text, Card, Badge, Button, Divider, Icon, InlineGrid, SegmentedControl } from "@shopify/polaris";
 import { CheckCircleIcon } from "@shopify/polaris-icons";
 
 export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
+  const [billingInterval, setBillingInterval] = useState("monthly");
+  const isAnnual = billingInterval === "annual";
   const isActive = (plan) => currentPlan === plan || currentPlan.startsWith(plan);
 
   return (
     <Box>
-      <Text variant="headingLg" as="h2" fontWeight="bold">{t.planSelectTitle}</Text>
+      <InlineStack align="space-between" blockAlign="center">
+        <Text variant="headingLg" as="h2" fontWeight="bold">{t.planSelectTitle}</Text>
+        <Box maxWidth="220px">
+          <SegmentedControl
+            label="Billing cycle"
+            options={[
+              { label: t.billingMonthly, value: "monthly" },
+              { label: t.billingAnnual, value: "annual" },
+            ]}
+            selected={billingInterval}
+            onChange={(value) => setBillingInterval(value)}
+          />
+        </Box>
+      </InlineStack>
       <Box marginTop="400">
         <InlineGrid columns={{ xs: 1, md: 3 }} gap="500">
           {/* Free Tier */}
@@ -27,13 +43,13 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
             disabled
           />
 
-          {/* Pro Tier */}
+          {/* Growth Tier */}
           <PricingCard
             name={t.tierProName}
             tone="success"
-            price="$29.99"
-            period={t.tierProPrice}
-            trial={t.trialText}
+            price={isAnnual ? "$539.89" : "$49.99"}
+            period={isAnnual ? t.tierAnnualPrice : t.tierProPrice}
+            subtext={isAnnual ? t.annualSavings : t.trialText}
             features={[
               { text: t.tierProF1, ok: true, bold: true },
               { text: t.tierProF2, ok: true, bold: true },
@@ -41,25 +57,25 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
               { text: t.tierProF4, ok: true },
               { text: t.tierProF5, ok: true },
             ]}
-            isActive={isActive("pro")}
+            isActive={isActive("growth")}
             activeLabel={t.statusActive}
             buttonLabel={
-              isActive("pro") ? t.btnCurrent
-                : currentPlan.startsWith("enterprise") ? t.btnNA
+              isActive("growth") ? t.btnCurrent
+                : currentPlan.startsWith("business") ? t.btnNA
                 : t.btnUpgrade
             }
             buttonVariant="primary"
-            disabled={isActive("pro") }
-            onClick={() => onUpgrade("upgrade_growth")}
+            disabled={isActive("growth")}
+            onClick={() => onUpgrade(isAnnual ? "upgrade_growth_annual" : "upgrade_growth_monthly")}
           />
 
-          {/* Enterprise Tier */}
+          {/* Business Tier */}
           <PricingCard
             name={t.tierEntName}
             tone="info"
-            price="$49.99"
-            period={t.tierProPrice}
-            subtext={t.entNoTrial}
+            price={isAnnual ? "$863.89" : "$79.99"}
+            period={isAnnual ? t.tierAnnualPrice : t.tierProPrice}
+            subtext={isAnnual ? t.annualSavings : t.entNoTrial}
             features={[
               { text: t.tierEntF1, ok: true, bold: true },
               { text: t.tierEntF2, ok: true, bold: true },
@@ -67,17 +83,17 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
               { text: t.tierEntF4, ok: true },
               { text: t.tierEntF5, ok: true },
             ]}
-            isActive={isActive("enterprise")}
+            isActive={isActive("business")}
             activeLabel={t.statusActive}
-            buttonLabel={isActive("enterprise") ? t.btnCurrent : t.btnUpgradeEnt}
+            buttonLabel={isActive("business") ? t.btnCurrent : t.btnUpgradeEnt}
             buttonVariant="primary"
-            disabled={isActive("enterprise")}
-            onClick={() => onUpgrade("upgrade_business")}
+            disabled={isActive("business")}
+            onClick={() => onUpgrade(isAnnual ? "upgrade_business_annual" : "upgrade_business_monthly")}
           />
         </InlineGrid>
       </Box>
 
-      {(currentPlan === "pro" ) && (
+      {(currentPlan === "growth_monthly" || currentPlan === "growth_annual" || currentPlan === "business_monthly" || currentPlan === "business_annual") && (
         <Box padding="300" background="bg-surface-secondary" borderRadius="200" marginTop="300">
           <InlineStack align="space-between" blockAlign="center">
             <Text tone="subdued" variant="bodySm">{t.cancelHint}</Text>
@@ -89,7 +105,6 @@ export default function PlanSelector({ currentPlan, t, onUpgrade, onCancel }) {
   );
 }
 
-/** Reusable pricing card */
 function PricingCard({ name, tone, price, period, trial, subtext, features, isActive, activeLabel, buttonLabel, buttonVariant, disabled, onClick }) {
   const bg = isActive ? `bg-surface-${tone}-subdued` : "bg-surface";
   return (

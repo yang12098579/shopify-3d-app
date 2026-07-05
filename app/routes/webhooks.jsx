@@ -82,8 +82,8 @@ export const action = async ({ request }) => {
 
           let planLevelValue = "Basic Plan";
           if (status === "ACTIVE") {
-            if (name.includes("Professional")) planLevelValue = "Professional Plan";
-            if (name.includes("Enterprise")) planLevelValue = "Enterprise Plan";
+            if (name.includes("Growth")) planLevelValue = "Growth Plan";
+            if (name.includes("Business")) planLevelValue = "Business Plan";
           }
 
           let allowedProductsValue = "";

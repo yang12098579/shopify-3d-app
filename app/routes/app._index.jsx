@@ -9,7 +9,7 @@ import {
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server";
-import { PLAN_PRO, PLAN_ENTERPRISE } from "../constants"; 
+import { PLAN_GROWTH_MONTHLY, PLAN_GROWTH_ANNUAL, PLAN_BUSINESS_MONTHLY, PLAN_BUSINESS_ANNUAL, PRICING, QUOTA } from "../constants"; 
 
 import translations from "../locales/dashboard";
 
@@ -27,14 +27,21 @@ export const action = async ({ request }) => {
   let planPrice = 0.0;
   let trialDaysConfig = 0; 
 
-  if (intent === "upgrade_growth") {
-    planName = PLAN_PRO; 
-    planPrice = 89.99;
-    trialDaysConfig = 0; 
-  } else if (intent === "upgrade_business") {
-    planName = PLAN_ENTERPRISE; 
-    planPrice = 89.99;
-    trialDaysConfig = 0; 
+  let isAnnual = false;
+  if (intent === "upgrade_growth_monthly") {
+    planName = PLAN_GROWTH_MONTHLY;
+    planPrice = PRICING.GROWTH_MONTHLY;
+  } else if (intent === "upgrade_growth_annual") {
+    planName = PLAN_GROWTH_ANNUAL;
+    planPrice = PRICING.GROWTH_ANNUAL;
+    isAnnual = true;
+  } else if (intent === "upgrade_business_monthly") {
+    planName = PLAN_BUSINESS_MONTHLY;
+    planPrice = PRICING.BUSINESS_MONTHLY;
+  } else if (intent === "upgrade_business_annual") {
+    planName = PLAN_BUSINESS_ANNUAL;
+    planPrice = PRICING.BUSINESS_ANNUAL;
+    isAnnual = true;
   } else if (intent === "cancel") {
     const subscriptionId = formData.get("subscriptionId"); 
     const cancelRes = await admin.graphql(
@@ -59,13 +66,13 @@ export const action = async ({ request }) => {
       plan: { 
         appRecurringPricingDetails: { 
           price: { amount: planPrice, currencyCode: "USD" }, 
-          interval: "EVERY_30_DAYS" 
+          interval: isAnnual ? "ANNUAL" : "EVERY_30_DAYS" 
         } 
       } 
     }
   ];
 
-  if (intent === "upgrade_growth") {
+  if (intent === "upgrade_growth_monthly" || intent === "upgrade_growth_annual") {
     lineItemsPayload.push({
       plan: {
         appUsagePricingDetails: {
@@ -128,16 +135,22 @@ export const loader = async ({ request }) => {
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
     subscriptionId = activeSubs[0].id; 
     rawDate = activeSubs[0].currentPeriodEnd; 
-    if (activeSubs[0].name === PLAN_PRO) currentPlan = "pro";
-    if (activeSubs[0].name === PLAN_ENTERPRISE) currentPlan = "enterprise";
+    const subName = activeSubs[0].name;
+    if (subName.includes("Growth") && subName.includes("Annual")) currentPlan = "pro";
+    else if (subName.includes("Growth")) currentPlan = "pro";
+    else if (subName.includes("Business") && subName.includes("Annual")) currentPlan = "enterprise";
+    else if (subName.includes("Business")) currentPlan = "enterprise";
   } else {
     const cancelledSub = allSubsEdges.find(({ node }) => node.status === "CANCELLED");
     if (cancelledSub) {
       const periodEnd = new Date(cancelledSub.node.currentPeriodEnd);
       if (periodEnd > new Date()) {
         rawDate = periodEnd.toISOString(); 
-        if (cancelledSub.node.name === PLAN_PRO) currentPlan = "pro_cancelled";
-        if (cancelledSub.node.name === PLAN_ENTERPRISE) currentPlan = "enterprise_cancelled";
+        const cancelledName = cancelledSub.node.name;
+        if (cancelledName.includes("Growth") && cancelledName.includes("Annual")) currentPlan = "pro_cancelled";
+        else if (cancelledName.includes("Growth")) currentPlan = "pro_cancelled";
+        else if (cancelledName.includes("Business") && cancelledName.includes("Annual")) currentPlan = "enterprise_cancelled";
+        else if (cancelledName.includes("Business")) currentPlan = "enterprise_cancelled";
       }
     }
   }
@@ -277,7 +290,7 @@ export default function Index() {
 
   const getBannerConfig = () => {
     if (currentPlan === "pro") return { title: `${t.planPro} (${t.statusActive})`, tone: "success", msg: t.msgPro.replace("{date}", dateStr) };
-    if (currentPlan === "enterprise") return { title: `${t.planEnterprise} (${t.statusActive})`, tone: "success", msg: t.msgEnterprise.replace("{date}", dateStr) };
+    if (currentPlan === "business") return { title: `${t.planEnterprise} (${t.statusActive})`, tone: "success", msg: t.msgEnterprise.replace("{date}", dateStr) };
     if (currentPlan.endsWith("_cancelled")) return { title: t.statusEnding, tone: "critical", msg: t.msgCancelled.replace("{date}", dateStr) };
     return { title: t.planStarter, tone: "warning", msg: t.msgStarter };
   };

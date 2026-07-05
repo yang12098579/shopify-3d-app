@@ -83,13 +83,13 @@ const translations = {
     filterArActive: "AR Activated", 
     arToggleLabel: "Enable Mobile AR View",
     quotaBannerFree: "💡 Basic Free Plan: 3D Models mapped {modelCount} / 3. Mobile AR features are locked, upgrade to activate!",
-    quotaBannerPro: "⚡ Professional Plan: Your mobile AR quota is active. Currently used: ",
-    quotaBannerEnterprise: "💎 Enterprise Plan: Full-store AR unlocked with zero limits!",
+    quotaBannerPro: "⚡ Growth Plan: Your mobile AR quota is active. Currently used: ",
+    quotaBannerEnterprise: "💎 Business Plan: Full-store AR unlocked with zero limits!",
     limitModalTitle: "⚠️ AR Quota Limit Reached",
     limitModalTitleModel: "⚠️ 3D Model Limit Reached",
     limitModalFreeMsg: "You are currently on the Free Plan, which does not include AR features. Please go to the dashboard to upgrade your subscription.",
     limitModalFreeModelMsg: "You are currently on the Free Plan, which only allows up to 3 active 3D models. Please upgrade your subscription to unlock unlimited models.",
-    limitModalProMsg: "Your Professional Plan only allows up to 10 products to activate AR features, and all your spots are fully occupied!",
+    limitModalProMsg: "Your Growth Plan only allows up to 10 products to activate AR features, and all your spots are fully occupied!",
     limitModalBtn: "Go to Upgrade",
     perfTitle: "⚡ Asset Performance Analytics (AI)",
     perfGood: "Healthy file size (Recommended under 10MB for fast loading)",
@@ -135,14 +135,14 @@ export const action = async ({ request }) => {
   let usageLineItemId = null;
 
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
-    if (activeSubs[0].name.includes("Professional")) {
+    if (activeSubs[0].name.includes("Growth")) {
       currentPlan = "pro";
       const uItem = activeSubs[0].lineItems.find(item => 
         item.plan?.pricingDetails?.__typename === "AppUsagePricing"
       );
       usageLineItemId = uItem ? uItem.id : null; 
     }
-    if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
+    if (activeSubs[0].name.includes("Business")) currentPlan = "business";
   }
 
   if (actionType === "buy_slot") {
@@ -437,14 +437,14 @@ export const loader = async ({ request }) => {
   let usageLineItemId = null;
 
   if (activeSubs.length > 0 && activeSubs[0].status === "ACTIVE") {
-    if (activeSubs[0].name.includes("Professional")) {
+    if (activeSubs[0].name.includes("Growth")) {
       currentPlan = "pro";
       const uItem = activeSubs[0].lineItems.find(item => 
         item.plan?.pricingDetails?.__typename === "AppUsagePricing"
       );
       usageLineItemId = uItem ? uItem.id : null;
     }
-    if (activeSubs[0].name.includes("Enterprise")) currentPlan = "enterprise";
+    if (activeSubs[0].name.includes("Business")) currentPlan = "business";
   }
 
   const response = await admin.graphql(
