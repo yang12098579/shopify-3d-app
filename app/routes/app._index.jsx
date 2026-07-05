@@ -9,7 +9,8 @@ import {
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server"; 
 import prisma from "../db.server";
-import { PLAN_GROWTH_MONTHLY, PLAN_GROWTH_ANNUAL, PLAN_BUSINESS_MONTHLY, PLAN_BUSINESS_ANNUAL, PRICING, QUOTA } from "../constants"; 
+import { PLAN_GROWTH_MONTHLY, PLAN_GROWTH_ANNUAL, PLAN_BUSINESS_MONTHLY, PLAN_BUSINESS_ANNUAL, PRICING, QUOTA } from "../constants";
+import translations from "../locales/dashboard"; 
 
 
 export const action = async ({ request }) => {
