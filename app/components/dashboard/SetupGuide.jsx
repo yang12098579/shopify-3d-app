@@ -2,31 +2,28 @@ import { Box, BlockStack, InlineStack, Text, Badge, Button, Divider, Icon, Inlin
 import { MagicIcon, DatabaseIcon, AutomationIcon, CheckCircleIcon } from "@shopify/polaris-icons";
 import { useNavigate, useLocation } from "react-router";
 
-const stepStyles = [
-  { iconBg: "linear-gradient(135deg,#667eea,#764ba2)", glow: "rgba(102,126,234,.2)" },
-  { iconBg: "linear-gradient(135deg,#f093fb,#f5576c)", glow: "rgba(240,147,251,.2)" },
-  { iconBg: "linear-gradient(135deg,#43e97b,#38f9d7)", glow: "rgba(67,233,123,.2)" },
-];
+const stepIcon = {
+  width: 40, height: 40, borderRadius: 8,
+  background: "#f3f4f6", display: "flex",
+  alignItems: "center", justifyContent: "center",
+};
 
 export default function SetupGuide({ shop, currentPlan, t }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const steps = [
-    { title: t.step1, desc: t.step1Desc, icon: DatabaseIcon, num: "01" },
-    { title: t.step2, desc: t.step2Desc, icon: AutomationIcon, num: "02" },
-    { title: t.step3, desc: t.step3Desc, icon: MagicIcon, num: "03" },
+    { title: t.step1, desc: t.step1Desc, icon: DatabaseIcon },
+    { title: t.step2, desc: t.step2Desc, icon: AutomationIcon },
+    { title: t.step3, desc: t.step3Desc, icon: MagicIcon },
   ];
 
   return (
     <Box>
-      <BlockStack gap="400">
+      <BlockStack gap="500">
         <InlineStack align="space-between" blockAlign="center">
-          <InlineStack gap="200" blockAlign="center">
-            <div style={{width:4,height:20,borderRadius:2,background:"linear-gradient(180deg,#667eea,#764ba2)"}} />
-            <Text variant="headingMd" as="h2">{t.setupTitle}</Text>
-          </InlineStack>
-          <Badge tone={currentPlan !== "free" ? "success" : "attention"} size="large">
+          <Text variant="headingMd" as="h2" fontWeight="semibold">{t.setupTitle}</Text>
+          <Badge tone={currentPlan !== "free" ? "success" : "attention"}>
             <InlineStack gap="100" blockAlign="center">
               <Icon source={CheckCircleIcon} />
               {currentPlan !== "free" ? t.setupBadgeReady : t.setupBadgePending}
@@ -34,22 +31,15 @@ export default function SetupGuide({ shop, currentPlan, t }) {
           </Badge>
         </InlineStack>
 
-        <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
+        <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
           {steps.map((step, idx) => (
-            <Box key={idx} background="bg-surface-secondary" padding="400" borderRadius="300">
-              <BlockStack gap="150">
-                <InlineStack gap="200" align="start" blockAlign="center">
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 12,
-                    background: stepStyles[idx].iconBg,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    boxShadow: "0 4px 16px " + stepStyles[idx].glow,
-                  }}>
-                    <Icon source={step.icon} tone="base" />
-                  </div>
+            <Box key={idx} background="bg-surface-secondary" padding="400" borderRadius="200">
+              <BlockStack gap="300">
+                <InlineStack gap="200" blockAlign="center">
+                  <div style={stepIcon}><Icon source={step.icon} tone="base" /></div>
                   <BlockStack gap="050">
-                    <Text variant="bodyXs" tone="subdued" fontWeight="bold">STEP {step.num}</Text>
-                    <Text variant="headingSm" as="h3">{step.title}</Text>
+                    <Text variant="bodyXs" tone="subdued" fontWeight="medium">{"0" + (idx + 1)}</Text>
+                    <Text variant="headingSm" as="h3" fontWeight="semibold">{step.title}</Text>
                   </BlockStack>
                 </InlineStack>
                 <Text variant="bodySm" tone="subdued">{step.desc}</Text>
