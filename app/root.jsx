@@ -83,266 +83,70 @@ export default function App() {
 
 
 export function ErrorBoundary() {
-
-
   const error = useRouteError();
-
-
   const [shop, setShop] = useState("");
 
-
-
-
-
-  // 1. 判断是否掉线
-
+  // Get shop from URL synchronously (before any useEffect or render delay)
+  const getShopSync = () => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("shop") || (window.shopify?.config?.shop) || "";
+  };
 
   const isSessionExpired = 
-
-
-
-
     error?.status === 401 || 
-
-
     error?.status === 403 || 
-
-
     (error?.status === 401 && error?.message && error.message.includes("Unexpected token")) ||
-
-
     (error?.status === 401 && error?.message && error.message.includes("JSON"));
 
-
-
-
-
-  // 2. 🚨 核心修复：获取店铺信息，并执�?"_top" 顶级逃逸！
-
-
-  useEffect(() => {
-
-
-    if (typeof window === "undefined") return;
-
-
-
-
-
-    // 尝试�?URL 或�?Shopify 全局对象获取 shop 域名
-
-
-    const urlParams = new URLSearchParams(window.location.search);
-
-
-    let currentShop = urlParams.get("shop");
-
-
-    if (!currentShop && window.shopify?.config?.shop) {
-
-
-      currentShop = window.shopify.config.shop;
-
-
+  // Immediate redirect without waiting for render/useEffect
+  if (typeof window !== "undefined" && isSessionExpired) {
+    const currentShop = getShopSync();
+    if (currentShop) {
+      window.location.replace("/auth/login?shop=" + currentShop);
+      return null;
     }
-
-
-    
-
-
-    setShop(currentShop || "");
-
-
-
-
-
-    if (isSessionExpired && currentShop) {
-
-
-      const authUrl = `/auth/login?shop=${currentShop}`;
-
-
-      try {
-
-
-        // 绝杀招：绕开所有安全限制，强制顶层浏览器窗口跳转到登录页！
-
-
-        window.open(authUrl, "_top");
-
-
-      } catch (e) {
-
-
-        console.error("Top navigation failed:", e);
-
-
-      }
-
-
-    }
-
-
-  }, [isSessionExpired]);
-
-
-
-
-
-  // 如果判断为掉线，提供�?loading 的界面，并加上终极手动的 "_top" 逃逸按�?
-
-
-  if (isSessionExpired) {
-
-
-    const fallbackUrl = shop ? `/auth/login?shop=${shop}` : `/auth/login`;
-
-
-    return (
-
-
-      <html lang="en">
-
-
-        <head>
-
-
-          <Meta />
-
-
-          <Links />
-
-
-        </head>
-
-
-        <body>
-
-
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", fontFamily: "sans-serif", color: "#6d7175", flexDirection: "column", gap: "16px" }}>
-
-
-             <div style={{ width: '32px', height: '32px', border: '3px solid #f4f6f8', borderTop: '3px solid #202223', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-
-
-             <p>Session expired. Securing connection...</p>
-
-
-             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
-
-             
-
-
-             {/* 终极兜底：如果代码逃逸被浏览器插件拦截，用户只需点这个按钮，target="_top" 绝对生效�?*/}
-
-
-             <a 
-
-
-               href={fallbackUrl} 
-
-
-               target="_top" 
-
-
-               style={{ marginTop: '20px', padding: '10px 20px', background: '#000', color: '#fff', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold' }}
-
-
-             >
-
-
-               Click here to Reconnect
-
-
-             </a>
-
-
-          </div>
-
-
-          <Scripts />
-
-
-        </body>
-
-
-      </html>
-
-
-    );
-
-
   }
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const currentShop = getShopSync();
+    setShop(currentShop || "");
+    if (isSessionExpired && currentShop) {
+      window.location.replace("/auth/login?shop=" + currentShop);
+    }
+  }, [isSessionExpired]);
 
+  // Only show this if we truly can't recover
+  if (isSessionExpired) {
+    return (
+      <html lang="en">
+        <head><Meta /><Links /></head>
+        <body>
+          <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",fontFamily:"sans-serif",color:"#6d7175",flexDirection:"column",gap:"16px"}}>
+            <div style={{width:32,height:32,border:"3px solid #f4f6f8",borderTop:"3px solid #202223",borderRadius:"50%",animation:"spin 0.8s linear infinite"}} />
+            <p>Reconnecting to Shopify...</p>
+            <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
+            <a href={"/auth/login?shop=" + (shop || "")} target="_top" style={{marginTop:20,padding:"10px 20px",background:"#000",color:"#fff",borderRadius:"6px",textDecoration:"none",fontWeight:"bold"}}>Click to Reconnect</a>
+          </div>
+          <Scripts />
+        </body>
+      </html>
+    );
+  }
 
-
-
-  // 其他真正的代码报错兜�?
-
-
-  let safeErrorMessage = "Something went wrong. Please try again later.";
-
-
-  // Internal error details are logged server-side, never shown to users
-
-
+  // Real code errors
   console.error("Route error:", error?.status, error?.message);
-
-
-
-
-
   return (
-
-
     <html lang="en">
-
-
-      <head>
-
-
-        <title>Application Error</title>
-
-
-        <Meta />
-
-
-        <Links />
-
-
-      </head>
-
-
+      <head><title>Error</title><Meta /><Links /></head>
       <body>
-
-
-        <div style={{ padding: "40px", fontFamily: "sans-serif", textAlign: "center", color: "#202223" }}>
-
-
+        <div style={{padding:40,fontFamily:"sans-serif",textAlign:"center",color:"#202223"}}>
           <h2>Oops! Something went wrong.</h2>
-
-
-          <p style={{ color: "#6d7175", marginTop: "10px" }}>If the problem persists, please contact support.</p>
-
-
-          <p style={{ color: "#6d7175", maxWidth: "600px", margin: "10px auto", wordWrap: "break-word" }}>{safeErrorMessage}</p>
-
-
+          <p style={{color:"#6d7175",marginTop:10}}>If the problem persists, please contact support.</p>
         </div>
-
-
         <Scripts />
-
-
       </body>
-
-
     </html>
-
-
   );
-
-
 }
