@@ -32,18 +32,16 @@ export default function App() {
 export function ErrorBoundary() {
   const error = useRouteError();
   const [shop, setShop] = useState("");
-
-  const isSessionExpired = 
-    error?.status === 401 || 
-    error?.status === 403 || 
-    (error?.status === 401 && error?.message && (error.message.includes("Unexpected token") || error.message.includes("JSON")));
+  const [retrying, setRetrying] = useState(false);
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const currentShop = params.get("shop") || (window.shopify?.config?.shop) || "";
     setShop(currentShop);
-    if (isSessionExpired && currentShop) {
+
+    // For auth errors, redirect to login
+    if ((error?.status === 401 || error?.status === 403) && currentShop) {
       try {
         window.top.location.href = "/auth/login?shop=" + currentShop;
       } catch(e) {
@@ -52,33 +50,58 @@ export function ErrorBoundary() {
     }
   }, []);
 
-  if (isSessionExpired) {
-    return (
-      <html lang="en">
-        <head><Meta /><Links /></head>
-        <body>
-          <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",fontFamily:"system-ui,sans-serif",flexDirection:"column",gap:16}}>
-            <div style={{width:32,height:32,border:"3px solid #e5e7eb",borderTop:"3px solid #111",borderRadius:"50%",animation:"spin .6s linear infinite"}} />
-            <p style={{color:"#6b7280",fontSize:14}}>Reconnecting...</p>
-            <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
-          </div>
-          <Scripts />
-        </body>
-      </html>
-    );
+  const handleRetry = () => {
+    setRetrying(true);
+    // Navigate to dashboard which will trigger re-auth if needed
+    try {
+      window.location.href = "/app" + (shop ? "?shop=" + shop : "");
+    } catch(e) {
+      window.location.reload();
+    }
+  };
+
+  const isAuthError = error?.status === 401 || error?.status === 403;
+  
+  // Log for debugging
+  if (typeof window !== "undefined") {
+    console.error("[Vision3D ErrorBoundary]", { status: error?.status, message: error?.message, stack: error?.stack?.substring?.(0, 200) });
   }
 
-  console.error("Route error:", error?.status, error?.message);
   return (
     <html lang="en">
-      <head><title>Error</title><Meta /><Links /></head>
+      <head><Meta /><Links /></head>
       <body>
-        <div style={{padding:40,fontFamily:"system-ui,sans-serif",textAlign:"center",color:"#111"}}>
-          <h2 style={{fontSize:20,fontWeight:600}}>Oops! Something went wrong.</h2>
-          <p style={{color:"#6b7280",marginTop:8,fontSize:14}}>If the problem persists, please contact support.</p>
+        <div style={{display:"flex",justifyContent:"center",alignItems:"center",height:"100vh",fontFamily:"system-ui,sans-serif",flexDirection:"column",gap:20,padding:20,textAlign:"center"}}>
+          {isAuthError ? (
+            <>
+              <div style={{width:32,height:32,border:"3px solid #e5e7eb",borderTop:"3px solid #111",borderRadius:"50%",animation:"spin .6s linear infinite"}} />
+              <p style={{color:"#6b7280",fontSize:14,margin:0}}>Reconnecting to Shopify...</p>
+            </>
+          ) : (
+            <>
+              <div style={{fontSize:40}}>{"\u26a0\ufe0f"}</div>
+              <h2 style={{fontSize:20,fontWeight:600,color:"#111",margin:0}}>Connection interrupted</h2>
+              <p style={{color:"#6b7280",fontSize:14,margin:0,maxWidth:320}}>
+                The server connection was lost. This usually happens when the app has been idle for a while. Click below to reconnect.
+              </p>
+              <button
+                onClick={handleRetry}
+                disabled={retrying}
+                style={{
+                  marginTop:8, padding:"10px 28px", background:"#111", color:"#fff",
+                  border:"none", borderRadius:8, fontSize:14, fontWeight:600, cursor:"pointer",
+                  opacity: retrying ? 0.6 : 1,
+                }}
+              >
+                {retrying ? "Reconnecting..." : "Reconnect"}
+              </button>
+            </>
+          )}
+          <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
         </div>
         <Scripts />
       </body>
     </html>
   );
 }
+
