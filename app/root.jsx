@@ -2,6 +2,36 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from "
 import { useEffect, useLayoutEffect, useState } from "react";
 
 export default function App() {
+  // Keep-alive: prevents Vercel serverless cold starts
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    // Ping every 60 seconds to keep server warm
+    const keepAlive = setInterval(() => {
+      fetch("/auth", { method: "HEAD" }).catch(() => {});
+    }, 60_000);
+    
+    // Auto-retry failed navigations (handles first-click-after-idle failures)
+    let retryCount = 0;
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+      return originalFetch.apply(this, args).catch(err => {
+        if (retryCount < 1 && (err.message?.includes("fetch") || err.message?.includes("network") || err.message?.includes("timeout"))) {
+          retryCount++;
+          return new Promise(resolve => setTimeout(resolve, 1000)).then(() => {
+            return originalFetch.apply(this, args);
+          });
+        }
+        throw err;
+      });
+    };
+
+    return () => {
+      clearInterval(keepAlive);
+      window.fetch = originalFetch;
+    };
+  }, []);
+
   return (
     <html lang="en">
       <head>

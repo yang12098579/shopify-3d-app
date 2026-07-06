@@ -24,7 +24,7 @@ export const action = async ({ request }) => {
 
   let planName = "";
   let planPrice = 0.0;
-  let trialDaysConfig = 0; 
+  let trialDaysConfig = 1; 
 
   let isAnnual = false;
   if (intent === "upgrade_growth_monthly") {
