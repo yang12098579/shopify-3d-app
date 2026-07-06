@@ -6,29 +6,27 @@ export default function App() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     
-    // Ping every 60 seconds to keep server warm
-    const keepAlive = setInterval(() => {
-      fetch("/auth", { method: "HEAD" }).catch(() => {});
-    }, 60_000);
+    const ping = () => fetch("/auth", { method: "HEAD" }).catch(() => {});
     
-    // Auto-retry failed navigations (handles first-click-after-idle failures)
-    let retryCount = 0;
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-      return originalFetch.apply(this, args).catch(err => {
-        if (retryCount < 1 && (err.message?.includes("fetch") || err.message?.includes("network") || err.message?.includes("timeout"))) {
-          retryCount++;
-          return new Promise(resolve => setTimeout(resolve, 1000)).then(() => {
-            return originalFetch.apply(this, args);
-          });
-        }
-        throw err;
-      });
+    // Ping every 30 seconds
+    const keepAlive = setInterval(ping, 30_000);
+    
+    // Ping when tab becomes visible (user switches back)
+    const onVisible = () => {
+      if (document.visibilityState === "visible") ping();
     };
+    document.addEventListener("visibilitychange", onVisible);
+    
+    // Pre-warm before navigation clicks
+    const onMouseEnter = () => {
+      ping();
+      document.removeEventListener("mouseenter", onMouseEnter);
+    };
+    document.addEventListener("mouseenter", onMouseEnter, { once: true });
 
     return () => {
       clearInterval(keepAlive);
-      window.fetch = originalFetch;
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -62,7 +60,8 @@ export default function App() {
 export function ErrorBoundary() {
   const error = useRouteError();
   const [shop, setShop] = useState("");
-  const [retrying, setRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
 
   useLayoutEffect(() => {
     if (typeof window === "undefined") return;
@@ -70,31 +69,31 @@ export function ErrorBoundary() {
     const currentShop = params.get("shop") || (window.shopify?.config?.shop) || "";
     setShop(currentShop);
 
-    // For auth errors, redirect to login
+    // Auth errors: redirect to login immediately
     if ((error?.status === 401 || error?.status === 403) && currentShop) {
       try {
         window.top.location.href = "/auth/login?shop=" + currentShop;
       } catch(e) {
         window.location.href = "/auth/login?shop=" + currentShop;
       }
+      return;
     }
-  }, []);
 
-  const handleRetry = () => {
-    setRetrying(true);
-    // Navigate to dashboard which will trigger re-auth if needed
-    try {
-      window.location.href = "/app" + (shop ? "?shop=" + shop : "");
-    } catch(e) {
-      window.location.reload();
+    // Other errors: auto-retry with backoff
+    if (retryCount < maxRetries) {
+      const delay = 1000 * Math.pow(2, retryCount); // 1s, 2s, 4s
+      const timer = setTimeout(() => {
+        setRetryCount(c => c + 1);
+        window.location.reload();
+      }, delay);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [retryCount]);
 
   const isAuthError = error?.status === 401 || error?.status === 403;
   
-  // Log for debugging
   if (typeof window !== "undefined") {
-    console.error("[Vision3D ErrorBoundary]", { status: error?.status, message: error?.message, stack: error?.stack?.substring?.(0, 200) });
+    console.error("[Vision3D]", { status: error?.status, msg: String(error?.message).substring(0, 200), retry: retryCount });
   }
 
   return (
@@ -105,26 +104,22 @@ export function ErrorBoundary() {
           {isAuthError ? (
             <>
               <div style={{width:32,height:32,border:"3px solid #e5e7eb",borderTop:"3px solid #111",borderRadius:"50%",animation:"spin .6s linear infinite"}} />
-              <p style={{color:"#6b7280",fontSize:14,margin:0}}>Reconnecting to Shopify...</p>
+              <p style={{color:"#6b7280",fontSize:14,margin:0}}>Reconnecting...</p>
+            </>
+          ) : retryCount < maxRetries ? (
+            <>
+              <div style={{width:32,height:32,border:"3px solid #e5e7eb",borderTop:"3px solid #111",borderRadius:"50%",animation:"spin .6s linear infinite"}} />
+              <p style={{color:"#6b7280",fontSize:14,margin:0}}>Waking up server... ({(retryCount + 1) + "/" + maxRetries})</p>
             </>
           ) : (
             <>
               <div style={{fontSize:40}}>{"\u26a0\ufe0f"}</div>
               <h2 style={{fontSize:20,fontWeight:600,color:"#111",margin:0}}>Connection interrupted</h2>
-              <p style={{color:"#6b7280",fontSize:14,margin:0,maxWidth:320}}>
-                The server connection was lost. This usually happens when the app has been idle for a while. Click below to reconnect.
-              </p>
+              <p style={{color:"#6b7280",fontSize:14,margin:0,maxWidth:320}}>Unable to reach the server. Please try again.</p>
               <button
-                onClick={handleRetry}
-                disabled={retrying}
-                style={{
-                  marginTop:8, padding:"10px 28px", background:"#111", color:"#fff",
-                  border:"none", borderRadius:8, fontSize:14, fontWeight:600, cursor:"pointer",
-                  opacity: retrying ? 0.6 : 1,
-                }}
-              >
-                {retrying ? "Reconnecting..." : "Reconnect"}
-              </button>
+                onClick={() => { setRetryCount(0); window.location.reload(); }}
+                style={{marginTop:8,padding:"10px 28px",background:"#111",color:"#fff",border:"none",borderRadius:8,fontSize:14,fontWeight:600,cursor:"pointer"}}
+              >Reconnect</button>
             </>
           )}
           <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
